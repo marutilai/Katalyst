@@ -17,29 +17,23 @@ def format_response(question: str, answer: str) -> str:
 
 
 @katalyst_tool
-def ask_followup_question(arguments: Dict) -> str:
+def ask_followup_question(question: str, follow_up: list) -> str:
     """
     Asks the user a follow-up question to gather more information, providing suggested answers.
-    Expects arguments to contain:
-      - 'question': str
-      - 'follow_up': list of suggested answers (each as a string)
+    Parameters:
+      - question: str (the question to ask the user)
+      - follow_up: list of suggested answers (each as a string)
     Returns the user's answer as a string (either a suggestion or a custom answer), formatted with XML-style tags.
     """
     logger = get_logger()
-    logger.info(f"Entered ask_followup_question with arguments: {arguments}")
+    logger.info(f"Entered ask_followup_question with question: {question}, follow_up: {follow_up}")
 
-    # Extract question and follow-up suggestions from arguments
-    question = arguments.get('question')
-    follow_up = arguments.get('follow_up')
-
-    # Validate required arguments
-    if not question:
-        logger.error("No 'question' provided to ask_followup_question.")
-        return format_response("[ERROR] No question provided.", "")
-    
+    if not question or not isinstance(question, str):
+        logger.error("No valid 'question' provided to ask_followup_question.")
+        return "[ERROR] No question provided."
     if not follow_up or not isinstance(follow_up, list):
         logger.error("No valid 'follow_up' suggestions provided to ask_followup_question.")
-        return format_response(question, "[ERROR] No follow-up suggestions provided.")
+        return "[ERROR] No follow-up suggestions provided."
 
     # Add explicit custom answer option
     manual_answer_prompt = "Let me enter my own answer"
@@ -65,7 +59,7 @@ def ask_followup_question(arguments: Dict) -> str:
                 answer = input(f"\n{question}: ").strip()
                 if not answer:
                     logger.error("User did not provide a custom answer.")
-                    return format_response(question, "[ERROR] No answer provided.")
+                    return f"[ERROR] No answer provided."
             logger.info(f"User selected: {answer}")
             logger.info("Exiting ask_followup_question")
             return format_response(question, answer)
@@ -73,7 +67,7 @@ def ask_followup_question(arguments: Dict) -> str:
     answer = user_input
     if not answer:
         logger.error("User did not provide any answer.")
-        return format_response(question, "[ERROR] No answer provided.")
+        return f"[ERROR] No answer provided."
     logger.info(f"User provided custom answer: {answer}")
     logger.info("Exiting ask_followup_question")
     return format_response(question, answer)

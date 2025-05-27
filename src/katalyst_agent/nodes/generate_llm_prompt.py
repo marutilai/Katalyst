@@ -7,12 +7,14 @@ from langchain_core.messages import (
 from typing import List
 from katalyst_agent.utils.logger import get_logger
 from katalyst_agent.prompts.system import get_system_prompt
+import copy
 
 
 def generate_llm_prompt(state: KatalystAgentState) -> KatalystAgentState:
     logger = get_logger()
-    logger.info(f"Entered generate_llm_prompt with state: {state}")
-    
+    logger.info(f"Entered generate_llm_prompt (iteration {getattr(state, 'current_iteration', '?')})")
+    logger.debug(f"State: {state}")
+    state_before = copy.deepcopy(state)
     # These are the new messages for *this specific turn*
     current_turn_messages: List[BaseMessage] = []
 
@@ -62,5 +64,10 @@ def generate_llm_prompt(state: KatalystAgentState) -> KatalystAgentState:
     state.tool_output = None
     state.error_message = None
     state.user_feedback = None
-    logger.info(f"Exiting generate_llm_prompt with updated state.")
+    # Log only changed fields
+    changed = {k: v for k, v in state.__dict__.items() if getattr(state_before, k, None) != v}
+    if changed:
+        logger.info(f"generate_llm_prompt changed state: {changed}")
+    logger.info(f"Exiting generate_llm_prompt (iteration {getattr(state, 'current_iteration', '?')})")
     return state
+ 

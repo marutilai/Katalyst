@@ -25,21 +25,17 @@ def load_gitignore_patterns(path: str):
     return None
 
 @katalyst_tool
-def list_files(arguments: Dict) -> str:
+def list_files(path: str, recursive: bool, respect_gitignore: bool = True) -> str:
     """
     Lists files and directories within a given path, with options for recursion and respecting .gitignore.
     Arguments:
-      - path: str (optional, default is current directory)
-      - recursive: bool (optional, default False)
-      - respect_gitignore: bool (optional, default False)
+      - path: str (directory to list)
+      - recursive: bool (True for recursive, False for top-level only)
+      - respect_gitignore: bool (default True)
     Returns a string listing the files and directories found.
     """
     logger = get_logger()
-    logger.info(f"Entered list_files with arguments: {arguments}")
-
-    path = arguments.get('path', '.')
-    recursive = arguments.get('recursive', False)
-    respect_gitignore = arguments.get('respect_gitignore', False)
+    logger.info(f"DEBUG list_files CALLED WITH: path='{path}' (type: {type(path)}), recursive='{recursive}' (type: {type(recursive)}), respect_gitignore='{respect_gitignore}' (type: {type(respect_gitignore)})")
 
     if not os.path.exists(path):
         logger.error(f"Path does not exist: {path}")
@@ -59,7 +55,6 @@ def list_files(arguments: Dict) -> str:
             rel_root = os.path.relpath(root, path)
             # Filter dirs and files using pathspec if enabled
             if spec:
-                # Remove ignored dirs in-place
                 dirs[:] = [d for d in dirs if not spec.match_file(os.path.join(rel_root, d))]
                 files = [f for f in files if not spec.match_file(os.path.join(rel_root, f))]
             for name in dirs:

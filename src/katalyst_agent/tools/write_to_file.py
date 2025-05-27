@@ -28,22 +28,20 @@ def check_syntax(content: str, file_extension: str) -> str:
     return ""
 
 @katalyst_tool
-def write_to_file(arguments: Dict, mode: str, auto_approve: bool = False) -> str:
+def write_to_file(path: str, content: str, mode: str, auto_approve: bool = False) -> str:
     """
     Writes full content to a file, overwriting if it exists, creating it if it doesn't. Checks syntax before writing for Python files.
     Arguments:
-      - arguments: Dict with 'path' (str) and 'content' (str)
+      - path: str (file path to write)
+      - content: str (the content to write)
       - mode: str ("architect" or "code")
       - auto_approve: bool (if False, ask for confirmation before writing)
     Returns a string indicating success or error.
     """
     logger = get_logger()
     logger.info(
-        f"Entered write_to_file with arguments: {arguments}, mode: {mode}, auto_approve: {auto_approve}"
+        f"Entered write_to_file with path={path}, content=<omitted>, mode={mode}, auto_approve={auto_approve}"
     )
-
-    path = arguments.get('path')
-    content = arguments.get('content')
 
     if not path or not isinstance(path, str):
         logger.error("No valid 'path' provided to write_to_file.")
@@ -95,3 +93,4 @@ def write_to_file(arguments: Dict, mode: str, auto_approve: bool = False) -> str
         return f"[ERROR] Could not write to file {abs_path}: {e}"
 
     logger.info("Exiting write_to_file")
+ 

@@ -2,6 +2,7 @@ from typing import Any, Dict, Union
 from pydantic import ValidationError
 from katalyst_agent.state import KatalystAgentState
 from katalyst_agent.utils.logger import get_logger
+import copy
 
 
 def initialize_katalyst_run(initial_state: Union[Dict[str, Any], KatalystAgentState]) -> KatalystAgentState:
@@ -10,10 +11,14 @@ def initialize_katalyst_run(initial_state: Union[Dict[str, Any], KatalystAgentSt
     Populates required fields, initializes chat_history and current_iteration, and sets optional fields to defaults/None.
     """
     logger = get_logger()
-    logger.info(f"Entered initialize_katalyst_run with input: {initial_state}")
+    # Print iteration number (0 for initialization)
+    logger.info(f"Entered initialize_katalyst_run (iteration 0)")
+    logger.debug(f"State: {initial_state}")
+    state_before = None
     # If already a KatalystAgentState, just return it
     if isinstance(initial_state, KatalystAgentState):
-        logger.info("Input is already a KatalystAgentState, returning as is.")
+        logger.debug("Input is already a KatalystAgentState, returning as is.")
+        logger.info("Exiting initialize_katalyst_run (iteration 0)")
         return initial_state
     try:
         state = KatalystAgentState(
@@ -28,5 +33,8 @@ def initialize_katalyst_run(initial_state: Union[Dict[str, Any], KatalystAgentSt
         )
     except ValidationError as e:
         raise ValueError(f"Invalid initial state for KatalystAgentState: {e}")
-    logger.info(f"Exiting initialize_katalyst_run with state: {state}")
+    # Log only changed fields (all fields, since this is initialization)
+    logger.info(f"initialize_katalyst_run set state: {state.dict()}")
+    logger.info("Exiting initialize_katalyst_run (iteration 0)")
     return state
+ 

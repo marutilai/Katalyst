@@ -1,81 +1,111 @@
+# src/katalyst_agent/nodes/execute_tool.py
 from katalyst_agent.state import KatalystAgentState
-from typing import Callable, Any, Dict, Tuple
-import importlib
-import sys
-import os
+from typing import Callable, Any, Dict
+import inspect
 from katalyst_agent.utils.logger import get_logger
+from katalyst_agent.utils.tools import get_tool_functions_map
+import copy
 
-# Map tool invocation names to (module, function_name)
-TOOL_SPECS = {
-    "list_files": ("list_files", "list_files"),
-    "ask_followup_question": ("ask_followup_question", "ask_followup_question"),
-    "list_code_definitions": ("list_code_definitions", "list_code_definition_names"),
-    "read_file": ("read_file", "read_file"),
-    "search_files": ("search_files", "regex_search_files"),
-    "write_to_file": ("write_to_file", "write_to_file"),
-    "apply_diff": ("apply_diff", "apply_diff"),
-    "execute_command": ("execute_command", "execute_command"),
-}
+logger = get_logger()
 
-TOOL_REGISTRY: Dict[str, Callable] = {}
-
-TOOLS_PATH = os.path.dirname(__file__).replace("nodes", "tools")
-if TOOLS_PATH not in sys.path:
-    sys.path.insert(0, TOOLS_PATH)
-
-for tool_name, (module_name, func_name) in TOOL_SPECS.items():
-    try:
-        module = importlib.import_module(f"katalyst_agent.tools.{module_name}")
-        func = getattr(module, func_name)
-        TOOL_REGISTRY[tool_name] = func
-    except Exception as e:
-        print(f"Failed to import tool {tool_name}: {e}")
+# Build the TOOL_REGISTRY from the functions map
+TOOL_REGISTRY: Dict[str, Callable] = get_tool_functions_map()
+if not TOOL_REGISTRY:
+    logger.warning("TOOL_REGISTRY is empty. Check tool definitions and @katalyst_tool decorator in tools/*.py.")
+else:
+    logger.info(f"TOOL_REGISTRY loaded with tools: {list(TOOL_REGISTRY.keys())}")
 
 
 def execute_tool(state: KatalystAgentState) -> KatalystAgentState:
-    logger = get_logger()
-    logger.info(f"Entered execute_tool with state: {state}")
-    """
-    Executes the tool specified in parsed_tool_call and updates the state.
-    """
-    if not state.parsed_tool_call:
+    logger.info(f"Entered execute_tool (iteration {getattr(state, 'current_iteration', '?')})")
+    logger.debug(f"State: {state}")
+    state_before = copy.deepcopy(state)
+
+    if not state.parsed_tool_call or not isinstance(state.parsed_tool_call, dict):
+        logger.warning("execute_tool: No valid parsed_tool_call found in state.")
         state.tool_output = None
         state.user_feedback = None
-        state.error_message = None
+        state.error_message = "Internal error: execute_tool was called without a parsed tool."
+        changed = {k: v for k, v in state.__dict__.items() if getattr(state_before, k, None) != v}
+        if changed:
+            logger.info(f"execute_tool changed state: {changed}")
+        logger.info(f"Exiting execute_tool (iteration {getattr(state, 'current_iteration', '?')})")
         return state
 
     tool_name = state.parsed_tool_call.get("tool_name")
-    tool_args = state.parsed_tool_call.get("args", {})
+    tool_xml_args = state.parsed_tool_call.get("args", {})
     tool_fn = TOOL_REGISTRY.get(tool_name)
 
     if not tool_fn:
+        logger.error(f"Tool '{tool_name}' not found in TOOL_REGISTRY.")
         state.tool_output = None
         state.user_feedback = None
-        state.error_message = f"Tool '{tool_name}' not found."
+        state.error_message = f"Tool '{tool_name}' not found in registry."
         state.parsed_tool_call = None
+        changed = {k: v for k, v in state.__dict__.items() if getattr(state_before, k, None) != v}
+        if changed:
+            logger.info(f"execute_tool changed state: {changed}")
+        logger.info(f"Exiting execute_tool (iteration {getattr(state, 'current_iteration', '?')})")
         return state
 
     try:
-        # Try calling with all possible signatures
-        try:
-            result = tool_fn(tool_args, state.current_mode, state.auto_approve)
-        except TypeError:
-            try:
-                result = tool_fn(tool_args, state.auto_approve)
-            except TypeError:
-                result = tool_fn(tool_args)
-        # If the tool returns a tuple, unpack it
-        if isinstance(result, tuple):
-            result_string_for_llm, user_feedback_string_or_none = result
+        logger.info(f"Preparing to execute tool: {tool_name} with XML args: {tool_xml_args}")
+        call_kwargs = {}
+        sig = inspect.signature(tool_fn)
+        tool_func_params = sig.parameters
+
+        for param_name_in_signature, param_obj_in_signature in tool_func_params.items():
+            if param_name_in_signature in tool_xml_args:
+                xml_value_str = tool_xml_args[param_name_in_signature]
+                # Type Conversion from XML string to Python type
+                if param_obj_in_signature.annotation == bool:
+                    call_kwargs[param_name_in_signature] = str(xml_value_str).lower() == 'true'
+                elif param_obj_in_signature.annotation == int:
+                    try:
+                        call_kwargs[param_name_in_signature] = int(xml_value_str)
+                    except ValueError:
+                        logger.error(f"Type conversion error for tool '{tool_name}', param '{param_name_in_signature}'. Expected int, got '{xml_value_str}'.")
+                        raise ValueError(f"Tool '{tool_name}' expected integer for parameter '{param_name_in_signature}', but received '{xml_value_str}'.")
+                elif param_obj_in_signature.annotation == list and tool_name == "ask_followup_question" and param_name_in_signature == "follow_up":
+                    # Special handling for ask_followup_question's 'follow_up' if it's expected as a list by the tool
+                    # The XML parser gives a string of <suggest> tags. The tool needs to parse this.
+                    # For now, we pass the raw string from XML. The tool itself will parse nested <suggest> tags.
+                    call_kwargs[param_name_in_signature] = xml_value_str
+                else:
+                    call_kwargs[param_name_in_signature] = xml_value_str
+            elif param_name_in_signature == 'mode':
+                call_kwargs['mode'] = state.current_mode
+            elif param_name_in_signature == 'auto_approve':
+                call_kwargs['auto_approve'] = state.auto_approve
+
+        logger.info(f"Execute tool about to call: {tool_name} with processed kwargs: {call_kwargs}")
+        # All tools now return a single string
+        result_string = tool_fn(**call_kwargs)
+        state.tool_output = result_string
+
+        # Check if the result_string indicates user denial to populate user_feedback for clarity
+        if result_string and "[USER_DENIAL]" in result_string and "<instruction>" in result_string:
+            state.user_feedback = result_string
         else:
-            result_string_for_llm, user_feedback_string_or_none = result, None
-        state.tool_output = result_string_for_llm
-        state.user_feedback = user_feedback_string_or_none
+            state.user_feedback = None
+
         state.error_message = None
-    except Exception as e:
+        logger.info(f"Tool '{tool_name}' executed. Output (first 200 chars): {str(state.tool_output)[:200]}")
+
+    except TypeError as te:
+        logger.error(f"TypeError calling tool '{tool_name}'. Prepared kwargs: {call_kwargs}. XML args from LLM: {tool_xml_args}. Error: {te}")
+        state.error_message = f"Error calling tool '{tool_name}': Incorrect or missing arguments expected by the tool's Python function. Details: {te}"
         state.tool_output = None
         state.user_feedback = None
-        state.error_message = f"Tool '{tool_name}' execution failed: {e}"
+    except Exception as e:
+        logger.exception(f"Tool '{tool_name}' execution failed unexpectedly during call or processing.")
+        state.error_message = f"Tool '{tool_name}' encountered an unexpected error during execution: {str(e)}"
+        state.tool_output = None
+        state.user_feedback = None
+
     state.parsed_tool_call = None
-    logger.info(f"Exiting execute_tool with updated state.")
+    changed = {k: v for k, v in state.__dict__.items() if getattr(state_before, k, None) != v}
+    if changed:
+        logger.info(f"execute_tool changed state: {changed}")
+    logger.info(f"Exiting execute_tool (iteration {getattr(state, 'current_iteration', '?')})")
     return state
