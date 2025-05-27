@@ -1,0 +1,17 @@
+[project]
+name = "Katalyst"
+version = "0.1.0"
+description = "Terminal based coding agent"
+requires-python = ">=3.12"
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta" 
+
+[tool.poetry.dependencies]
+openai = "^1.82.0"
+langgraph = "^0.4.5"
+langchain-core = "^0.3.61"
+dotenv = "^0.9.9"
+langchain-openai = "^0.3.18"
+pathspec = "^0.12.1"

@@ -1,0 +1,87 @@
+from typing import Dict
+from katalyst_agent.utils.logger import get_logger
+from katalyst_agent.utils.tools import katalyst_tool
+import os
+from pathlib import Path
+
+try:
+    import pathspec
+except ImportError:
+    pathspec = None  # Will error if used without install
+
+
+def load_gitignore_patterns(path: str):
+    """
+    Loads .gitignore patterns from the given path using pathspec.
+    Returns a PathSpec object or None if not available.
+    """
+    patterns = []
+    gitignore_path = os.path.join(path, '.gitignore')
+    if os.path.exists(gitignore_path):
+        with open(gitignore_path, 'r') as f:
+            patterns = f.read().splitlines()
+    if patterns:
+        return pathspec.PathSpec.from_lines("gitwildmatch", patterns)
+    return None
+
+@katalyst_tool
+def list_files(arguments: Dict) -> str:
+    """
+    Lists files and directories within a given path, with options for recursion and respecting .gitignore.
+    Arguments:
+      - path: str (optional, default is current directory)
+      - recursive: bool (optional, default False)
+      - respect_gitignore: bool (optional, default False)
+    Returns a string listing the files and directories found.
+    """
+    logger = get_logger()
+    logger.info(f"Entered list_files with arguments: {arguments}")
+
+    path = arguments.get('path', '.')
+    recursive = arguments.get('recursive', False)
+    respect_gitignore = arguments.get('respect_gitignore', False)
+
+    if not os.path.exists(path):
+        logger.error(f"Path does not exist: {path}")
+        return f"[ERROR] Path does not exist: {path}"
+
+    result = []
+    spec = None
+    if respect_gitignore:
+        try:
+            spec = load_gitignore_patterns(path)
+        except Exception as e:
+            logger.error(f"Error loading .gitignore: {e}")
+            return f"[ERROR] Could not load .gitignore: {e}"
+
+    if recursive:
+        for root, dirs, files in os.walk(path):
+            rel_root = os.path.relpath(root, path)
+            # Filter dirs and files using pathspec if enabled
+            if spec:
+                # Remove ignored dirs in-place
+                dirs[:] = [d for d in dirs if not spec.match_file(os.path.join(rel_root, d))]
+                files = [f for f in files if not spec.match_file(os.path.join(rel_root, f))]
+            for name in dirs:
+                result.append(os.path.normpath(os.path.join(rel_root, name)) + '/')
+            for name in files:
+                result.append(os.path.normpath(os.path.join(rel_root, name)))
+    else:
+        try:
+            entries = os.listdir(path)
+            if spec:
+                entries = [e for e in entries if not spec.match_file(e)]
+            for entry in entries:
+                full_path = os.path.join(path, entry)
+                if os.path.isdir(full_path):
+                    result.append(entry + '/')
+                else:
+                    result.append(entry)
+        except Exception as e:
+            logger.error(f"Error listing files in {path}: {e}")
+            return f"[ERROR] Could not list files in {path}: {e}"
+
+    logger.info(f"Exiting list_files with {len(result)} entries.")
+    if not result:
+        return f"No files or directories found in {path}."
+    return '\n'.join(result)

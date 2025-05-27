@@ -1,0 +1,32 @@
+from typing import Any, Dict, Union
+from pydantic import ValidationError
+from katalyst_agent.state import KatalystAgentState
+from katalyst_agent.utils.logger import get_logger
+
+
+def initialize_katalyst_run(initial_state: Union[Dict[str, Any], KatalystAgentState]) -> KatalystAgentState:
+    """
+    Initializes the KatalystAgentState for a new run using the Pydantic model.
+    Populates required fields, initializes chat_history and current_iteration, and sets optional fields to defaults/None.
+    """
+    logger = get_logger()
+    logger.info(f"Entered initialize_katalyst_run with input: {initial_state}")
+    # If already a KatalystAgentState, just return it
+    if isinstance(initial_state, KatalystAgentState):
+        logger.info("Input is already a KatalystAgentState, returning as is.")
+        return initial_state
+    try:
+        state = KatalystAgentState(
+            task=initial_state.get("task"),
+            current_mode=initial_state.get("current_mode"),
+            llm_provider=initial_state.get("llm_provider"),
+            llm_model_name=initial_state.get("llm_model_name"),
+            auto_approve=initial_state.get("auto_approve", False),
+            max_iterations=initial_state.get("max_iterations", 10),
+            current_iteration=initial_state.get("current_iteration", 0),
+            # All other fields will use Pydantic defaults
+        )
+    except ValidationError as e:
+        raise ValueError(f"Invalid initial state for KatalystAgentState: {e}")
+    logger.info(f"Exiting initialize_katalyst_run with state: {state}")
+    return state
