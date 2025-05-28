@@ -35,7 +35,7 @@ def list_files(path: str, recursive: bool, respect_gitignore: bool = True) -> st
     Returns a string listing the files and directories found.
     """
     logger = get_logger()
-    logger.info(f"DEBUG list_files CALLED WITH: path='{path}' (type: {type(path)}), recursive='{recursive}' (type: {type(recursive)}), respect_gitignore='{respect_gitignore}' (type: {type(respect_gitignore)})")
+    logger.info(f"DEBUG list_files CALLED WITH: path='{path}' (type: {type(path)}), recursive={recursive} (type: {type(recursive)}), respect_gitignore={respect_gitignore} (type: {type(respect_gitignore)})")
 
     if not os.path.exists(path):
         logger.error(f"Path does not exist: {path}")

@@ -87,10 +87,11 @@ def write_to_file(path: str, content: str, mode: str, auto_approve: bool = False
         with open(abs_path, 'w', encoding='utf-8') as f:
             f.write(content)
         logger.info(f"Successfully wrote to file: {abs_path}")
+        logger.info("Exiting write_to_file")
         return f"Successfully wrote to file: {abs_path}"
     except Exception as e:
         logger.error(f"Error writing to file {abs_path}: {e}")
+        logger.info("Exiting write_to_file")
         return f"[ERROR] Could not write to file {abs_path}: {e}"
 
-    logger.info("Exiting write_to_file")
  

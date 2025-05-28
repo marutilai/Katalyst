@@ -15,6 +15,7 @@ def initialize_katalyst_run(initial_state: Union[Dict[str, Any], KatalystAgentSt
     logger.info(f"Entered initialize_katalyst_run (iteration 0)")
     logger.debug(f"State: {initial_state}")
     state_before = None
+    chat_history_before = []
     # If already a KatalystAgentState, just return it
     if isinstance(initial_state, KatalystAgentState):
         logger.debug("Input is already a KatalystAgentState, returning as is.")
@@ -34,7 +35,10 @@ def initialize_katalyst_run(initial_state: Union[Dict[str, Any], KatalystAgentSt
     except ValidationError as e:
         raise ValueError(f"Invalid initial state for KatalystAgentState: {e}")
     # Log only changed fields (all fields, since this is initialization)
-    logger.info(f"initialize_katalyst_run set state: {state.dict()}")
+    changed = state.dict()
+    if "chat_history" in changed:
+        changed["chat_history"] = state.chat_history[len(chat_history_before):]
+    logger.info(f"initialize_katalyst_run set state: {changed}")
     logger.info("Exiting initialize_katalyst_run (iteration 0)")
     return state
  

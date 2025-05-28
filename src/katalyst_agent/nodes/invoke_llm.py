@@ -9,13 +9,16 @@ def invoke_llm(state: KatalystAgentState) -> KatalystAgentState:
     """
     Loads the LLM and invokes it with messages_for_next_llm_call.
     Updates llm_response_content, chat_history, current_iteration, and resets messages_for_next_llm_call.
+    The new messages for this turn are computed by comparing messages_for_next_llm_call and chat_history.
     """
     logger = get_logger()
     logger.info(f"Entered invoke_llm (iteration {getattr(state, 'current_iteration', '?')})")
     logger.debug(f"State: {state}")
     state_before = copy.deepcopy(state)
     if not state.messages_for_next_llm_call:
-        raise ValueError("No messages prepared for LLM call.")
+        logger.error("invoke_llm: No messages prepared in state.messages_for_next_llm_call.")
+        state.error_message = "Internal error: messages_for_next_llm_call was empty."
+        return state
 
     # Load LLM instance
     llm_instance = get_llm()
@@ -24,12 +27,16 @@ def invoke_llm(state: KatalystAgentState) -> KatalystAgentState:
     response = llm_instance.invoke(state.messages_for_next_llm_call)
     ai_message = AIMessage(content=response.content)
 
-    # Update state
+    # Compute the new messages for this turn
+    new_inputs_for_this_turn = state.messages_for_next_llm_call[len(state.chat_history):]
+    # Update chat_history: append the new inputs and the AI response
+    state.chat_history.extend(new_inputs_for_this_turn)
+    state.chat_history.append(ai_message)
+
     state.llm_response_content = ai_message.content
-    state.chat_history.append(ai_message) # add AI message to chat history
     state.current_iteration += 1
     state.messages_for_next_llm_call = None
-    # Log only changed fields
+
     changed = {k: v for k, v in state.__dict__.items() if getattr(state_before, k, None) != v}
     if changed:
         logger.info(f"invoke_llm changed state: {changed}")

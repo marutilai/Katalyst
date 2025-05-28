@@ -20,6 +20,7 @@ def execute_tool(state: KatalystAgentState) -> KatalystAgentState:
     logger.info(f"Entered execute_tool (iteration {getattr(state, 'current_iteration', '?')})")
     logger.debug(f"State: {state}")
     state_before = copy.deepcopy(state)
+    chat_history_before = list(state.chat_history)
 
     if not state.parsed_tool_call or not isinstance(state.parsed_tool_call, dict):
         logger.warning("execute_tool: No valid parsed_tool_call found in state.")
@@ -27,6 +28,8 @@ def execute_tool(state: KatalystAgentState) -> KatalystAgentState:
         state.user_feedback = None
         state.error_message = "Internal error: execute_tool was called without a parsed tool."
         changed = {k: v for k, v in state.__dict__.items() if getattr(state_before, k, None) != v}
+        if "chat_history" in changed:
+            changed["chat_history"] = state.chat_history[len(chat_history_before):]
         if changed:
             logger.info(f"execute_tool changed state: {changed}")
         logger.info(f"Exiting execute_tool (iteration {getattr(state, 'current_iteration', '?')})")
@@ -43,6 +46,8 @@ def execute_tool(state: KatalystAgentState) -> KatalystAgentState:
         state.error_message = f"Tool '{tool_name}' not found in registry."
         state.parsed_tool_call = None
         changed = {k: v for k, v in state.__dict__.items() if getattr(state_before, k, None) != v}
+        if "chat_history" in changed:
+            changed["chat_history"] = state.chat_history[len(chat_history_before):]
         if changed:
             logger.info(f"execute_tool changed state: {changed}")
         logger.info(f"Exiting execute_tool (iteration {getattr(state, 'current_iteration', '?')})")
@@ -105,6 +110,8 @@ def execute_tool(state: KatalystAgentState) -> KatalystAgentState:
 
     state.parsed_tool_call = None
     changed = {k: v for k, v in state.__dict__.items() if getattr(state_before, k, None) != v}
+    if "chat_history" in changed:
+        changed["chat_history"] = state.chat_history[len(chat_history_before):]
     if changed:
         logger.info(f"execute_tool changed state: {changed}")
     logger.info(f"Exiting execute_tool (iteration {getattr(state, 'current_iteration', '?')})")
