@@ -38,6 +38,8 @@ def invoke_llm(state: KatalystAgentState) -> KatalystAgentState:
     state.messages_for_next_llm_call = None
 
     changed = {k: v for k, v in state.__dict__.items() if getattr(state_before, k, None) != v}
+    if "chat_history" in changed:
+        del changed["chat_history"]
     if changed:
         logger.info(f"invoke_llm changed state: {changed}")
     logger.info(f"Exiting invoke_llm (iteration {getattr(state, 'current_iteration', '?')})")

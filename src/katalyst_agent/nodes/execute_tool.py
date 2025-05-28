@@ -29,7 +29,7 @@ def execute_tool(state: KatalystAgentState) -> KatalystAgentState:
         state.error_message = "Internal error: execute_tool was called without a parsed tool."
         changed = {k: v for k, v in state.__dict__.items() if getattr(state_before, k, None) != v}
         if "chat_history" in changed:
-            changed["chat_history"] = state.chat_history[len(chat_history_before):]
+            del changed["chat_history"]
         if changed:
             logger.info(f"execute_tool changed state: {changed}")
         logger.info(f"Exiting execute_tool (iteration {getattr(state, 'current_iteration', '?')})")
@@ -47,7 +47,7 @@ def execute_tool(state: KatalystAgentState) -> KatalystAgentState:
         state.parsed_tool_call = None
         changed = {k: v for k, v in state.__dict__.items() if getattr(state_before, k, None) != v}
         if "chat_history" in changed:
-            changed["chat_history"] = state.chat_history[len(chat_history_before):]
+            del changed["chat_history"]
         if changed:
             logger.info(f"execute_tool changed state: {changed}")
         logger.info(f"Exiting execute_tool (iteration {getattr(state, 'current_iteration', '?')})")
@@ -111,7 +111,7 @@ def execute_tool(state: KatalystAgentState) -> KatalystAgentState:
     state.parsed_tool_call = None
     changed = {k: v for k, v in state.__dict__.items() if getattr(state_before, k, None) != v}
     if "chat_history" in changed:
-        changed["chat_history"] = state.chat_history[len(chat_history_before):]
+        del changed["chat_history"]
     if changed:
         logger.info(f"execute_tool changed state: {changed}")
     logger.info(f"Exiting execute_tool (iteration {getattr(state, 'current_iteration', '?')})")

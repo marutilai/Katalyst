@@ -44,6 +44,8 @@ def generate_llm_prompt(state: KatalystAgentState) -> KatalystAgentState:
     state.error_message = None
     state.user_feedback = None
 
+    # If you ever add info logging for changed state, never print chat_history
+    # (No changed dict here, but this is a reminder for future consistency)
     logger.info(f"generate_llm_prompt prepared {len(current_turn_messages)} new input message(s).")
     logger.info(f"Exiting generate_llm_prompt.")
     return state

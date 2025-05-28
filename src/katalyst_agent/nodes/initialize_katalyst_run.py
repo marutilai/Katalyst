@@ -37,7 +37,7 @@ def initialize_katalyst_run(initial_state: Union[Dict[str, Any], KatalystAgentSt
     # Log only changed fields (all fields, since this is initialization)
     changed = state.dict()
     if "chat_history" in changed:
-        changed["chat_history"] = state.chat_history[len(chat_history_before):]
+        del changed["chat_history"]
     logger.info(f"initialize_katalyst_run set state: {changed}")
     logger.info("Exiting initialize_katalyst_run (iteration 0)")
     return state

@@ -6,7 +6,7 @@ import copy
 
 def parse_llm_response(state: KatalystAgentState) -> KatalystAgentState:
     """
-    Parses the LLM response content to extract a tool call and updates the state.
+    Parses the LLM's response and updates the state with the parsed tool call or error.
     """
     logger = get_logger()
     logger.info(f"Entered parse_llm_response (iteration {getattr(state, 'current_iteration', '?')})")
@@ -15,6 +15,8 @@ def parse_llm_response(state: KatalystAgentState) -> KatalystAgentState:
     if not state.llm_response_content:
         state.parsed_tool_call = None
         changed = {k: v for k, v in state.__dict__.items() if getattr(state_before, k, None) != v}
+        if "chat_history" in changed:
+            del changed["chat_history"]
         if changed:
             logger.info(f"parse_llm_response changed state: {changed}")
         logger.info(f"Exiting parse_llm_response (iteration {getattr(state, 'current_iteration', '?')})")
@@ -32,6 +34,8 @@ def parse_llm_response(state: KatalystAgentState) -> KatalystAgentState:
     print("LLM Thinking/Response:", state.llm_response_content)
 
     changed = {k: v for k, v in state.__dict__.items() if getattr(state_before, k, None) != v}
+    if "chat_history" in changed:
+        del changed["chat_history"]
     if changed:
         logger.info(f"parse_llm_response changed state: {changed}")
     logger.info(f"Exiting parse_llm_response (iteration {getattr(state, 'current_iteration', '?')})")
