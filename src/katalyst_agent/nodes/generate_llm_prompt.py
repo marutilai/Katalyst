@@ -16,6 +16,7 @@ def generate_llm_prompt(state: KatalystAgentState) -> KatalystAgentState:
     """
     logger = get_logger()
     logger.info(f"Entered generate_llm_prompt (iteration {getattr(state, 'current_iteration', '?')})")
+    logger.info(f"generate_llm_prompt received state.error_message: {state.error_message}")
     # These are the new messages for *this specific turn*
     current_turn_messages: List[BaseMessage] = []
 

@@ -41,6 +41,7 @@ def decide_next_action_router(state: KatalystAgentState) -> str:
             "Your response did not include a tool call. "
             "Please use an available tool or 'attempt_completion'."
         )
+        logger.info(f"Router is setting state.error_message to: {state.error_message}")
         return REPROMPT_LLM
 
     # Priority 5: Catch-all for unclear situations / LLM didn't respond meaningfully
@@ -49,4 +50,5 @@ def decide_next_action_router(state: KatalystAgentState) -> str:
         "The previous turn did not result in an actionable response. "
         "Please try again, using a valid tool or 'attempt_completion'."
     )
+    logger.info(f"Router is setting state.error_message to: {state.error_message}")
     return REPROMPT_LLM 
