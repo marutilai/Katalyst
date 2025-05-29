@@ -5,7 +5,7 @@ from katalyst_agent.services.code_structure import extract_code_definitions
 
 
 @katalyst_tool
-def list_code_definition_names(path: str, auto_approve: bool = False) -> str:
+def list_code_definition_names(path: str, auto_approve: bool = True) -> str:
     """
     Lists code definitions (classes, functions, methods) from a source file or files in a directory using the tree-sitter-languages package.
     Supports Python, JavaScript, TypeScript, and TSX source files. No manual grammar setup is required.

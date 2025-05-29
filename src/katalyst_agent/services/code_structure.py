@@ -2,6 +2,7 @@ import os
 from typing import List, Dict, Union
 from tree_sitter_languages import get_parser
 from katalyst_agent.utils.logger import get_logger
+from katalyst_agent.utils.gitignore import load_gitignore_patterns
 
 # Map file extensions to language names for tree-sitter-languages
 EXT_TO_LANG = {
@@ -17,6 +18,7 @@ def extract_code_definitions(path: str) -> Dict:
     Given a file or directory path, extract code definitions (classes, functions, methods).
     Supports Python, JavaScript, TypeScript, TSX.
     Returns a dict: {filename: [definitions]}
+    Respects .gitignore when listing files in a directory.
     """
     logger = get_logger()
     logger.info(f"Extracting code definitions from: {path}")
@@ -72,9 +74,14 @@ def extract_code_definitions(path: str) -> Dict:
         ext = os.path.splitext(path)[1]
         results[os.path.basename(path)] = extract_defs_for_file(path, ext)
     elif os.path.isdir(path):
+        # Respect .gitignore
+        spec = load_gitignore_patterns(path)
         for fname in os.listdir(path):
             fpath = os.path.join(path, fname)
             if os.path.isfile(fpath):
+                rel_path = os.path.relpath(fpath, path)
+                if spec and spec.match_file(rel_path):
+                    continue
                 ext = os.path.splitext(fname)[1]
                 results[fname] = extract_defs_for_file(fpath, ext)
         if not results:
