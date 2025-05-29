@@ -6,7 +6,7 @@ from katalyst_agent.utils.syntax_checker import check_syntax
 import tempfile
 
 @katalyst_tool
-def apply_diff(path: str, diff: str, mode: str, auto_approve: bool = True) -> str:
+def apply_diff(path: str, diff: str, mode: str, auto_approve: bool = False) -> str:
     """
     Applies changes to a file using a specific search/replace diff format. Checks syntax before applying for Python files.
     """
