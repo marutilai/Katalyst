@@ -25,6 +25,7 @@ def generate_llm_prompt(state: KatalystAgentState) -> KatalystAgentState:
         current_turn_messages.append(SystemMessage(content=system_prompt_content))
         current_turn_messages.append(HumanMessage(content=f"Proceed with the task: {state.task}"))
     else:
+        # For subsequent turns, new messages are based on tool output, feedback, or errors
         if state.error_message:
             current_turn_messages.append(
                 HumanMessage(content=f"[Error Encountered, please address]:\n{state.error_message}")

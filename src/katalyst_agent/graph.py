@@ -5,6 +5,7 @@ from katalyst_agent.nodes.generate_llm_prompt import generate_llm_prompt
 from katalyst_agent.nodes.invoke_llm import invoke_llm
 from katalyst_agent.nodes.parse_llm_response import parse_llm_response
 from katalyst_agent.nodes.execute_tool import execute_tool
+from katalyst_agent.nodes.prepare_reprompt_feedback import prepare_reprompt_feedback
 from katalyst_agent.routing import (
     decide_next_action_router, 
     FINISH_MAX_ITERATIONS, 
@@ -23,6 +24,7 @@ def build_compiled_graph():
     agent_graph.add_node("invoke_llm", invoke_llm)
     agent_graph.add_node("parse_llm_response", parse_llm_response)
     agent_graph.add_node("execute_tool", execute_tool)
+    agent_graph.add_node("prepare_reprompt_feedback", prepare_reprompt_feedback)
     
     # Add edges
     agent_graph.add_edge("initialize_katalyst_run", "generate_llm_prompt")
@@ -35,13 +37,14 @@ def build_compiled_graph():
         decide_next_action_router,
         {
             EXECUTE_TOOL: "execute_tool",
-            REPROMPT_LLM: "generate_llm_prompt",
+            REPROMPT_LLM: "prepare_reprompt_feedback",
             FINISH_MAX_ITERATIONS: END,
             FINISH_SUCCESSFUL_COMPLETION: END,
         },
     )
     # After tool execution, go back to prompt generation
     agent_graph.add_edge("execute_tool", "generate_llm_prompt")
+    agent_graph.add_edge("prepare_reprompt_feedback", "generate_llm_prompt")
 
     # Set entry point
     agent_graph.set_entry_point("initialize_katalyst_run")

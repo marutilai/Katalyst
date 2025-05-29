@@ -1,14 +1,10 @@
-import os
 import re
-import importlib
 from typing import Optional, Dict, Any
 from katalyst_agent.utils.tools import get_tool_names_and_params
 from katalyst_agent.utils.logger import get_logger
 
 logger = get_logger()
 
-# Directory containing all tool modules
-TOOLS_DIR = os.path.dirname(os.path.dirname(__file__)) + "/tools"
 
 def parse_tool_call(assistant_message: str) -> Optional[Dict[str, Any]]:
     """
