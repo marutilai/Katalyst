@@ -35,4 +35,11 @@ Parameters:
 <start_line>500</start_line>
 <end_line>1000</end_line>
 </read_file>
+                               
+4. Reading a specific function in a source file:
+<read_file>
+<path>src/app.ts</path>
+<start_line>46</start_line>
+<end_line>68</end_line>
+</read_file>
 """)

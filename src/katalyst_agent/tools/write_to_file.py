@@ -10,7 +10,6 @@ def check_syntax(content: str, file_extension: str) -> str:
     """
     Checks syntax for the given content based on file extension.
     Currently only supports Python. Returns an error string if any, else empty string.
-    TODO: Add support for other languages.
     """
     if file_extension == 'py':
         try:

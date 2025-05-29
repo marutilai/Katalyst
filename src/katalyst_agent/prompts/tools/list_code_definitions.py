@@ -3,10 +3,10 @@ from textwrap import dedent
 LIST_CODE_DEFINITION_NAMES_PROMPT = dedent("""
 # list_code_definition_names Tool
 
-Use this tool to list definition names (classes, functions, methods, etc.) from a source file or all top-level files in a directory. This helps you understand the codebase structure and key constructs.
+Request to list definition names (classes, functions, methods, etc.) from source code. This tool can analyze either a single file or all files at the top level of a specified directory. It provides insights into the codebase structure and important constructs, encapsulating high-level concepts and relationships that are crucial for understanding the overall architecture.
 
 Parameters:
-- path: (required) Path to the file or directory (relative to workspace).
+- path: (required) The path of the file or directory (relative to the current working directory {pwd}) to analyze. When given a directory, it lists definitions from all top-level source files.
 
 ## Usage
 <list_code_definition_names>
@@ -19,7 +19,7 @@ Parameters:
 <path>src/main.ts</path>
 </list_code_definition_names>
 
-2. List definitions from a directory:
+2. List definitions from all files in a directory:
 <list_code_definition_names>
 <path>src/</path>
 </list_code_definition_names>

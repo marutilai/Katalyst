@@ -1,6 +1,7 @@
 from typing import Dict
 from katalyst_agent.utils.logger import get_logger
 from katalyst_agent.utils.tools import katalyst_tool
+from katalyst_agent.utils.gitignore import load_gitignore_patterns
 import os
 from pathlib import Path
 
@@ -9,20 +10,6 @@ try:
 except ImportError:
     pathspec = None  # Will error if used without install
 
-
-def load_gitignore_patterns(path: str):
-    """
-    Loads .gitignore patterns from the given path using pathspec.
-    Returns a PathSpec object or None if not available.
-    """
-    patterns = []
-    gitignore_path = os.path.join(path, '.gitignore')
-    if os.path.exists(gitignore_path):
-        with open(gitignore_path, 'r') as f:
-            patterns = f.read().splitlines()
-    if patterns:
-        return pathspec.PathSpec.from_lines("gitwildmatch", patterns)
-    return None
 
 @katalyst_tool
 def list_files(path: str, recursive: bool, respect_gitignore: bool = True) -> str:
