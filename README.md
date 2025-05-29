@@ -17,6 +17,10 @@ The `search_files` tool requires [ripgrep](https://github.com/BurntSushi/ripgrep
 - **Ubuntu:**  `sudo apt-get install ripgrep`
 - **Windows:** `choco install ripgrep`
 
+## Features
+
+- Automatic project state persistence: Katalyst saves your project state (such as chat history) to `.katalyst_state.json` in your project directory after every command. This happens in the background—no user action required. When you return to your project, your session context is automatically restored.
+
 ## TODO
 
 See [TODO.md](./TODO.md) for the latest development tasks and roadmap.

@@ -5,11 +5,11 @@ from katalyst_agent.state import KatalystAgentState
 from katalyst_agent.graph import build_compiled_graph
 from katalyst_agent.utils.logger import get_logger
 from src.katalyst_agent.utils import welcome_screens
+import json
+from katalyst_agent.config import ONBOARDING_FLAG, STATE_FILE
 
 # Load environment variables from .env file
 load_dotenv()
-
-ONBOARDING_FLAG = Path.home() / ".katalyst_agent_onboarded"
 
 def maybe_show_welcome():
     if not ONBOARDING_FLAG.exists():
@@ -34,8 +34,29 @@ def handle_init():
         f.write("# Instructions for Katalyst\n")
     print("KATALYST.md created.")
 
+def load_project_state():
+    if os.path.exists(STATE_FILE):
+        try:
+            with open(STATE_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def save_project_state(state):
+    try:
+        with open(STATE_FILE, "w") as f:
+            json.dump(state, f)
+    except Exception:
+        pass
+
 def repl():
     show_help()
+    # Build and compile the agent graph only once for the entire REPL session.
+    # This avoids unnecessary recompilation and improves performance, since the graph
+    # structure does not change between user tasks.
+    graph = build_compiled_graph()  # Build the graph once
+    project_state = load_project_state()
     while True:
         user_input = input("> ").strip()
         if user_input == "/help":
@@ -55,6 +76,7 @@ def repl():
             max_iterations = int(os.getenv("KATALYST_MAX_ITERATIONS", 10))
 
             initial_state = {
+                **project_state,
                 "task": user_input,
                 "current_mode": "code",  # or let user choose mode
                 "llm_provider": llm_provider,
@@ -63,7 +85,6 @@ def repl():
                 "max_iterations": max_iterations,
             }
 
-            graph = build_compiled_graph()
             result = graph.invoke(initial_state)
 
             # Print the result (reuse your old main.py logic here)
@@ -98,6 +119,14 @@ def repl():
                 print(f"Message {msg_idx}: [{msg.__class__.__name__}] {getattr(msg, 'content', str(msg))}")
 
             print("Katalyst Agent is now ready to use!")
+
+            # Update and save project state after each command
+            # (Persist chat_history and any other relevant fields)
+            project_state.update({
+                "chat_history": result.get("chat_history", []),
+                # Add more fields to persist as needed
+            })
+            save_project_state(project_state)
 
 def main():
     maybe_show_welcome()
