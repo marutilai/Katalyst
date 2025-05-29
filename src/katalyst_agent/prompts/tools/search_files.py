@@ -3,12 +3,12 @@ from textwrap import dedent
 SEARCH_FILES_PROMPT = dedent("""
 # search_files Tool
 
-Use this tool to perform a regex search across files in a directory. The search is recursive and can be filtered by file pattern. Results include context for each match.
+Request to perform a regex search across files in a specified directory, providing context-rich results. This tool searches for patterns or specific content across multiple files, displaying each match with encapsulating context.
 
 Parameters:
-- path: (required) Directory to search (relative to workspace)
-- regex: (required) Regex pattern to search for (Rust regex syntax)
-- file_pattern: (optional) Glob pattern to filter files (e.g., '*.ts')
+- path: (required) The path of the directory to search in (relative to the current workspace directory {pwd}). This directory will be recursively searched.
+- regex: (required) The regular expression pattern to search for. Uses Rust regex syntax.
+- file_pattern: (optional) Glob pattern to filter files (e.g., '*.ts' for TypeScript files). If not provided, it will search all files (*).
 
 ## Usage
 <search_files>
@@ -17,7 +17,7 @@ Parameters:
 <file_pattern>Optional file pattern</file_pattern>
 </search_files>
 
-## Example
+## Example: Requesting to search for all .ts files in the current directory
 <search_files>
 <path>.</path>
 <regex>.*</regex>
