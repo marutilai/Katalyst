@@ -1,30 +1,10 @@
 from typing import Dict
 from katalyst_agent.utils.logger import get_logger
-from katalyst_agent.utils.tools import katalyst_tool
+from katalyst_agent.utils.syntax_checker import check_syntax
 import os
 import sys
 import tempfile
 
-
-def check_syntax(content: str, file_extension: str) -> str:
-    """
-    Checks syntax for the given content based on file extension.
-    Currently only supports Python. Returns an error string if any, else empty string.
-    """
-    if file_extension == 'py':
-        try:
-            with tempfile.NamedTemporaryFile('w', suffix='.py', delete=False) as tmpf:
-                tmpf.write(content)
-                tmpf.flush()
-                tmp_path = tmpf.name
-            import py_compile
-            py_compile.compile(tmp_path, doraise=True)
-            os.remove(tmp_path)
-            return ""
-        except Exception as e:
-            return str(e)
-    # TODO: Add general syntax checking for other languages
-    return ""
 
 @katalyst_tool
 def write_to_file(path: str, content: str, mode: str, auto_approve: bool = False) -> str:

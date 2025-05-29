@@ -3,6 +3,7 @@ import os
 import importlib
 from typing import List, Tuple, Dict
 import inspect
+import tempfile
 
 # Directory containing all tool modules
 TOOLS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools")

@@ -3,15 +3,7 @@ from typing import List, Dict, Union
 from tree_sitter_languages import get_parser
 from katalyst_agent.utils.logger import get_logger
 from katalyst_agent.utils.gitignore import load_gitignore_patterns
-
-# Map file extensions to language names for tree-sitter-languages
-EXT_TO_LANG = {
-    '.py': 'python',
-    '.js': 'javascript',
-    '.ts': 'typescript',
-    '.tsx': 'tsx',
-    '.jsx': 'javascript',
-}
+from katalyst_agent.config import EXT_TO_LANG
 
 def extract_code_definitions(path: str) -> Dict:
     """
