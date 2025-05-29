@@ -1,27 +1,23 @@
 import os
 import subprocess
-from typing import Dict
 from katalyst_agent.utils.logger import get_logger
 from katalyst_agent.utils.tools import katalyst_tool
 from shutil import which
 from katalyst_agent.config import SEARCH_FILES_MAX_RESULTS  # Centralized config
 
 @katalyst_tool
-def regex_search_files(arguments: Dict, auto_approve: bool = True) -> str:
+def regex_search_files(path: str, regex: str, file_pattern: str = None, auto_approve: bool = True) -> str:
     """
     Performs a regex search across files in a directory using ripgrep (rg).
     Parameters:
-      - arguments: Dict with keys 'path', 'regex', and optional 'file_pattern'
+      - path: str (directory to search in)
+      - regex: str (pattern to search for)
+      - file_pattern: str (optional glob pattern to filter files)
       - auto_approve: bool (default True)
     Returns XML-style results. Limits output to SEARCH_FILES_MAX_RESULTS for readability.
     """
     logger = get_logger()
-    logger.info(f"Entered regex_search_files with arguments: {arguments}, auto_approve: {auto_approve}")
-
-    # Extract and validate arguments
-    path = arguments.get('path')
-    regex = arguments.get('regex')
-    file_pattern = arguments.get('file_pattern')
+    logger.info(f"Entered regex_search_files with path: {path}, regex: {regex}, file_pattern: {file_pattern}, auto_approve: {auto_approve}")
 
     # Check for required arguments
     if not path or not regex:
