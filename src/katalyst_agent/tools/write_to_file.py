@@ -1,6 +1,7 @@
 from typing import Dict
 from katalyst_agent.utils.logger import get_logger
 from katalyst_agent.utils.syntax_checker import check_syntax
+from katalyst_agent.utils.tools import katalyst_tool
 import os
 import sys
 import tempfile
