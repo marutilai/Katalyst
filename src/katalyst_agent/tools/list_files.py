@@ -4,11 +4,7 @@ from katalyst_agent.utils.tools import katalyst_tool
 from katalyst_agent.utils.gitignore import load_gitignore_patterns
 import os
 from pathlib import Path
-
-try:
-    import pathspec
-except ImportError:
-    pathspec = None  # Will error if used without install
+import pathspec
 
 
 @katalyst_tool
