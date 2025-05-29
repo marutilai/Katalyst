@@ -15,6 +15,7 @@ def generate_llm_prompt(state: KatalystAgentState) -> KatalystAgentState:
     The new messages for this turn are computed locally and not stored on the state.
     """
     logger = get_logger()
+    logger.info(f"\n\n==================== 🚀🚀🚀  ITERATION {getattr(state, 'current_iteration', '?')} START  🚀🚀🚀 ====================\n")
     logger.info(f"Entered generate_llm_prompt (iteration {getattr(state, 'current_iteration', '?')})")
     logger.info(f"generate_llm_prompt received state.error_message: {state.error_message}")
     # These are the new messages for *this specific turn*

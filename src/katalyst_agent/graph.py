@@ -14,7 +14,6 @@ from katalyst_agent.routing import (
     REPROMPT_LLM
 )
 
-
 def build_compiled_graph():
     agent_graph = StateGraph(KatalystAgentState)
 
@@ -50,4 +49,5 @@ def build_compiled_graph():
     agent_graph.set_entry_point("initialize_katalyst_run")
 
     # Compile the graph
-    return agent_graph.compile()
+    compiled_graph = agent_graph.compile()
+    return compiled_graph
