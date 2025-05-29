@@ -18,7 +18,7 @@ def maybe_show_welcome():
         welcome_screens.screen_3_final_tips(os.getcwd())
         ONBOARDING_FLAG.write_text("onboarded\n")
     else:
-        print("Welcome back to Katalyst Agent! (onboarding skipped)")
+        welcome_screens.screen_3_final_tips(os.getcwd())
 
 def show_help():
     print("""
