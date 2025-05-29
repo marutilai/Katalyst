@@ -10,10 +10,6 @@ logger = get_logger()
 
 # Build the TOOL_REGISTRY from the functions map
 TOOL_REGISTRY: Dict[str, Callable] = get_tool_functions_map()
-if not TOOL_REGISTRY:
-    logger.warning("TOOL_REGISTRY is empty. Check tool definitions and @katalyst_tool decorator in tools/*.py.")
-else:
-    logger.info(f"TOOL_REGISTRY loaded with tools: {list(TOOL_REGISTRY.keys())}")
 
 
 def execute_tool(state: KatalystAgentState) -> KatalystAgentState:
