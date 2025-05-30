@@ -26,12 +26,11 @@ def cleanup_sample_dir():
 
 def test_python_function_search():
     print("Testing regex_search_files for 'def' in .py files...")
-    args = {
-        'path': 'test_search_dir',
-        'regex': r'def ',
-        'file_pattern': '*.py',
-    }
-    result = regex_search_files(args)
+    result = regex_search_files(
+        path='test_search_dir',
+        regex=r'def ',
+        file_pattern='*.py',
+    )
     print(result)
     assert '<match' in result
     assert 'def foo()' in result
@@ -39,12 +38,11 @@ def test_python_function_search():
 
 def test_no_match():
     print("Testing regex_search_files for a pattern that does not exist...")
-    args = {
-        'path': 'test_search_dir',
-        'regex': r'not_in_file',
-        'file_pattern': '*.py',
-    }
-    result = regex_search_files(args)
+    result = regex_search_files(
+        path='test_search_dir',
+        regex=r'not_in_file',
+        file_pattern='*.py',
+    )
     print(result)
     assert 'No matches found' in result
 
