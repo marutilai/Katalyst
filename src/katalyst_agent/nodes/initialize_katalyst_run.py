@@ -30,6 +30,7 @@ def initialize_katalyst_run(initial_state: Union[Dict[str, Any], KatalystAgentSt
             auto_approve=initial_state.get("auto_approve", False),
             max_iterations=initial_state.get("max_iterations", 10),
             current_iteration=initial_state.get("current_iteration", 0),
+            chat_history=initial_state.get("chat_history", []),
             # All other fields will use Pydantic defaults
         )
     except ValidationError as e:

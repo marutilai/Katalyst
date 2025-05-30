@@ -1,24 +1,24 @@
 import os
+import json
 from dotenv import load_dotenv
-from pathlib import Path
-from katalyst_agent.state import KatalystAgentState
 from katalyst_agent.graph import build_compiled_graph
 from katalyst_agent.utils.logger import get_logger
 from src.katalyst_agent.utils import welcome_screens
-import json
 from katalyst_agent.config import ONBOARDING_FLAG, STATE_FILE
 
 # Load environment variables from .env file
 load_dotenv()
 
 def maybe_show_welcome():
+    project_state = load_project_state()
+    current_mode = project_state.get("current_mode", "code")
     if not ONBOARDING_FLAG.exists():
         welcome_screens.screen_1_welcome_and_security()
         welcome_screens.screen_2_trust_folder(os.getcwd())
-        welcome_screens.screen_3_final_tips(os.getcwd())
+        welcome_screens.screen_3_final_tips(os.getcwd(), current_mode)
         ONBOARDING_FLAG.write_text("onboarded\n")
     else:
-        welcome_screens.screen_3_final_tips(os.getcwd())
+        welcome_screens.screen_3_final_tips(os.getcwd(), current_mode)
 
 def show_help():
     print("""
@@ -26,6 +26,7 @@ Available commands:
 /help      Show this help message
 /init      Create a KATALYST.md file with instructions
 /exit      Exit the agent
+/mode      Change the current mode
 (Type your coding task or command below)
 """)
 
@@ -44,17 +45,15 @@ def load_project_state():
     return {}
 
 def save_project_state(state):
+    logger = get_logger()
     try:
         with open(STATE_FILE, "w") as f:
             json.dump(state, f)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Failed to save project state to {STATE_FILE}: {e}")
 
 def repl():
     show_help()
-    # Build and compile the agent graph only once for the entire REPL session.
-    # This avoids unnecessary recompilation and improves performance, since the graph
-    # structure does not change between user tasks.
     graph = build_compiled_graph()  # Build the graph once
     project_state = load_project_state()
     while True:
@@ -68,44 +67,66 @@ def repl():
             break
         elif user_input == "":
             continue
+        elif user_input.startswith("/mode"):
+            # Robust /mode command: show current, set, or handle invalid input
+            parts = user_input.split(" ", 1)
+            active_mode_for_display = project_state.get("current_mode", "code")
+            if len(parts) == 1 and parts[0] == "/mode":
+                print(f"Current mode: {active_mode_for_display}. To change, type: /mode [architect|code]")
+                continue
+            elif len(parts) == 2:
+                _, new_mode_str = parts
+                new_mode = new_mode_str.strip().lower()
+                if new_mode in ["architect", "code"]:
+                    project_state["current_mode"] = new_mode
+                    save_project_state(project_state)
+                    print(f"Mode switched to: {project_state['current_mode']}")
+                else:
+                    print(f"Invalid mode: '{new_mode}'. Available modes: 'architect', 'code'.")
+                continue
+            else:
+                print("Usage: /mode [architect|code] or /mode to see current.")
+                continue
         else:
-            # --- AGENT LOGIC STARTS HERE ---
             llm_provider = os.getenv("KATALYST_PROVIDER", "openai")
             llm_model_name = os.getenv("KATALYST_MODEL", "gpt-4.1-nano")
             auto_approve = os.getenv("KATALYST_AUTO_APPROVE", "false").lower() == "true"
             max_iterations = int(os.getenv("KATALYST_MAX_ITERATIONS", 10))
 
+            # Only persist chat_history and current_mode (and add more if needed)
+            loaded_history = project_state.get("chat_history", [])
+            current_mode = project_state.get("current_mode", "code")
+
+            # Build a clean initial state for each new task, only including persistent fields
             initial_state = {
-                **project_state,
                 "task": user_input,
-                "current_mode": "code",  # or let user choose mode
+                "current_mode": current_mode,  # Persisted and user-changeable
                 "llm_provider": llm_provider,
                 "llm_model_name": llm_model_name,
                 "auto_approve": auto_approve,
                 "max_iterations": max_iterations,
+                "chat_history": loaded_history,  # Persisted chat history
+                # Do NOT include transient fields like error_message, tool_output, etc.
             }
 
             result = graph.invoke(initial_state)
 
-            # Print the result (reuse your old main.py logic here)
             logger = get_logger()
             logger.info("\n\n==================== 🎉🎉🎉  FINAL ITERATION COMPLETE  🎉🎉🎉 ====================\n")
             final_parsed_call = result.get('parsed_tool_call')
             final_iteration = result.get('current_iteration', 0)
             max_iter = result.get('max_iterations', 10)
 
-            # Case 1: Task completed via attempt_completion tool
+            # Print result summary
             if final_parsed_call and final_parsed_call.get('tool_name') == 'attempt_completion':
                 completion_message = final_parsed_call.get('args', {}).get('result', 'Task successfully completed (no specific result message provided).')
                 print(f"\n--- KATALYST TASK COMPLETED ---")
                 print(completion_message)
-            # Case 2: Max iterations reached
             elif final_iteration >= max_iter:
                 print(f"\n--- KATALYST MAX ITERATIONS ({max_iter}) REACHED ---")
                 last_llm_response = result.get('llm_response_content')
                 if last_llm_response:
                     print(f"Last LLM thought: {last_llm_response}")
-            # Case 3: Fallback (graph ended for another reason)
             else:
                 print("\n--- KATALYST RUN FINISHED (Reason not explicitly 'completion' or 'max_iterations') ---")
                 last_llm_response = result.get('llm_response_content')
@@ -121,10 +142,11 @@ def repl():
             print("Katalyst Agent is now ready to use!")
 
             # Update and save project state after each command
-            # (Persist chat_history and any other relevant fields)
+            # Only persist fields that should be remembered across tasks/sessions
             project_state.update({
-                "chat_history": result.get("chat_history", []),
-                # Add more fields to persist as needed
+                "chat_history": result.get("chat_history", []),  # Persist chat history
+                # current_mode is already up to date in project_state
+                # TODO: Add more fields to persist as needed
             })
             save_project_state(project_state)
 
