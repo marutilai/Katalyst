@@ -147,4 +147,7 @@ cython_debug/
 .AppleDesktop
 Network Trash Folder
 Temporary Items
-.apdisk 
+.apdisk
+
+# Ignore development helper scripts
+katalyst_dev_scripts/ 
