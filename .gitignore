@@ -150,4 +150,7 @@ Temporary Items
 .apdisk
 
 # Ignore development helper scripts
-katalyst_dev_scripts/ 
+katalyst_dev_scripts/
+
+# Katalyst state
+.katalyst_state.json 
