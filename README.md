@@ -10,6 +10,9 @@ To install all dependencies, simply run:
 poetry install
 ```
 
+**Important:**
+You must set your OpenAI API key as the environment variable `OPENAI_API_KEY` or add it to a `.env` file in your project directory. The first time you run `katalyst`, you will be prompted to enter your API key if it is missing. You can get an API key from [https://platform.openai.com/account/api-keys](https://platform.openai.com/account/api-keys).
+
 ## Searching Files (ripgrep required)
 
 The `search_files` tool requires [ripgrep](https://github.com/BurntSushi/ripgrep) (`rg`) to be installed on your system:

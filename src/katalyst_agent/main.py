@@ -3,11 +3,26 @@ import json
 from dotenv import load_dotenv
 from katalyst_agent.graph import build_compiled_graph
 from katalyst_agent.utils.logger import get_logger
-from src.katalyst_agent.utils import welcome_screens
+from katalyst_agent.utils import welcome_screens
 from katalyst_agent.config import ONBOARDING_FLAG, STATE_FILE
 
 # Load environment variables from .env file
 load_dotenv()
+
+def ensure_openai_api_key():
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        print(
+            "\n[ERROR] OpenAI API key not found!\n"
+            "Please set the OPENAI_API_KEY environment variable or add it to your .env file in this directory.\n"
+            "You can get an API key from https://platform.openai.com/account/api-keys\n"
+        )
+        key = input("Enter your OpenAI API key (or leave blank to exit): ").strip()
+        if key:
+            with open(".env", "a") as f:
+                f.write(f"\nOPENAI_API_KEY={key}\n")
+            print("API key saved to .env. Please restart Katalyst.")
+        exit(1)
 
 def maybe_show_welcome():
     project_state = load_project_state()
@@ -151,6 +166,7 @@ def repl():
             save_project_state(project_state)
 
 def main():
+    ensure_openai_api_key()
     maybe_show_welcome()
     repl()
 

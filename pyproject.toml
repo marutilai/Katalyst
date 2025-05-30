@@ -1,8 +1,14 @@
 [project]
-name = "Katalyst"
+name = "katalyst"
 version = "0.1.0"
-description = "Terminal based coding agent"
+description = "A modular, node-based terminal coding agent for Python."
+authors = [{name = "Maruti Agarwal", email = "marutiagarwal@gmail.com"}]
+readme = "README.md"
+license = {file = "LICENSE"}
 requires-python = ">=3.12"
+
+[project.scripts]
+katalyst = "katalyst_agent.main:main"
 
 [build-system]
 requires = ["setuptools", "wheel"]
