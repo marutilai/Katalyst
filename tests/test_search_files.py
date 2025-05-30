@@ -1,8 +1,11 @@
 import os
 import shutil
+import pytest
 from katalyst_agent.tools.search_files import regex_search_files
 
-def setup_sample_dir():
+@pytest.fixture(autouse=True)
+def sample_dir():
+    # Setup
     os.makedirs('test_search_dir', exist_ok=True)
     with open('test_search_dir/file1.py', 'w') as f:
         f.write('''
@@ -20,8 +23,8 @@ foo bar baz
 ''')
     with open('test_search_dir/ignoreme.log', 'w') as f:
         f.write('Should not match this.')
-
-def cleanup_sample_dir():
+    yield
+    # Teardown
     shutil.rmtree('test_search_dir')
 
 def test_python_function_search():
@@ -44,13 +47,4 @@ def test_no_match():
         file_pattern='*.py',
     )
     print(result)
-    assert 'No matches found' in result
-
-if __name__ == "__main__":
-    setup_sample_dir()
-    try:
-        test_python_function_search()
-        test_no_match()
-        print("All search_files tests passed.")
-    finally:
-        cleanup_sample_dir() 
+    assert 'No matches found' in result 
