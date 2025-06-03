@@ -4,26 +4,39 @@ from katalyst_agent.utils.logger import get_logger
 from katalyst_agent.utils.tools import katalyst_tool
 from katalyst_agent.utils.syntax_checker import check_syntax
 import tempfile
+import json
+
+
+def format_apply_diff_response(path: str, success: bool, info: str = None, error: str = None) -> str:
+    """
+    Standardizes the output as a JSON string for downstream processing.
+    """
+    resp = {"path": path, "success": success}
+    if info:
+        resp["info"] = info
+    if error:
+        resp["error"] = error
+    return json.dumps(resp)
+
 
 @katalyst_tool(prompt_module="apply_diff", prompt_var="APPLY_DIFF_PROMPT")
-def apply_diff(path: str, diff: str, mode: str = "patch", auto_approve: bool = True) -> str:
+def apply_diff(path: str, diff: str, auto_approve: bool = True) -> str:
     """
     Applies changes to a file using a specific search/replace diff format. Checks syntax before applying for Python files.
+    Returns a JSON string with keys: 'path', 'success', and either 'info' or 'error'.
+    Parameters:
+      - path: str (file to modify)
+      - diff: str (search/replace block(s))
+      - auto_approve: bool (skip confirmation prompt if True)
     """
     logger = get_logger()
-    logger.info(f"Entered apply_diff with path: {path}, diff=<omitted>, mode: {mode}, auto_approve: {auto_approve}")
+    logger.info(f"Entered apply_diff with path: {path}, diff=<omitted>, auto_approve: {auto_approve}")
 
     # Validate arguments
     if not path or not diff:
-        return """
-<apply_diff>
-<error>Both 'path' and 'diff' arguments are required.</error>
-</apply_diff>"""
+        return format_apply_diff_response(path or "", False, error="Both 'path' and 'diff' arguments are required.")
     if not os.path.isfile(path):
-        return f"""
-<apply_diff>
-<error>File not found: {path}</error>
-</apply_diff>"""
+        return format_apply_diff_response(path, False, error=f"File not found: {path}")
 
     # Read the original file
     with open(path, 'r', encoding='utf-8') as f:
@@ -32,10 +45,7 @@ def apply_diff(path: str, diff: str, mode: str = "patch", auto_approve: bool = T
     # Parse all diff blocks (support multi-block)
     diff_blocks = re.findall(r"<<<<<<< SEARCH(.*?)>>>>>>> REPLACE", diff, re.DOTALL)
     if not diff_blocks:
-        return """
-<apply_diff>
-<error>No valid diff blocks found. Please use the correct format.</error>
-</apply_diff>"""
+        return format_apply_diff_response(path, False, error="No valid diff blocks found. Please use the correct format.")
 
     new_lines = lines[:]
     offset = 0  # Track line number changes due to previous replacements
@@ -43,10 +53,7 @@ def apply_diff(path: str, diff: str, mode: str = "patch", auto_approve: bool = T
         # Extract start_line
         m = re.search(r":start_line:(\d+)[\r\n]+-------([\s\S]*?)=======([\s\S]*)", block)
         if not m:
-            return """
-<apply_diff>
-<error>Malformed diff block. Each block must have :start_line, -------, and =======.</error>
-</apply_diff>"""
+            return format_apply_diff_response(path, False, error="Malformed diff block. Each block must have :start_line, -------, and =======.")
         start_line = int(m.group(1))
         search_content = m.group(2).strip('\n')
         replace_content = m.group(3).strip('\n')
@@ -56,10 +63,10 @@ def apply_diff(path: str, diff: str, mode: str = "patch", auto_approve: bool = T
         replace_lines = [l.rstrip('\r\n') for l in replace_content.splitlines()]
         # Check if the search block matches
         if new_lines[s_idx:s_idx+len(search_lines)] != [l + '\n' for l in search_lines]:
-            return f"""
-<apply_diff>
-<error>Search block does not match file at line {start_line}. Please use read_file to get the exact content and line numbers.</error>
-</apply_diff>"""
+            return format_apply_diff_response(
+                path, False,
+                error=f"Search block does not match file at line {start_line}. Please use read_file to get the exact content and line numbers."
+            )
         # Apply the replacement
         new_lines[s_idx:s_idx+len(search_lines)] = [l + '\n' for l in replace_lines]
         # Update offset for subsequent blocks
@@ -77,17 +84,14 @@ def apply_diff(path: str, diff: str, mode: str = "patch", auto_approve: bool = T
         file_extension = path.split('.')[-1]
         syntax_error = check_syntax(''.join(new_lines), file_extension)
         if syntax_error:
-            return f"""
-<apply_diff>
-<error>Syntax error after applying diff: {syntax_error}</error>
-</apply_diff>"""
+            return format_apply_diff_response(path, False, error=f"Syntax error after applying diff: {syntax_error}")
 
     # Confirm with user unless auto_approve is True
     if not auto_approve:
         confirm = input(f"Proceed with applying diff to '{path}'? (y/n): ").strip().lower()
         if confirm != 'y':
             logger.info("User declined to apply diff.")
-            return "<apply_diff>\n<info>User declined to apply diff.</info>\n</apply_diff>"
+            return format_apply_diff_response(path, False, info="User declined to apply diff.")
 
     # Write the new file
     try:
@@ -95,8 +99,8 @@ def apply_diff(path: str, diff: str, mode: str = "patch", auto_approve: bool = T
             f.writelines(new_lines)
         logger.info(f"Successfully applied diff to file: {path}")
         logger.info("Exiting apply_diff")
-        return f"<apply_diff>\n<info>Successfully applied diff to file: {path}</info>\n</apply_diff>"
+        return format_apply_diff_response(path, True, info=f"Successfully applied diff to file: {path}")
     except Exception as e:
         logger.error(f"Error writing to file {path}: {e}")
         logger.info("Exiting apply_diff")
-        return f"<apply_diff>\n<error>Could not write to file {path}: {e}</error>\n</apply_diff>"
+        return format_apply_diff_response(path, False, error=f"Could not write to file {path}: {e}")

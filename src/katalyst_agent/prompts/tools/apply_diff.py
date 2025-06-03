@@ -3,96 +3,109 @@ from textwrap import dedent
 APPLY_DIFF_PROMPT = dedent('''
 # apply_diff Tool
 
-Request to replace existing code using a search and replace block.
-This tool allows for precise, surgical replaces to files by specifying exactly what content to search for and what to replace it with.
-The tool will maintain proper indentation and formatting while making changes.
+Description: Use this tool to apply precise, surgical code changes to a file using a search/replace diff format. You can batch multiple changes in a single request by including multiple SEARCH/REPLACE blocks. The tool will maintain proper indentation and formatting while making changes. Always use the read_file tool first to get the exact content and line numbers for your diff.
 
-You can include multiple SEARCH/REPLACE blocks in a single 'apply_diff' request, each specifying a different change. ALWAYS make as many changes in a single 'apply_diff' request as possible using multiple SEARCH/REPLACE blocks. This allows you to batch edits efficiently.
+## Parameters for 'action_input' object:
+- path: (string, required) The path of the file to modify (relative to the workspace).
+- diff: (string, required) The search/replace block(s) defining the changes. See below for format.
 
-The SEARCH section must exactly match existing content including whitespace and indentation.
-If you're not confident in the exact content to search for, use the read_file tool first to get the exact content.
-When applying the diffs, be extra careful to remember to change any closing brackets or other syntax that may be affected by the diff farther down in the file.
+## Diff format (for the 'diff' string):
+Each block must follow this format:
 
-##Parameters:
-- path: (required) The path of the file to modify (relative to the current workspace directory {pwd})
-- diff: (required) The search/replace block defining the changes.
-
-##Diff format:
-```
 <<<<<<< SEARCH
-:start_line: (required) The line number of original content where the search block starts.
+:start_line:<line number where the search block starts>
 -------
-[exact content to find including whitespace]
+[exact content to find, including whitespace]
 =======
 [new content to replace with]
 >>>>>>> REPLACE
 
-```
-##IMPORTANT:
-- the start_line must match the line number of the search content in the original file. if not sure, use the read_file tool
-- the start_line ONLY needs to be specified once at the start of the search block.
+You can include multiple such blocks in a single diff string to batch edits.
 
-
-##Example:
-
-Original file:
-```
-1 | def calculate_total(items):
-2 |     total = 0
-3 |     for item in items:
-4 |         total += item
-5 |     return total
-```
-
-Search/Replace content:
-```
+## Example of how to structure 'action_input' in your JSON response:
+For a single change to 'src/utils.py':
+"action_input": {
+  "path": "src/utils.py",
+  "diff": """
 <<<<<<< SEARCH
-:start_line:1
+:start_line:10
 -------
-def calculate_total(items):
-    total = 0
-    for item in items:
-        total += item
-    return total
+def foo():
+    return 1
 =======
-def calculate_total(items):
-    """Calculate total with 10% markup"""
-    return sum(item * 1.1 for item in items)
+def foo():
+    return 2
 >>>>>>> REPLACE
+"""
+}
 
-```
-
-Search/Replace content with multi edits:
-```
+For multiple changes in one file:
+"action_input": {
+  "path": "src/utils.py",
+  "diff": """
 <<<<<<< SEARCH
-:start_line:1
+:start_line:10
 -------
-def calculate_total(items):
-    total = 0
+def foo():
+    return 1
 =======
-def calculate_sum(items):
-    sum = 0
+def foo():
+    return 2
 >>>>>>> REPLACE
 
 <<<<<<< SEARCH
-:start_line:4
+:start_line:20
 -------
-        total += item
-    return total
+def bar():
+    return 3
 =======
-        sum += item
-    return sum 
+def bar():
+    return 4
 >>>>>>> REPLACE
-```
+"""
+}
 
+## Tool Output Format (Observation):
+The tool will return a JSON string as its observation. This JSON object will have the following keys:
+- 'path': (string) The file path that was modified.
+- 'success': (boolean) True if the diff was applied successfully, False otherwise.
+- 'info': (string, optional) A success message if the diff was applied or the user declined.
+- 'error': (string, optional) An error message if something went wrong (e.g., file not found, diff format error, search block mismatch, syntax error, write error).
 
-##Usage:
-<apply_diff>
-<path>File path here</path>
-<diff>
-Your search/replace content here
-You can use multi search/replace block in one diff block, but make sure to include the line numbers for each block.
-Only use a single line of '=======' between search and replacement content, because multiple '=======' will corrupt the file.
-</diff>
-</apply_diff>
+## Example Tool Outputs (Observation JSON):
+
+Example 1: Successful diff application:
+{
+  "path": "src/utils.py",
+  "success": true,
+  "info": "Successfully applied diff to file: src/utils.py"
+}
+
+Example 2: File not found:
+{
+  "path": "src/does_not_exist.py",
+  "success": false,
+  "error": "File not found: src/does_not_exist.py"
+}
+
+Example 3: Search block mismatch:
+{
+  "path": "src/utils.py",
+  "success": false,
+  "error": "Search block does not match file at line 10. Please use read_file to get the exact content and line numbers."
+}
+
+Example 4: User declined to apply diff:
+{
+  "path": "src/utils.py",
+  "success": false,
+  "info": "User declined to apply diff."
+}
+
+Example 5: Syntax error after applying diff:
+{
+  "path": "src/utils.py",
+  "success": false,
+  "error": "Syntax error after applying diff: invalid syntax (utils.py, line 12)"
+}
 ''')
