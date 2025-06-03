@@ -9,6 +9,13 @@ from katalyst_agent.utils.tools import get_formatted_tool_prompts_for_llm, get_t
 
 REGISTERED_TOOL_FUNCTIONS_MAP = get_tool_functions_map()
 
+# agent_react.py
+# ------------------------------------------------------------------------------
+# This module defines the agent_react node for the Katalyst agent's ReAct loop.
+# It handles a single Reason-Act cycle: builds a prompt, calls the LLM, parses
+# structured output, and updates the agent state accordingly.
+# ------------------------------------------------------------------------------
+
 def agent_react(state: KatalystState) -> KatalystState:
     """
     Execute one ReAct (Reason-Act) cycle for the current sub-task.
@@ -16,30 +23,20 @@ def agent_react(state: KatalystState) -> KatalystState:
 
     * Primary Task: Execute one ReAct (Reason-Act) cycle for the current sub-task.
     * State Changes:
-    * Increments state.inner_cycles.
-    * Checks if state.inner_cycles > state.max_inner_cycles:
-    * If true, sets state.response to an error message (e.g., "Inner loop limit exceeded...").
-    * Sets state.agent_outcome = None (or an AgentFinish indicating error).
-    * Returns the updated KatalystState (the route_after_agent router will then see state.response and route to END).
-    * If within limits:
-    * Formats a prompt for the LLM including the current sub-task, action_trace (as scratchpad), and any error_message.
-    * Calls the LLM.
-    * Parses the LLM's response to identify a "Thought" and either an "Action" (XML tool call) or a "Final Answer" for the current sub-task.
-    * If "Action":
-    * Parses the XML tool call into tool_name and args_dict.
-    * Sets state.agent_outcome = AgentAction(tool=tool_name, tool_input=args_dict, log=thought_and_raw_action_string).
-    * If "Final Answer":
-    * Sets state.agent_outcome = AgentFinish(return_values={"output": final_answer_string}, log=thought_and_raw_final_answer_string).
-    * If parsing fails or format is incorrect:
-    * Sets state.error_message with details for the next agent_react call (to attempt self-correction for this sub-task).
-    * Sets state.agent_outcome = None.
-    * Logs the raw LLM interaction to state.chat_history (or a more detailed ReAct trace if preferred).
-    * Returns: The updated KatalystState.    
+      - Increments state.inner_cycles (loop guard).
+      - If max cycles exceeded, sets state.response and returns AgentFinish.
+      - Otherwise, builds a prompt (system + user) with subtask, error, and scratchpad.
+      - Calls the LLM for a structured response (thought, action, action_input, final_answer).
+      - If action: wraps as AgentAction and updates state.
+      - If final_answer: wraps as AgentFinish and updates state.
+      - If neither: sets error_message for retry/self-correction.
+      - Logs LLM thoughts and actions to chat_history for traceability.
+    * Returns: The updated KatalystState.
     """
     logger = get_logger()
     logger.info(f"[AGENT_REACT] Starting agent_react node...")
     
-    # 1) Inner-loop guard
+    # 1) Inner-loop guard: prevent infinite loops in the ReAct cycle
     state.inner_cycles += 1
     if state.inner_cycles > state.max_inner_cycles:
         state.response = (
@@ -55,6 +52,9 @@ def agent_react(state: KatalystState) -> KatalystState:
         return state
 
     # 2) Build the system message (persona, format, rules)
+    # --------------------------------------------------------------------------
+    # This message sets the agent's persona, output format, and tool usage rules.
+    # It also appends detailed tool descriptions for LLM reference.
     system_message_content = (
         "You are a ReAct agent. Your goal is to accomplish sub-tasks by thinking step by step "
         "and then either taking an action (tool call) or providing a final answer if the sub-task is complete. "
@@ -63,25 +63,41 @@ def agent_react(state: KatalystState) -> KatalystState:
         "OR (final_answer (string, your answer for the sub-task))."
     )
 
-    # Get the detailed descriptions of all *discovered and registered* tools and add them to the system message
+    # Add detailed tool descriptions to the system message for LLM tool selection
     all_detailed_tool_prompts = get_formatted_tool_prompts_for_llm(REGISTERED_TOOL_FUNCTIONS_MAP)
     system_message_content += f"\n\n{all_detailed_tool_prompts}"
 
-    # 2) Build the user message (task, error, scratchpad)
+    # 3) Build the user message (task, context, error, scratchpad)
+    # --------------------------------------------------------------------------
+    # This message provides the current subtask, context from the previous sub-task (if any),
+    # any error feedback, and a scratchpad of previous actions/observations to help the LLM reason step by step.
     current_subtask = (
         state.task_queue[state.task_idx] 
         if state.task_idx < len(state.task_queue) 
         else ""
     )
-    user_message_content_parts = [f"Subtask: {current_subtask}"]
+    user_message_content_parts = [f"Current Subtask: {current_subtask}"]
+
+    # Provide context from the most recently completed sub-task if available and relevant
+    if state.task_idx > 0 and state.completed_tasks:
+        try:
+            # Get the summary of the immediately preceding task
+            prev_task_name, prev_task_summary = state.completed_tasks[state.task_idx - 1]
+            user_message_content_parts.append(
+                f"\nContext from previously completed sub-task ('{prev_task_name}'): {prev_task_summary}"
+            )
+        except IndexError:
+            logger.warning(f"[AGENT_REACT] Could not get previous completed task context for task_idx {state.task_idx}")
+
+    # Add error message if it exists (for LLM self-correction)
     if state.error_message:
-        user_message_content_parts.insert(
-            0,
+        user_message_content_parts.append(
             f"An error occurred in the previous step: {state.error_message}\n"
             "Please analyze this error and try to correct your plan or action."
         )
         state.error_message = None  # Consume the error message
 
+    # Add action trace if it exists (scratchpad for LLM reasoning)
     if state.action_trace:
         scratchpad_content = "\n".join([
             f"Previous Action: {action.tool}\nPrevious Action Input: {action.tool_input}\nObservation: {obs}" 
@@ -93,12 +109,21 @@ def agent_react(state: KatalystState) -> KatalystState:
 
     user_message_content = "\n".join(user_message_content_parts)
 
+    # Compose the full LLM message list
     llm_messages = [
         {"role": "system", "content": system_message_content},
         {"role": "user", "content": user_message_content}
     ]
+    logger.info(f"[AGENT_REACT] LLM messages: {llm_messages}")
 
-    # 3. Call the LLM
+    # 4) Call the LLM for a structured ReAct response
+    # --------------------------------------------------------------------------
+    # The LLM is expected to return a JSON object matching AgentReactOutput:
+    #   - thought: reasoning string
+    #   - action: tool name (optional)
+    #   - action_input: dict of tool arguments (optional)
+    #   - final_answer: string (optional)
+    #   - replan_requested: bool (optional)
     llm = get_llm_instructor()
     response = llm.chat.completions.create(
         messages=llm_messages,
@@ -108,12 +133,12 @@ def agent_react(state: KatalystState) -> KatalystState:
     logger.debug(f"[AGENT_REACT] Raw LLM response: {response}")
     logger.info(f"[AGENT_REACT] Parsed output: {response.dict()}")
 
-    # 4) Log the LLM's thought to chat_history: full ReAct trace
+    # 5) Log the LLM's thought and action to chat_history for traceability
     state.chat_history.append(AIMessage(content=f"Thought: {response.thought}"))
     if response.action:
         state.chat_history.append(AIMessage(content=f"Action: {response.action} with input {response.action_input}"))    
 
-    # 5) If "action" key is present, wrap in AgentAction
+    # 6) If "action" key is present, wrap in AgentAction and update state
     if response.action:
         args_dict = response.action_input or {}
         state.agent_outcome = AgentAction(
@@ -124,7 +149,7 @@ def agent_react(state: KatalystState) -> KatalystState:
         state.error_message = None
         logger.info(f"[AGENT_REACT] Action requested: {response.action} with input {args_dict}")
 
-    # 6) If "final_answer" key is present, wrap in AgentFinish
+    # 7) If "final_answer" key is present, wrap in AgentFinish and update state
     elif response.final_answer:
         state.agent_outcome = AgentFinish(
             return_values={"output": response.final_answer},
@@ -133,11 +158,8 @@ def agent_react(state: KatalystState) -> KatalystState:
         state.error_message = None
         logger.info(f"[AGENT_REACT] Final answer provided: {response.final_answer}")
 
-    # 7) If neither "action" nor "final_answer", treat as parsing error
+    # 8) If neither "action" nor "final_answer", treat as parsing error or replan
     else:
-        # Example: If the LLM/tool signals a need to replan, set the marker
-        # (In a real implementation, you might check for a specific LLM output or tool error)
-        # For now, we just use the parsing error as a possible replan trigger example:
         if getattr(response, 'replan_requested', False):
             state.error_message = "[REPLAN_REQUESTED] LLM requested replanning."
             logger.warning("[AGENT_REACT] [REPLAN_REQUESTED] LLM requested replanning.")

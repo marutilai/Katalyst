@@ -3,7 +3,7 @@ from langgraph.graph import END
 from langchain_core.agents import AgentAction
 from katalyst_agent.state import KatalystState
 
-__all__ = ["route_after_agent", "route_after_pointer"]
+__all__ = ["route_after_agent", "route_after_pointer", "route_after_replanner"]
 
 def route_after_agent(state: KatalystState) -> Union[str, object]:
     """
@@ -30,3 +30,20 @@ def route_after_pointer(state: KatalystState) -> Union[str, object]:
     if state.task_idx >= len(state.task_queue):
         return "replanner"
     return "agent_react"
+
+
+def route_after_replanner(state: KatalystState) -> str:
+    """
+    Router for after the replanner node.
+    - If replanner set a final response (task done), route to END.
+    - If replanner provided new tasks, route to agent_react.
+    - If replanner provided no tasks and no response, set a generic completion response and route to END.
+    """
+    if state.response:  # If replanner set a final response (e.g. task done)
+        return END
+    elif state.task_queue:  # If replanner provided new tasks
+        return "agent_react"
+    else:  # No tasks and no response (should not happen, but handle gracefully)
+        if not state.response:
+            state.response = "Overall task concluded after replanning resulted in an empty task queue."
+        return END

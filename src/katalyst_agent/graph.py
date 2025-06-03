@@ -1,8 +1,8 @@
 from langgraph.graph import StateGraph, START, END
 from langchain_core.agents import AgentAction
 
-from katalyst_agent.state import KatalystState  # adjust import as needed
-from katalyst_agent.routing import route_after_agent, route_after_pointer          # routing helpers with guards
+from katalyst_agent.state import KatalystState
+from katalyst_agent.routing import route_after_agent, route_after_pointer, route_after_replanner
 from katalyst_agent.nodes.planner import planner
 from katalyst_agent.nodes.agent_react import agent_react
 from katalyst_agent.nodes.tool_runner import tool_runner
@@ -70,7 +70,7 @@ def build_compiled_graph():
     # ── replanner output: new plan → back to INNER LOOP, or final answer → END ──
     g.add_conditional_edges(
         "replanner",
-        lambda s: END if s.response else "agent_react",
+        route_after_replanner,  # use the new router
         ["agent_react", END],
     )
 

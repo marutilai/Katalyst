@@ -33,13 +33,18 @@ def replanner(state: KatalystState) -> KatalystState:
     llm = get_llm_instructor()
     completed_str = "\n".join(f"- {task}: {summary}" for task, summary in state.completed_tasks) or "None yet."
     prompt = (
-        "You are a helpful coding agent. The original task is: "
-        f"{state.task}\n"
-        "Here are the subtasks you've already completed (with summaries):\n"
-        f"{completed_str}\n"
-        "The previous plan was exhausted or a replanning event was triggered. "
-        "Please generate a new, logically ordered list of concrete subtasks to finish the overall task. "
-        "Return the subtasks as a JSON list of strings."
+        "You are an intelligent planning assistant. Your role is to analyze the progress towards an overall goal and, if necessary, create a new plan of subtasks.\n\n"
+        f"ORIGINAL GOAL: {state.task}\n\n"
+        "COMPLETED SUBTASKS & THEIR OUTCOMES:\n"
+        f"{completed_str}\n\n"
+        "INSTRUCTIONS:\n"
+        "1. Carefully review the ORIGINAL GOAL and the COMPLETED SUBTASKS & THEIR OUTCOMES.\n"
+        "2. Determine if the ORIGINAL GOAL has been fully achieved based on the outcomes of the completed subtasks.\n"
+        "3. If the ORIGINAL GOAL is fully achieved, return an empty list of subtasks: {\"subtasks\": []}.\n"
+        "4. If the ORIGINAL GOAL is NOT YET achieved, generate a NEW, logically ordered list of concrete subtask descriptions required to fully achieve the remaining parts of the ORIGINAL GOAL. Each subtask should be a single, actionable sentence.\n"
+        "   Avoid re-listing subtasks whose outcomes indicate they have already effectively contributed to the goal, unless a previous attempt clearly failed and needs a different approach.\n"
+        "5. Return your response as a JSON object with a single key \"subtasks\" containing a list of strings (the new subtask descriptions). Example: {\"subtasks\": [\"New subtask 1 description.\", \"New subtask 2 description.\"]}\n\n"
+        "CURRENT SITUATION: The previous plan of subtasks is now exhausted, or a specific replanning event was triggered. Analyze the progress and provide your JSON response."
     )
     logger.info(f"[REPLANNER] Prompt to LLM:\n{prompt}")
     response = llm.chat.completions.create(
