@@ -22,13 +22,11 @@ def run_katalyst_task(user_input: str, project_state: dict, graph) -> KatalystSt
 
     # Load persisted parts of the state
     loaded_chat_history = project_state.get("chat_history", []) # Already deserialized by persistence.py
-    current_mode = project_state.get("current_mode", "code") # Default if not found
 
     # Construct the initial state dictionary for Pydantic model validation
     # KatalystState Pydantic model will fill in defaults for other fields.
     initial_state_dict = {
         "task": user_input,
-        "current_mode": current_mode,
         "llm_provider": llm_provider, # This should be part of KatalystState if nodes need it
         "llm_model_name": llm_model_name, # This too
         "auto_approve": auto_approve,

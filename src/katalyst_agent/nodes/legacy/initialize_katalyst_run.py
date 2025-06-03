@@ -24,7 +24,6 @@ def initialize_katalyst_run(initial_state: Union[Dict[str, Any], KatalystAgentSt
     try:
         state = KatalystAgentState(
             task=initial_state.get("task"),
-            current_mode=initial_state.get("current_mode"),
             llm_provider=initial_state.get("llm_provider"),
             llm_model_name=initial_state.get("llm_model_name"),
             auto_approve=initial_state.get("auto_approve", False),

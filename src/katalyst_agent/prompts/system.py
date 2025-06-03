@@ -18,8 +18,6 @@ def get_system_prompt(state: KatalystAgentState) -> str:
     base_prompt = dedent(f"""
     You are a coding agent. Your current task is:
     {state.task}
-    
-    You are operating in mode: {state.current_mode}.
     """)
     # Concatenate all tool prompts, including formatting instructions
     all_tool_prompts = "\n\n".join([

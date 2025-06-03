@@ -33,11 +33,11 @@ def screen_2_trust_folder(folder_path):
         exit(0)
     console.print("[green]Proceeding...[/green]\n")
 
-def screen_3_final_tips(cwd, current_mode):
+def screen_3_final_tips(cwd):
     welcome_text = (
         "[bold red]*[/bold red] Welcome to [bold]Katalyst Agent![/bold]\n\n"
         "[dim]/help for help, /status for your current setup[/dim]\n\n"
-        f"[bold]cwd:[/bold] {cwd}    [bold]mode:[/bold] {current_mode}"
+        f"[bold]cwd:[/bold] {cwd}"
     )
     console.print(Panel(welcome_text, border_style="red", expand=False))
     tips_md = Markdown(
@@ -61,4 +61,4 @@ Tips for getting started:
 if __name__ == "__main__":
     screen_1_welcome_and_security()
     screen_2_trust_folder(os.getcwd())
-    screen_3_final_tips(os.getcwd(), "code")
+    screen_3_final_tips(os.getcwd())

@@ -15,14 +15,13 @@ load_dotenv()
 
 def maybe_show_welcome():
     project_state = load_project_state()
-    current_mode = project_state.get("current_mode", "code")
     if not ONBOARDING_FLAG.exists():
         welcome_screens.screen_1_welcome_and_security()
         welcome_screens.screen_2_trust_folder(os.getcwd())
-        welcome_screens.screen_3_final_tips(os.getcwd(), current_mode)
+        welcome_screens.screen_3_final_tips(os.getcwd())
         ONBOARDING_FLAG.write_text("onboarded\n")
     else:
-        welcome_screens.screen_3_final_tips(os.getcwd(), current_mode)
+        welcome_screens.screen_3_final_tips(os.getcwd())
 
 def handle_init():
     with open("KATALYST.md", "w") as f:
@@ -52,7 +51,6 @@ def repl():
             # Update and save project state after each command
             project_state.update({
                 "chat_history": result.chat_history, # Persist chat history
-                # current_mode is already up to date in project_state
                 # TODO: Add more fields to persist as needed
             })
             save_project_state(project_state)

@@ -74,8 +74,6 @@ def execute_tool(state: KatalystAgentState) -> KatalystAgentState:
                     call_kwargs[param_name_in_signature] = xml_value_str
                 else:
                     call_kwargs[param_name_in_signature] = xml_value_str
-            elif param_name_in_signature == 'mode':
-                call_kwargs['mode'] = state.current_mode
             elif param_name_in_signature == 'auto_approve':
                 call_kwargs['auto_approve'] = state.auto_approve
 
