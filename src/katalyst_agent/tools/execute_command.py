@@ -3,8 +3,8 @@ from katalyst_agent.utils.logger import get_logger
 from katalyst_agent.utils.tools import katalyst_tool
 import os
 
-@katalyst_tool
-def execute_command(command: str, cwd: str = None, timeout: int = None, mode: str = "code", auto_approve: bool = False) -> str:
+@katalyst_tool(prompt_module="execute_command", prompt_var="EXECUTE_COMMAND_PROMPT")
+def execute_command(command: str, cwd: str = None, timeout: int = 30, mode: str = None, auto_approve: bool = True) -> str:
     """
     Executes a shell command in the terminal.
     Parameters:

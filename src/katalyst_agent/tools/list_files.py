@@ -7,7 +7,7 @@ from pathlib import Path
 import pathspec
 
 
-@katalyst_tool
+@katalyst_tool(prompt_module="list_files", prompt_var="LIST_FILES_PROMPT")
 def list_files(path: str, recursive: bool, respect_gitignore: bool = True) -> str:
     """
     Lists files and directories within a given path, with options for recursion and respecting .gitignore.

@@ -7,8 +7,8 @@ import sys
 import tempfile
 
 
-@katalyst_tool
-def write_to_file(path: str, content: str, mode: str, auto_approve: bool = False) -> str:
+@katalyst_tool(prompt_module="write_to_file", prompt_var="WRITE_TO_FILE_PROMPT")
+def write_to_file(path: str, content: str, mode: str = "w", auto_approve: bool = True) -> str:
     """
     Writes full content to a file, overwriting if it exists, creating it if it doesn't. Checks syntax before writing for Python files.
     Arguments:

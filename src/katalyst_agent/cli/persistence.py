@@ -2,7 +2,7 @@ import os
 import json
 from katalyst_agent.config import STATE_FILE
 from katalyst_agent.utils.logger import get_logger
-from langchain_core.messages.base import message_to_dict, messages_from_dict
+from langchain_core.messages import message_to_dict, messages_from_dict
 
 def load_project_state():
     if os.path.exists(STATE_FILE):

@@ -18,3 +18,21 @@ def get_llm():
   
     # Add other providers here
     raise ValueError(f"Unsupported LLM provider for LangChain: {provider}")
+
+# New: Instructor-patched OpenAI client for structured output
+
+def get_llm_instructor():
+    """
+    Returns an Instructor-patched OpenAI client for structured Pydantic responses.
+    Usage: client = get_llm_instructor(); client.chat.completions.create(..., response_model=MyModel)
+    """
+    import instructor
+    provider = os.getenv("KATALYST_PROVIDER", "openai")
+    model_name = os.getenv("KATALYST_MODEL", "gpt-4.1-nano")
+
+    if provider == "openai":
+        # api_key = os.getenv("OPENAI_API_KEY")
+        client = instructor.from_provider(f"openai/{model_name}")
+        return client
+    
+    raise ValueError(f"Unsupported LLM provider for Instructor: {provider}")

@@ -4,14 +4,31 @@ import importlib
 from typing import List, Tuple, Dict
 import inspect
 import tempfile
+from typing import Callable
 
 # Directory containing all tool modules
-TOOLS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools")
+TOOLS_IMPLEMENTATION_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools")
 
-def katalyst_tool(func):
-    """Decorator to mark a function as a Katalyst tool."""
-    func._is_katalyst_tool = True
-    return func
+def katalyst_tool(func=None, *, prompt_module=None, prompt_var=None):
+    """
+    Decorator to mark a function as a Katalyst tool, with optional prompt module/variable metadata.
+    Usage:
+        @katalyst_tool
+        def foo(...): ...
+    or
+        @katalyst_tool(prompt_module="bar", prompt_var="BAR_PROMPT")
+        def foo(...): ...
+    """
+    def wrapper(f):
+        f._is_katalyst_tool = True
+        if prompt_module:
+            f._prompt_module = prompt_module
+        if prompt_var:
+            f._prompt_var = prompt_var
+        return f
+    if func is None:
+        return wrapper
+    return wrapper(func)
 
 def get_tool_names_and_params() -> Tuple[List[str], List[str], Dict[str, List[str]]]:
     """
@@ -25,7 +42,7 @@ def get_tool_names_and_params() -> Tuple[List[str], List[str], Dict[str, List[st
     tool_names = []
     tool_param_names = set()
     tool_param_map = {}
-    for filename in os.listdir(TOOLS_DIR):
+    for filename in os.listdir(TOOLS_IMPLEMENTATION_DIR):
         if filename.endswith(".py") and not filename.startswith("__"):
             module_name = f"katalyst_agent.tools.{filename[:-3]}"
             module = importlib.import_module(module_name)
@@ -47,15 +64,52 @@ def get_tool_functions_map() -> Dict[str, callable]:
     Only includes functions decorated with @katalyst_tool.
     """
     tool_functions = {}
-    for filename in os.listdir(TOOLS_DIR):
+    if not os.path.exists(TOOLS_IMPLEMENTATION_DIR):
+        print(f"Warning (get_tool_functions_map): Tools directory not found at {TOOLS_IMPLEMENTATION_DIR}")
+        return tool_functions
+        
+    for filename in os.listdir(TOOLS_IMPLEMENTATION_DIR):
         if filename.endswith(".py") and not filename.startswith("__"):
             module_name = f"katalyst_agent.tools.{filename[:-3]}"
-            module = importlib.import_module(module_name)
-            for attr in dir(module):
-                func = getattr(module, attr)
-                if callable(func) and getattr(func, "_is_katalyst_tool", False):
-                    tool_functions[attr] = func
+            try:
+                module = importlib.import_module(module_name)
+                for attr_name in dir(module):
+                    func_candidate = getattr(module, attr_name)
+                    if callable(func_candidate) and getattr(func_candidate, "_is_katalyst_tool", False):
+                        # Use the stored LLM-facing tool name if available, else func name
+                        tool_key = getattr(func_candidate, '_tool_name_for_llm_', func_candidate.__name__)
+                        tool_functions[tool_key] = func_candidate
+            except ImportError as e:
+                print(f"Warning (get_tool_functions_map): Could not import module {module_name}. Error: {e}")
     return tool_functions
+
+
+def get_formatted_tool_prompts_for_llm(tool_functions_map: Dict[str, Callable]) -> str:
+    """
+    Dynamically loads and formats the detailed tool prompts for the LLM.
+    Uses prompt_module and prompt_var metadata from the tool function if present, else falls back to convention.
+    """
+    prompt_strings = []
+    for tool_function_name, func in tool_functions_map.items():
+        # Use metadata if present, else fall back to convention
+        prompt_module_base_name = getattr(func, '_prompt_module', tool_function_name)
+        prompt_variable_name = getattr(func, '_prompt_var', f"{tool_function_name.upper()}_PROMPT")
+        try:
+            module_path = f"katalyst_agent.prompts.tools.{prompt_module_base_name}"
+            module = importlib.import_module(module_path)
+            if hasattr(module, prompt_variable_name):
+                prompt_string = getattr(module, prompt_variable_name)
+                if isinstance(prompt_string, str):
+                    prompt_strings.append(prompt_string.strip())
+                else:
+                    print(f"Warning: Prompt variable '{prompt_variable_name}' in '{module_path}' is not a string.")
+            else:
+                print(f"Warning: Prompt variable '{prompt_variable_name}' not found in '{module_path}'. Tried for tool '{tool_function_name}'.")
+        except ImportError:
+            print(f"Warning: Could not import prompt module '{module_path}' for tool '{tool_function_name}'.")
+    output = "\n\n".join(prompt_strings)
+    output = "You have access to the following tools:\n" + output
+    return output
 
 if __name__ == "__main__":
     # Test the get_tool_names_and_params function
@@ -75,3 +129,8 @@ if __name__ == "__main__":
     for name, func in tool_functions.items():
         print(f"Tool function: {name} -> {func}")
  
+     # Test get_formatted_tool_prompts_for_llm
+    print("\n--- TESTING FORMATTED TOOL PROMPTS FOR LLM (Dynamically Discovered) ---")
+    formatted_prompts = get_formatted_tool_prompts_for_llm(tool_functions)
+    if formatted_prompts:
+        print(formatted_prompts)

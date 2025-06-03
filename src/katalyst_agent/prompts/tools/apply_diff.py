@@ -1,7 +1,7 @@
 from textwrap import dedent
 
 APPLY_DIFF_PROMPT = dedent('''
-## apply_diff Tool
+# apply_diff Tool
 
 Request to replace existing code using a search and replace block.
 This tool allows for precise, surgical replaces to files by specifying exactly what content to search for and what to replace it with.
@@ -13,11 +13,11 @@ The SEARCH section must exactly match existing content including whitespace and 
 If you're not confident in the exact content to search for, use the read_file tool first to get the exact content.
 When applying the diffs, be extra careful to remember to change any closing brackets or other syntax that may be affected by the diff farther down in the file.
 
-Parameters:
+##Parameters:
 - path: (required) The path of the file to modify (relative to the current workspace directory {pwd})
 - diff: (required) The search/replace block defining the changes.
 
-Diff format:
+##Diff format:
 ```
 <<<<<<< SEARCH
 :start_line: (required) The line number of original content where the search block starts.
@@ -28,12 +28,12 @@ Diff format:
 >>>>>>> REPLACE
 
 ```
-IMPORTANT:
+##IMPORTANT:
 - the start_line must match the line number of the search content in the original file. if not sure, use the read_file tool
 - the start_line ONLY needs to be specified once at the start of the search block.
 
 
-Example:
+##Example:
 
 Original file:
 ```
@@ -86,7 +86,7 @@ def calculate_sum(items):
 ```
 
 
-Usage:
+##Usage:
 <apply_diff>
 <path>File path here</path>
 <diff>

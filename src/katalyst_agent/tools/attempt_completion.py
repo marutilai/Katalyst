@@ -1,7 +1,7 @@
 from katalyst_agent.utils.logger import get_logger
 from katalyst_agent.utils.tools import katalyst_tool
 
-@katalyst_tool
+@katalyst_tool(prompt_module="attempt_completion", prompt_var="ATTEMPT_COMPLETION_PROMPT")
 def attempt_completion(result: str) -> str:
     """
     Presents the final result of the task to the user. Only use this after confirming all previous tool uses were successful.

@@ -5,8 +5,8 @@ from katalyst_agent.utils.tools import katalyst_tool
 from katalyst_agent.utils.syntax_checker import check_syntax
 import tempfile
 
-@katalyst_tool
-def apply_diff(path: str, diff: str, mode: str, auto_approve: bool = False) -> str:
+@katalyst_tool(prompt_module="apply_diff", prompt_var="APPLY_DIFF_PROMPT")
+def apply_diff(path: str, diff: str, mode: str = "patch", auto_approve: bool = True) -> str:
     """
     Applies changes to a file using a specific search/replace diff format. Checks syntax before applying for Python files.
     """

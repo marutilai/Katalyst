@@ -5,7 +5,7 @@ WRITE_TO_FILE_PROMPT = dedent("""
 
 Use this tool to write the full content to a file. If the file exists, it will be overwritten; if not, it will be created (including any needed directories). Always provide the complete intended content—no truncation or omissions.
 
-Parameters:
+## Parameters:
 - path: (required) File path to write (relative to workspace)
 - content: (required) The full content to write (no line numbers, just the file content)
 

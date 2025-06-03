@@ -1,53 +1,78 @@
-from langgraph.graph import StateGraph, END
-from katalyst_agent.state import KatalystAgentState
-from katalyst_agent.nodes.initialize_katalyst_run import initialize_katalyst_run
-from katalyst_agent.nodes.generate_llm_prompt import generate_llm_prompt
-from katalyst_agent.nodes.invoke_llm import invoke_llm
-from katalyst_agent.nodes.parse_llm_response import parse_llm_response
-from katalyst_agent.nodes.execute_tool import execute_tool
-from katalyst_agent.nodes.prepare_reprompt_feedback import prepare_reprompt_feedback
-from katalyst_agent.routing import (
-    decide_next_action_router, 
-    FINISH_MAX_ITERATIONS, 
-    FINISH_SUCCESSFUL_COMPLETION, 
-    EXECUTE_TOOL, 
-    REPROMPT_LLM
-)
+from langgraph.graph import StateGraph, START, END
+from langchain_core.agents import AgentAction
+
+from katalyst_agent.state import KatalystState  # adjust import as needed
+from katalyst_agent.routing import route_after_agent, route_after_pointer          # routing helpers with guards
+from katalyst_agent.nodes.planner import planner
+from katalyst_agent.nodes.agent_react import agent_react
+from katalyst_agent.nodes.tool_runner import tool_runner
+from katalyst_agent.nodes.advance_pointer import advance_pointer
+from katalyst_agent.nodes.replanner import replanner
+
+
+# Node-callable functions (define/import elsewhere in your code‑base)
+# ------------------------------------------------------------------
+# • planner          – produces an ordered list of sub‑tasks in ``state.task_queue``
+# • agent_react      – LLM step that yields AgentAction / AgentFinish in ``state.agent_outcome``
+# • tool_runner      – executes Python tool extracted from AgentAction
+# • advance_pointer  – increments ``state.task_idx`` and resets ``state.inner_cycles`` & ``state.action_trace``
+# • replanner        – builds a fresh plan or final answer when current plan exhausted
+# ------------------------------------------------------------------
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TWO-LEVEL AGENT STRUCTURE
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. OUTER LOOP  (Plan-and-Execute)
+#    planner  →  ⟮ INNER LOOP ⟯  →  advance_pointer  →  replanner
+#         ↘                               ↑                ↘
+#          └─────────────── LOOP ─────────┘   new-plan / END └───► END
+#
+# 2. INNER LOOP  (ReAct over a single task)
+#    agent_react  →  tool_runner  →  agent_react  (repeat until AgentFinish)
+# ─────────────────────────────────────────────────────────────────────────────
 
 def build_compiled_graph():
-    agent_graph = StateGraph(KatalystAgentState)
+    g = StateGraph(KatalystState)
 
-    # Add nodes
-    agent_graph.add_node("initialize_katalyst_run", initialize_katalyst_run)
-    agent_graph.add_node("generate_llm_prompt", generate_llm_prompt)
-    agent_graph.add_node("invoke_llm", invoke_llm)
-    agent_graph.add_node("parse_llm_response", parse_llm_response)
-    agent_graph.add_node("execute_tool", execute_tool)
-    agent_graph.add_node("prepare_reprompt_feedback", prepare_reprompt_feedback)
-    
-    # Add edges
-    agent_graph.add_edge("initialize_katalyst_run", "generate_llm_prompt")
-    agent_graph.add_edge("generate_llm_prompt", "invoke_llm")
-    agent_graph.add_edge("invoke_llm", "parse_llm_response")
+    # ── planner: generates the initial list of sub‑tasks ─────────────────────────
+    g.add_node("planner", planner)
 
-    # Conditional edge after parse_llm_response using router
-    agent_graph.add_conditional_edges(
-        "parse_llm_response",
-        decide_next_action_router,
-        {
-            EXECUTE_TOOL: "execute_tool",
-            REPROMPT_LLM: "prepare_reprompt_feedback",
-            FINISH_MAX_ITERATIONS: END,
-            FINISH_SUCCESSFUL_COMPLETION: END,
-        },
+    # ── INNER LOOP nodes ─────────────────────────────────────────────────────────
+    g.add_node("agent_react",      agent_react)      # LLM emits AgentAction/Finish
+    g.add_node("tool_runner",       tool_runner)      # Executes the chosen tool
+    g.add_node("advance_pointer",   advance_pointer)  # Marks task complete
+
+
+    # ── replanner: invoked when plan is exhausted or needs adjustment ────────────
+    g.add_node("replanner",        replanner)
+
+    # ── edges for OUTER LOOP ─────────────────────────────────────────────────────
+    g.add_edge(START,     "planner")        # start → planner
+    g.add_edge("planner", "agent_react")    # initial plan → INNER LOOP
+
+    # ── routing inside INNER LOOP (delegated to router.py) ───────────────────────
+    g.add_conditional_edges(
+        "agent_react",
+        route_after_agent,                 # may return "tool_runner", "advance_pointer", or END
+        ["tool_runner", "advance_pointer", END],
     )
-    # After tool execution, go back to prompt generation
-    agent_graph.add_edge("execute_tool", "generate_llm_prompt")
-    agent_graph.add_edge("prepare_reprompt_feedback", "generate_llm_prompt")
 
-    # Set entry point
-    agent_graph.set_entry_point("initialize_katalyst_run")
+    # tool → agent (reflection)                          (INNER LOOP)
+    g.add_edge("tool_runner",     "agent_react")
 
-    # Compile the graph
-    compiled_graph = agent_graph.compile()
-    return compiled_graph
+    # ── decide whether to re‑plan or continue with next sub‑task ─────────────────
+    g.add_conditional_edges(
+        "advance_pointer",
+        route_after_pointer,              # may return "agent_react", "replanner", or END
+        ["agent_react", "replanner", END],
+    )
+
+    # ── replanner output: new plan → back to INNER LOOP, or final answer → END ──
+    g.add_conditional_edges(
+        "replanner",
+        lambda s: END if s.response else "agent_react",
+        ["agent_react", END],
+    )
+
+    app = g.compile()
+    return app

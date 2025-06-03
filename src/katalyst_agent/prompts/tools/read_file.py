@@ -5,7 +5,7 @@ READ_FILE_TOOL_PROMPT = dedent("""
 
 Use this tool to read the contents of a file. You can specify start and end lines to read only a portion of the file. Output includes line numbers for easy reference. Do not use this tool for binary files.
 
-Parameters:
+## Parameters:
 - path: (required) File path to read (relative to workspace)
 - start_line: (optional) Starting line number (1-based, inclusive)
 - end_line: (optional) Ending line number (1-based, inclusive)

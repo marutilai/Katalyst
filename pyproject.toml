@@ -5,7 +5,7 @@ description = "A terminal coding agent for Python."
 authors = [{name = "Maruti Agarwal", email = "marutiagarwal@gmail.com"}]
 readme = "README.md"
 license = {file = "LICENSE"}
-requires-python = ">=3.12"
+requires-python = ">=3.12,<4.0"
 
 [project.scripts]
 katalyst = "katalyst_agent.main:main"
@@ -28,5 +28,6 @@ langchain-openai = "^0.3.18"
 pathspec = "^0.12.1"
 tree-sitter = "0.21.3"
 tree-sitter-languages = "^1.10.2"
-rich = "^14.0.0"
+rich = "^13.9.4"
 pytest = "^8.3.5"
+instructor = "^1.8.3"

@@ -1,53 +1,75 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Tuple, Optional, Union
 from pydantic import BaseModel, Field
+from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.messages import BaseMessage
-import operator
 
 
-class KatalystAgentState(BaseModel):
-    # --- Inputs to the graph run ---
-    task: str = Field(..., description="The current high-level task from the user.")
-    current_mode: str = Field(..., description='"architect" or "code".')
-    llm_provider: str = Field(
-        ..., description='Specific provider name, e.g., "openai", "google"'
+class KatalystState(BaseModel):
+    # ── immutable run-level inputs ─────────────────────────────────────────
+    task: str = Field(..., description="Top-level user request that kicks off the whole run.")
+    auto_approve: bool = Field(False, description="If True, file-writing tools skip interactive confirmation.")
+
+    # ── long-horizon planning ─────────────────────────────────────────────
+    task_queue: List[str] = Field(
+        default_factory=list, description="Remaining tasks produced by the planner."
     )
-    llm_model_name: str = Field(
-        ..., description='Specific model name, e.g., "gpt-4-turbo", "gemini-pro"'
+    task_idx: int = Field(
+        0, description="Index of the task currently being executed (0-based)."
     )
-    auto_approve: bool = Field(False, description="Whether to skip user confirmations.")
-    # verbose_prompt: bool # For debugging prompts - can be added later if needed
 
-    # --- Core graph state ---
+    # ── ReAct dialogue (inner loop) ───────────────────────────────────────
     chat_history: List[BaseMessage] = Field(
-        default_factory=list, description="The full conversation history with the LLM."
+        default_factory=list,
+        description=(
+            "Full conversation history as LangChain BaseMessage objects "
+            "(e.g., HumanMessage, AIMessage, SystemMessage, ToolMessage). "
+            "Used by planner, ReAct agent, and replanner for context."
+        ),
+    )
+    agent_outcome: Optional[Union[AgentAction, AgentFinish]] = Field(
+        None,
+        description=(
+            "Output of the latest LLM call: "
+            "• AgentAction → invoke tool\n"
+            "• AgentFinish → task completed"
+        ),
     )
 
-    # --- State for the current LLM interaction cycle ---
-    messages_for_next_llm_call: Optional[List[BaseMessage]] = Field(
-        None, description="Messages specifically prepared for the next LLM call."
+    # ── execution trace / audit ───────────────────────────────────────────
+    completed_tasks: List[Tuple[str, str]] = Field(
+        default_factory=list,
+        description="(task, summary) tuples appended after each task finishes.",
     )
-    llm_response_content: Optional[str] = Field(
-        None, description="The raw string content from the LLM's last response."
-    )
-    parsed_tool_call: Optional[Dict[str, Any]] = Field(
-        None,
-        description="Standardized tool call, e.g., {'tool_name': ..., 'args': {...}}.",
-    )
-    tool_output: Optional[str] = Field(
-        None,
-        description="Output from the last executed tool, to be fed into the next prompt.",
+    action_trace: List[Tuple[AgentAction, str]] = Field(
+        default_factory=list,
+        description=(
+            "Sequence of (AgentAction, observation) tuples recorded during "
+            "each agent↔tool cycle inside the current task. "
+            "Useful for LangSmith deep-trace or step-by-step UI replay."
+        ),
     )
 
-    # --- Error and feedback handling for the next LLM prompt ---
+    # ── error / completion flags ──────────────────────────────────────────
     error_message: Optional[str] = Field(
-        None,
-        description="If a node (e.g., tool execution) encounters an error to report to LLM.",
+        None, description="Captured exception text with trace (fed back into LLM for self-repair)."
     )
-    user_feedback: Optional[str] = Field(
-        None,
-        description="If a tool is rejected by the user, this holds their instructions for LLM.",
+    response: Optional[str] = Field(
+        None, description="Final deliverable once the outer loop terminates."
     )
 
-    # --- Iteration control ---
-    current_iteration: int = Field(0, description="Current iteration count.")
-    max_iterations: int = Field(10, description="To prevent infinite loops.")
+    # ── loop guardrails ───────────────────────────────────────────────────
+    inner_cycles: int = Field(
+        0, description="Count of agent↔tool cycles in the current task."
+    )
+    max_inner_cycles: int = Field(
+        20, description="Abort inner loop once this many cycles are hit."
+    )
+    outer_cycles: int = Field(
+        0, description="Count of planner→replanner cycles for the whole run."
+    )
+    max_outer_cycles: int = Field(
+        10, description="Abort outer loop once this many cycles are hit."
+    )
+
+    class Config:
+        arbitrary_types_allowed = True  # Enables AgentAction / AgentFinish

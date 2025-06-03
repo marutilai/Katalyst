@@ -3,8 +3,8 @@ from katalyst_agent.utils.tools import katalyst_tool
 import os
 from katalyst_agent.utils.gitignore import load_gitignore_patterns
 
-@katalyst_tool
-def read_file(path: str, start_line: int = None, end_line: int = None, mode: str = None, auto_approve: bool = True, respect_gitignore: bool = True) -> str:
+@katalyst_tool(prompt_module="read_file", prompt_var="READ_FILE_TOOL_PROMPT")
+def read_file(path: str, start_line: int = 1, end_line: int = None, mode: str = "r", auto_approve: bool = True, respect_gitignore: bool = True) -> str:
     """
     Reads the content of a file, optionally from a specific start line to an end line (1-based, inclusive).
     Returns a structured XML-style result for downstream agent parsing.

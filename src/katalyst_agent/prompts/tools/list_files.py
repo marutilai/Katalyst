@@ -6,7 +6,7 @@ LIST_FILES_PROMPT = dedent("""
 
 Use this tool to list files and directories in a given directory. Set `recursive` to true to list all contents recursively, or false for top-level only. Do not use this tool just to confirm file creation.
 
-Parameters:
+## Parameters:
 - path: (required) Directory path to list (relative to workspace)
 - recursive: (required) true for recursive, false for top-level only
 

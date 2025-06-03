@@ -5,7 +5,7 @@ from katalyst_agent.utils.tools import katalyst_tool
 from shutil import which
 from katalyst_agent.config import SEARCH_FILES_MAX_RESULTS  # Centralized config
 
-@katalyst_tool
+@katalyst_tool(prompt_module="search_files", prompt_var="SEARCH_FILES_PROMPT")
 def regex_search_files(path: str, regex: str, file_pattern: str = None, auto_approve: bool = True) -> str:
     """
     Performs a regex search across files in a directory using ripgrep (rg).

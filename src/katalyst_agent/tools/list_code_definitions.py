@@ -4,7 +4,7 @@ from katalyst_agent.utils.tools import katalyst_tool
 from katalyst_agent.services.code_structure import extract_code_definitions
 
 
-@katalyst_tool
+@katalyst_tool(prompt_module="list_code_definitions", prompt_var="LIST_CODE_DEFINITION_NAMES_PROMPT")
 def list_code_definition_names(path: str, auto_approve: bool = True) -> str:
     """
     Lists code definitions (classes, functions, methods) from a source file or files in a directory using the tree-sitter-languages package.
