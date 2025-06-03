@@ -2,38 +2,54 @@ import subprocess
 from katalyst_agent.utils.logger import get_logger
 from katalyst_agent.utils.tools import katalyst_tool
 import os
+import json
+
+
+def format_execute_command_response(success: bool, command: str, cwd: str, stdout: str = None, stderr: str = None, error: str = None, user_instruction: str = None) -> str:
+    """
+    Standardizes the output as a JSON string for downstream processing.
+    """
+    resp = {
+        "success": success,
+        "command": command,
+        "cwd": cwd
+    }
+    if stdout:
+        resp["stdout"] = stdout
+    if stderr:
+        resp["stderr"] = stderr
+    if error:
+        resp["error"] = error
+    if user_instruction:
+        resp["user_instruction"] = user_instruction
+    return json.dumps(resp)
+
 
 @katalyst_tool(prompt_module="execute_command", prompt_var="EXECUTE_COMMAND_PROMPT")
-def execute_command(command: str, cwd: str = None, timeout: int = 30, mode: str = None, auto_approve: bool = True) -> str:
+def execute_command(command: str, cwd: str = None, timeout: int = 30, auto_approve: bool = True) -> str:
     """
     Executes a shell command in the terminal.
     Parameters:
       - command: str (the CLI command to execute)
       - cwd: str (optional, working directory)
       - timeout: int (optional, seconds to wait before killing the process)
-      - mode: str ("architect" or "code", default "code")
       - auto_approve: bool (default False)
-    Returns a string detailing the command output, error, or user denial with feedback.
+    Returns a JSON string detailing the command output, error, or user denial with feedback.
     """
     logger = get_logger()
-    logger.info(f"Entered execute_command with command={command}, cwd={cwd}, timeout={timeout}, mode={mode}, auto_approve={auto_approve}")
-
-    # Restrict command execution in architect mode
-    if mode == "architect":
-        logger.error("execute_command is not available in architect mode.")
-        return "[ERROR] execute_command is not available in architect mode."
+    logger.info(f"Entered execute_command with command={command}, cwd={cwd}, timeout={timeout}, auto_approve={auto_approve}")
 
     # Validate command
     if not command or not isinstance(command, str):
         logger.error("No valid 'command' provided to execute_command.")
-        return "[ERROR] No valid 'command' provided."
+        return format_execute_command_response(False, command or "", cwd or os.getcwd(), error="No valid 'command' provided.")
 
     # Validate and resolve working directory
     if cwd:
         absolute_cwd = os.path.abspath(cwd)
         if not os.path.isdir(absolute_cwd):
             logger.error(f"The specified 'cwd': '{cwd}' is not a valid directory.")
-            return f"[ERROR] The specified 'cwd': '{cwd}' is not a valid directory. Please provide a valid directory."
+            return format_execute_command_response(False, command, cwd, error=f"The specified 'cwd': '{cwd}' is not a valid directory. Please provide a valid directory.")
     else:
         absolute_cwd = os.getcwd()
 
@@ -53,11 +69,7 @@ def execute_command(command: str, cwd: str = None, timeout: int = 30, mode: str 
         if confirm != 'y':
             feedback = input("Instruct Katalyst on what to do instead as you have rejected the command execution: ").strip()
             logger.info("User denied permission to execute command.")
-            # Return a string with denial and user feedback
-            return (
-                f"[USER_DENIAL] User denied permission to execute command: '{command}' in '{absolute_cwd}'.\n"
-                f"User instruction: <instruction>{feedback}</instruction>"
-            )
+            return format_execute_command_response(False, command, absolute_cwd, user_instruction=feedback)
 
     try:
         # Run the command using subprocess
@@ -72,28 +84,21 @@ def execute_command(command: str, cwd: str = None, timeout: int = 30, mode: str 
         )
         logger.info(f"Command '{command}' executed with return code {result.returncode}")
         # Collect stdout and stderr for output
-        output_str = ""
-        if result.stdout:
-            output_str += f"Stdout:\n{result.stdout.strip()}\n"
-        if result.stderr:
-            output_str += f"Stderr:\n{result.stderr.strip()}\n"
-        # Return success or error message based on return code
+        stdout = result.stdout.strip() if result.stdout else None
+        stderr = result.stderr.strip() if result.stderr else None
         if result.returncode == 0:
-            final_output = f"[SUCCESS] Command '{command}' executed successfully.\n"
-            final_output += output_str if output_str.strip() else "No output."
             logger.info("Exiting execute_command successfully.")
-            return final_output.strip()
+            return format_execute_command_response(True, command, absolute_cwd, stdout=stdout, stderr=stderr)
         else:
-            error_message = f"[ERROR] Command '{command}' failed with code {result.returncode}.\n"
-            error_message += output_str if output_str.strip() else "No specific error output on stdout/stderr."
+            error_message = f"Command '{command}' failed with code {result.returncode}."
             logger.error(error_message)
-            return error_message.strip()
+            return format_execute_command_response(False, command, absolute_cwd, stdout=stdout, stderr=stderr, error=error_message)
     except subprocess.TimeoutExpired:
         logger.error(f"Command '{command}' timed out after {timeout} seconds.")
-        return f"[ERROR] Command '{command}' timed out after {timeout} seconds."
+        return format_execute_command_response(False, command, absolute_cwd, error=f"Command '{command}' timed out after {timeout} seconds.")
     except FileNotFoundError:
         logger.error(f"Command not found: {command.split()[0]}")
-        return f"[ERROR] Command not found: {command.split()[0]}. Please ensure it's installed and in PATH."
+        return format_execute_command_response(False, command, absolute_cwd, error=f"Command not found: {command.split()[0]}. Please ensure it's installed and in PATH.")
     except Exception as e:
         logger.exception(f"Error executing command '{command}'.")
-        return f"[ERROR] An unexpected error occurred while executing command '{command}': {e}"
+        return format_execute_command_response(False, command, absolute_cwd, error=f"An unexpected error occurred while executing command '{command}': {e}")
