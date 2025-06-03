@@ -51,7 +51,7 @@ def repl():
             result = run_katalyst_task(user_input, project_state, graph)
             # Update and save project state after each command
             project_state.update({
-                "chat_history": result.get("chat_history", []),  # Persist chat history
+                "chat_history": result.chat_history, # Persist chat history
                 # current_mode is already up to date in project_state
                 # TODO: Add more fields to persist as needed
             })

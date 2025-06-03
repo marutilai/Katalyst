@@ -1,59 +1,99 @@
+# src/katalyst_agent/katalyst_runner.py
 import os
 from katalyst_agent.utils.logger import get_logger
+from katalyst_agent.state import KatalystState # Import your Pydantic state model
+from langchain_core.agents import AgentFinish # To check agent_outcome
 
-def run_katalyst_task(user_input, project_state, graph):
+def run_katalyst_task(user_input: str, project_state: dict, graph) -> KatalystState: # Added type hints
+    """
+    Prepares the initial state for a Katalyst task run, invokes the graph,
+    and prints a summary of the outcome.
+    """
+    logger = get_logger()
+    logger.info(f"[KATALYST_RUNNER] Starting new task: '{user_input}'")
+
+    # --- Prepare Initial State for the Graph ---
+    # These are loaded from environment or have defaults
     llm_provider = os.getenv("KATALYST_PROVIDER", "openai")
     llm_model_name = os.getenv("KATALYST_MODEL", "gpt-4.1-nano")
     auto_approve = os.getenv("KATALYST_AUTO_APPROVE", "false").lower() == "true"
-    max_iterations = int(os.getenv("KATALYST_MAX_ITERATIONS", 10))
+    
+    # Max iterations for inner and outer loops can also come from config or be fixed
 
-    # Only persist chat_history and current_mode (and add more if needed)
-    loaded_history = project_state.get("chat_history", [])
-    current_mode = project_state.get("current_mode", "code")
+    # Load persisted parts of the state
+    loaded_chat_history = project_state.get("chat_history", []) # Already deserialized by persistence.py
+    current_mode = project_state.get("current_mode", "code") # Default if not found
 
-    # Build a clean initial state for each new task, only including persistent fields
-    initial_state = {
+    # Construct the initial state dictionary for Pydantic model validation
+    # KatalystState Pydantic model will fill in defaults for other fields.
+    initial_state_dict = {
         "task": user_input,
-        "current_mode": current_mode,  # Persisted and user-changeable
-        "llm_provider": llm_provider,
-        "llm_model_name": llm_model_name,
+        "current_mode": current_mode,
+        "llm_provider": llm_provider, # This should be part of KatalystState if nodes need it
+        "llm_model_name": llm_model_name, # This too
         "auto_approve": auto_approve,
-        "max_iterations": max_iterations,
-        "chat_history": loaded_history,  # Persisted chat history
-        # Do NOT include transient fields like error_message, tool_output, etc.
+        "chat_history": loaded_chat_history,
+        # task_queue, task_idx, completed_tasks, action_trace, cycles will be initialized by planner/nodes
+        # error_message, response, agent_outcome will be None or default
+        # max_inner_cycles and max_outer_cycles will use Pydantic defaults if not overridden
     }
+    # Note: Your initialize_katalyst_run node now takes this dict and creates the Pydantic model.
 
-    result = graph.invoke(initial_state)
-
-    logger = get_logger()
-    logger.info("\n\n==================== 🎉🎉🎉  FINAL ITERATION COMPLETE  🎉🎉🎉 ====================\n")
-    final_parsed_call = result.get('parsed_tool_call')
-    final_iteration = result.get('current_iteration', 0)
-    max_iter = result.get('max_iterations', 10)
-
-    # Print result summary
-    if final_parsed_call and final_parsed_call.get('tool_name') == 'attempt_completion':
-        completion_message = final_parsed_call.get('args', {}).get('result', 'Task successfully completed (no specific result message provided).')
-        print(f"\n--- KATALYST TASK COMPLETED ---")
-        print(completion_message)
-    elif final_iteration >= max_iter:
-        print(f"\n--- KATALYST MAX ITERATIONS ({max_iter}) REACHED ---")
-        last_llm_response = result.get('llm_response_content')
-        if last_llm_response:
-            print(f"Last LLM thought: {last_llm_response}")
+    # --- Invoke the Graph ---
+    # The 'result' will be the final KatalystState Pydantic object
+    raw_state = graph.invoke(initial_state_dict)
+    # If it's not already a KatalystState, convert it
+    if not isinstance(raw_state, KatalystState):
+        final_state = KatalystState(**dict(raw_state))
     else:
-        print("\n--- KATALYST RUN FINISHED (Reason not explicitly 'completion' or 'max_iterations') ---")
-        last_llm_response = result.get('llm_response_content')
-        if last_llm_response:
-            print(f"Last LLM response: {last_llm_response}")
+        final_state = raw_state
 
-    # Print the full chat history for transparency/debugging
+    logger.info("\n\n==================== 🎉🎉🎉  KATALYST RUN COMPLETE  🎉🎉🎉 ====================\n")
+
+    # --- Print Result Summary based on the final KatalystState ---
+    final_user_response = final_state.response # This is the primary field for overall outcome
+
+    if final_user_response:
+        if "limit exceeded" in final_user_response.lower(): # Check for guardrail messages
+            print(f"\n--- KATALYST RUN STOPPED DUE TO LIMIT ---")
+            print(final_user_response)
+        else: # Assumed successful completion if 'response' is set and not an error
+            print(f"\n--- KATALYST TASK CONCLUDED ---")
+            print(final_user_response)
+    else:
+        # This case might occur if the graph ends unexpectedly or routing to END happens
+        # without state.response being explicitly set by planner/replanner/guardrails.
+        print("\n--- KATALYST RUN FINISHED (No explicit overall response message) ---")
+        if final_state.completed_tasks:
+            print("Summary of completed sub-tasks:")
+            for i, (task_desc, summary) in enumerate(final_state.completed_tasks):
+                print(f"  {i+1}. '{task_desc}': {summary}")
+        else:
+            print("No sub-tasks were marked as completed with a summary.")
+        
+        # Fallback to last agent outcome if no overall response
+        last_agent_outcome = final_state.agent_outcome
+        if isinstance(last_agent_outcome, AgentFinish):
+            print(f"Last agent step was a finish with output: {last_agent_outcome.return_values.get('output')}")
+        elif last_agent_outcome: # Could be an AgentAction if it stopped mid-tool
+            print(f"Last agent step was an action: {last_agent_outcome.tool}")
+
+
+    # --- Print Full Chat History (always useful) ---
     print("\n--- FULL CHAT HISTORY ---")
-    chat_history = result.get('chat_history', [])
-    for msg_idx, msg in enumerate(chat_history):
-        print(f"Message {msg_idx}: [{msg.__class__.__name__}] {getattr(msg, 'content', str(msg))}")
+    chat_history = final_state.chat_history # Already a list of BaseMessage objects
+    if chat_history:
+        for msg_idx, msg in enumerate(chat_history):
+            # Ensure content is extracted correctly, handling potential None
+            content = getattr(msg, 'content', None)
+            if content is None and hasattr(msg, 'additional_kwargs') and 'content' in msg.additional_kwargs:
+                content = msg.additional_kwargs['content'] # For some AIMessage structures
+            
+            print(f"Message {msg_idx}: [{msg.__class__.__name__}] {content if content is not None else str(msg)}")
+    else:
+        print("  (No chat history recorded for this run)")
 
-    print("Katalyst Agent is now ready to use!")
+    print("\nKatalyst Agent is now ready for a new task!")
 
-    # Return the result for further state persistence
-    return result 
+    # Return the final state (Pydantic model) for persistence
+    return final_state
