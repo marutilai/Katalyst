@@ -2,6 +2,7 @@ from typing import Dict
 from katalyst_agent.utils.logger import get_logger
 from katalyst_agent.utils.tools import katalyst_tool
 from katalyst_agent.services.code_structure import extract_code_definitions
+import json
 
 
 @katalyst_tool(prompt_module="list_code_definitions", prompt_var="LIST_CODE_DEFINITION_NAMES_PROMPT")
@@ -9,32 +10,34 @@ def list_code_definition_names(path: str, auto_approve: bool = True) -> str:
     """
     Lists code definitions (classes, functions, methods) from a source file or files in a directory using the tree-sitter-languages package.
     Supports Python, JavaScript, TypeScript, and TSX source files. No manual grammar setup is required.
+    Returns a JSON string with keys: 'files' (list of file result objects), and optionally 'error'.
+    Each file result object has: 'file', 'definitions' (list), and optionally 'info' or 'error'.
+    Each definition has: 'type', 'name', 'line'.
     """
     logger = get_logger()
     logger.info(f"Entered list_code_definition_names with path: {path}, auto_approve: {auto_approve}")
     results = extract_code_definitions(path)
     if 'error' in results:
-        return f"""
-<list_code_definition_names>
-<error>{results['error']}</error>
-</list_code_definition_names>"""
+        return json.dumps({"error": results['error']})
     if 'info' in results:
-        return f"""
-<list_code_definition_names>
-<info>{results['info']}</info>
-</list_code_definition_names>"""
-    xml = ["<list_code_definition_names>"]
+        return json.dumps({"info": results['info'], "files": []})
+    files_json = []
     for fname, defs in results.items():
-        xml.append(f"  <file name=\"{fname}\">")
+        file_entry = {"file": fname}
         if not defs:
-            xml.append("    <info>No definitions found.</info>")
+            file_entry["info"] = "No definitions found."
+            file_entry["definitions"] = []
         else:
+            file_entry["definitions"] = []
             for d in defs:
                 if 'error' in d:
-                    xml.append(f"    <error>{d['error']}</error>")
+                    file_entry["error"] = d['error']
                 else:
-                    xml.append(f"    <definition type=\"{d['type']}\" line=\"{d['line']}\">{d['name']}</definition>")
-        xml.append("  </file>")
-    xml.append("</list_code_definition_names>")
+                    file_entry["definitions"].append({
+                        "type": d.get("type"),
+                        "name": d.get("name"),
+                        "line": d.get("line")
+                    })
+        files_json.append(file_entry)
     logger.info("Exiting list_code_definition_names")
-    return '\n'.join(xml)
+    return json.dumps({"files": files_json})
