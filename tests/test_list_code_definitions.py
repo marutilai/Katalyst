@@ -1,4 +1,5 @@
 import os
+import json
 import pytest
 from katalyst_agent.tools.list_code_definitions import list_code_definition_names
 
@@ -28,8 +29,10 @@ def my_function():
     print(f"Testing Python file: {fname}")
     result = list_code_definition_names(fname)
     print(result)
-    assert '<definition type="class"' in result
-    assert '<definition type="function"' in result
+    data = json.loads(result)
+    defs = data['files'][0]['definitions']
+    assert any(d['type'] == 'class' for d in defs)
+    assert any(d['type'] == 'function' for d in defs)
 
 def test_javascript():
     js_code = '''
@@ -43,5 +46,7 @@ function myFunction() {}
     print(f"Testing JavaScript file: {fname}")
     result = list_code_definition_names(fname)
     print(result)
-    assert '<definition type="class"' in result
-    assert '<definition type="function"' in result 
+    data = json.loads(result)
+    defs = data['files'][0]['definitions']
+    assert any(d['type'] == 'class' for d in defs)
+    assert any(d['type'] == 'function' for d in defs) 

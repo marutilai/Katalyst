@@ -1,4 +1,5 @@
 import os
+import json
 from katalyst_agent.tools.apply_diff import apply_diff
 
 def write_sample_file(filename, content):
@@ -26,11 +27,12 @@ def foo():
     return 42
 >>>>>>> REPLACE
 '''
-    result = apply_diff(fname, diff, mode='code', auto_approve=True)
+    result = apply_diff(fname, diff, auto_approve=True)
     print('Result (success):', result)
     updated_code = read_file(fname)
     assert 'return 42' in updated_code
-    assert '<error>' not in result
+    data = json.loads(result)
+    assert data["success"] is True
     os.remove(fname)
 
 def test_apply_diff_syntax_error():
@@ -51,9 +53,11 @@ def bar(
 )
 >>>>>>> REPLACE
 '''
-    result = apply_diff(fname, diff, mode='code', auto_approve=True)
+    result = apply_diff(fname, diff, auto_approve=True)
     print('Result (syntax error):', result)
-    assert '<error>' in result
+    data = json.loads(result)
+    assert data["success"] is False
+    assert "error" in data
     os.remove(fname)
 
 def test_apply_diff_search_mismatch():
@@ -73,9 +77,11 @@ def baz():
     return 0
 >>>>>>> REPLACE
 '''
-    result = apply_diff(fname, diff, mode='code', auto_approve=True)
+    result = apply_diff(fname, diff, auto_approve=True)
     print('Result (search mismatch):', result)
-    assert '<error>' in result
+    data = json.loads(result)
+    assert data["success"] is False
+    assert "error" in data
     os.remove(fname)
 
 if __name__ == '__main__':

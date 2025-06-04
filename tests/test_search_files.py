@@ -1,6 +1,7 @@
 import os
 import shutil
 import pytest
+import json
 from katalyst_agent.tools.search_files import regex_search_files
 
 @pytest.fixture(autouse=True)
@@ -35,9 +36,9 @@ def test_python_function_search():
         file_pattern='*.py',
     )
     print(result)
-    assert '<match' in result
-    assert 'def foo()' in result
-    assert 'def baz(self):' in result
+    data = json.loads(result)
+    assert 'matches' in data
+    assert any('def foo()' in m['content'] or 'def baz(self):' in m['content'] for m in data['matches'])
 
 def test_no_match():
     print("Testing regex_search_files for a pattern that does not exist...")
@@ -47,4 +48,8 @@ def test_no_match():
         file_pattern='*.py',
     )
     print(result)
-    assert 'No matches found' in result 
+    data = json.loads(result)
+    if 'matches' in data:
+        assert len(data['matches']) == 0
+    else:
+        assert 'info' in data and 'No matches found' in data['info'] 

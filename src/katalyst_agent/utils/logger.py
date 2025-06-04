@@ -1,16 +1,18 @@
 import logging
 import os
 import tempfile
+from datetime import datetime
 from katalyst_agent.utils.system_info import get_os_info
 
 _LOGGER_NAME = "katalyst_agent"
 
-# Determine log file location based on OS
+# Determine log file location based on OS and add timestamp
 os_info = get_os_info()
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 if os_info in ("Linux", "Darwin"):
-    _LOG_FILE = "/tmp/katalyst_agent.log"
+    _LOG_FILE = f"/tmp/katalyst_agent_{timestamp}.log"
 else:
-    _LOG_FILE = os.path.join(tempfile.gettempdir(), "katalyst_agent.log")
+    _LOG_FILE = os.path.join(tempfile.gettempdir(), f"katalyst_agent_{timestamp}.log")
 
 
 def get_logger():
