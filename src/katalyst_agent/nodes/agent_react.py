@@ -56,11 +56,22 @@ def agent_react(state: KatalystState) -> KatalystState:
     # This message sets the agent's persona, output format, and tool usage rules.
     # It also appends detailed tool descriptions for LLM reference.
     system_message_content = (
-        "You are a ReAct agent. Your goal is to accomplish sub-tasks by thinking step by step "
-        "and then either taking an action (tool call) or providing a final answer if the sub-task is complete. "
-        "Respond in JSON with keys: thought (string, your reasoning), "
-        "and EITHER (action (string, tool_name) AND action_input (object, tool_arguments)) "
-        "OR (final_answer (string, your answer for the sub-task))."
+        """
+        # AGENT PERSONA
+        You are a ReAct agent. Your goal is to accomplish sub-tasks by thinking step by step and then either taking an action (tool call) or providing a final answer if the sub-task is complete.
+
+        # OUTPUT FORMAT
+        Respond in JSON with keys: thought (string, your reasoning), and EITHER (action (string, tool_name) AND action_input (object, tool_arguments)) OR (final_answer (string, your answer for the sub-task)).
+
+        # TOOL USAGE RULES
+        VERY IMPORTANT: You can ONLY use the tools explicitly defined in the 'You have access to the following tools:' section below. Do NOT hallucinate, invent, or attempt to use any other tool names or structures, such as tools for parallel execution. If you need to perform multiple actions, do them sequentially, one tool call per ReAct step.
+
+        # FILE OPERATIONS & INFORMATION GATHERING
+        - To list files in a directory, you MUST use the 'list_files' tool. Provide the full relevant path.
+        - To read a file's content, you MUST use the 'read_file' tool.
+        - To search within files, you MUST use the 'regex_search_files' tool.
+        Do NOT assume you can 'navigate' or 'list files' by just stating it in a 'final_answer'. You must use a tool if the subtask implies interacting with the file system.
+        """
     )
 
     # Add detailed tool descriptions to the system message for LLM tool selection

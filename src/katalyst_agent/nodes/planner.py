@@ -4,6 +4,7 @@ from katalyst_agent.services.llms import get_llm_instructor
 from langchain_core.messages import AIMessage
 from katalyst_agent.utils.models import SubtaskList
 from katalyst_agent.utils.logger import get_logger
+from katalyst_agent.utils.tools import extract_tool_descriptions
 
 
 def planner(state: KatalystState) -> KatalystState:
@@ -26,13 +27,44 @@ def planner(state: KatalystState) -> KatalystState:
     logger.debug(f"[PLANNER] Starting planner node...")
 
     llm = get_llm_instructor()
-    prompt = (
-        "You are a helpful coding agent. "
-        "Break down the following high-level task into a short, ordered list of concrete subtasks. "
+    tool_descriptions = extract_tool_descriptions()
+    tool_list_str = "\n".join(f"- {name}: {desc}" for name, desc in tool_descriptions)
+
+    # Modular prompt sections
+    context_section = (
+        "# CONTEXT\n"
+        "You are a planning assistant for a ReAct agent. Your job is to break down the user's high-level goal into a logical sequence of actionable subtasks.\n"
+        "The ReAct agent can execute specific actions using a set of tools.\n"
+        "When you generate subtasks, try to make them clearly actionable by one of these tools if appropriate.\n"
+    )
+    tools_section = (
+        "# TOOLS AVAILABLE\n"
+        f"{tool_list_str}\n"
+    )
+    instructions_section = (
+        "# INSTRUCTIONS\n"
+        "When generating subtasks, if a specific tool is clearly the best fit, you can phrase the subtask like:\n"
+        "'Use the <tool_name> tool to ...' OR 'Determine ...' (and the ReAct agent will pick the right tool).\n"
+        "Your primary goal is to create a logical sequence of steps (subtasks).\n"
+    )
+    task_section = (
+        "# TASK\n"
+        f"{state.task}\n"
+    )
+    output_format_section = (
+        "# OUTPUT FORMAT\n"
+        "Break down the above high-level task into a short, ordered list of concrete subtasks.\n"
         "Each subtask should be a single sentence, and the list should be exhaustive and in logical order.\n"
-        f"Task: {state.task}\n"
-        "Return the subtasks as a JSON list of strings."
-    )    
+        "Return the subtasks as a JSON list of strings.\n"
+    )
+
+    prompt = "\n\n".join([
+        context_section,
+        tools_section,
+        instructions_section,
+        task_section,
+        output_format_section
+    ])
     logger.debug(f"[PLANNER] Prompt to LLM:\n{prompt}")
     # Call the LLM with Instructor and Pydantic response model
     response = llm.chat.completions.create(

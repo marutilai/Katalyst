@@ -5,6 +5,7 @@ from typing import List, Tuple, Dict
 import inspect
 import tempfile
 from typing import Callable
+import re
 
 # Directory containing all tool modules
 TOOLS_IMPLEMENTATION_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools")
@@ -111,6 +112,33 @@ def get_formatted_tool_prompts_for_llm(tool_functions_map: Dict[str, Callable]) 
     output = "You have access to the following tools:\n" + output
     return output
 
+def extract_tool_descriptions():
+    """
+    Returns a list of (tool_name, one_line_description) for all registered tools.
+    The description is the first line after 'Description:' in the tool's prompt file.
+    """
+    tool_map = get_tool_functions_map()
+    tool_descriptions = []
+    for tool_name, func in tool_map.items():
+        prompt_module = getattr(func, '_prompt_module', tool_name)
+        prompt_var = getattr(func, '_prompt_var', f"{tool_name.upper()}_PROMPT")
+        try:
+            module_path = f"katalyst_agent.prompts.tools.{prompt_module}"
+            module = importlib.import_module(module_path)
+            prompt_str = getattr(module, prompt_var, None)
+            if not prompt_str or not isinstance(prompt_str, str):
+                continue
+            # Find the first line after 'Description:'
+            match = re.search(r"Description:(.*)", prompt_str)
+            if match:
+                desc = match.group(1).strip().split(". ")[0].strip()
+                if not desc.endswith('.'):
+                    desc += '.'
+                tool_descriptions.append((tool_name, desc))
+        except Exception:
+            continue
+    return tool_descriptions
+
 if __name__ == "__main__":
     # Test the get_tool_names_and_params function
     tool_names, tool_params, tool_param_map = get_tool_names_and_params()
@@ -134,3 +162,8 @@ if __name__ == "__main__":
     formatted_prompts = get_formatted_tool_prompts_for_llm(tool_functions)
     if formatted_prompts:
         print(formatted_prompts)
+
+    print("\n--- TESTING TOOL DESCRIPTIONS EXTRACTION ---")
+    tool_descs = extract_tool_descriptions()
+    for name, desc in tool_descs:
+        print(f"- {name}: {desc}")
