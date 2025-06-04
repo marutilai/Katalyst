@@ -7,7 +7,7 @@ from katalyst_agent.utils import welcome_screens
 from katalyst_agent.config import ONBOARDING_FLAG, STATE_FILE
 from katalyst_agent.utils.environment import ensure_openai_api_key
 from katalyst_agent.cli.persistence import load_project_state, save_project_state
-from katalyst_agent.cli.commands import show_help, handle_init_command, handle_mode_command
+from katalyst_agent.cli.commands import show_help, handle_init_command
 from katalyst_agent.katalyst_runner import run_katalyst_task
 
 # Load environment variables from .env file
@@ -42,9 +42,6 @@ def repl():
             print("Goodbye!")
             break
         elif user_input == "":
-            continue
-        elif user_input.startswith("/mode"):
-            project_state = handle_mode_command(user_input, project_state, save_project_state)
             continue
         else:
             result = run_katalyst_task(user_input, project_state, graph)

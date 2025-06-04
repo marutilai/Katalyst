@@ -40,11 +40,6 @@ def write_to_file(path: str, content: str, auto_approve: bool = True) -> str:
         logger.error("No valid 'content' provided to write_to_file.")
         return format_write_to_file_response(False, path, error="No valid 'content' provided.")
 
-    # Architect mode restriction: only allow .md files
-    if path.endswith(".md"):
-        logger.error("Architect mode: only .md files allowed.")
-        return format_write_to_file_response(False, path, error="Error: In architect mode, you are only allowed to write to markdown (.md) files.")
-
     # Use absolute path for writing
     abs_path = os.path.abspath(path)
     file_extension = abs_path.split(".")[-1]
