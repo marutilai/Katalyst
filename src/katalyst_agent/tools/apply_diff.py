@@ -30,7 +30,7 @@ def apply_diff(path: str, diff: str, auto_approve: bool = True) -> str:
       - auto_approve: bool (skip confirmation prompt if True)
     """
     logger = get_logger()
-    logger.info(f"Entered apply_diff with path: {path}, diff=<omitted>, auto_approve: {auto_approve}")
+    logger.debug(f"Entered apply_diff with path: {path}, diff=<omitted>, auto_approve: {auto_approve}")
 
     # Validate arguments
     if not path or not diff:
@@ -98,9 +98,9 @@ def apply_diff(path: str, diff: str, auto_approve: bool = True) -> str:
         with open(path, 'w', encoding='utf-8') as f:
             f.writelines(new_lines)
         logger.info(f"Successfully applied diff to file: {path}")
-        logger.info("Exiting apply_diff")
+        logger.debug("Exiting apply_diff")
         return format_apply_diff_response(path, True, info=f"Successfully applied diff to file: {path}")
     except Exception as e:
         logger.error(f"Error writing to file {path}: {e}")
-        logger.info("Exiting apply_diff")
+        logger.debug("Exiting apply_diff")
         return format_apply_diff_response(path, False, error=f"Could not write to file {path}: {e}")

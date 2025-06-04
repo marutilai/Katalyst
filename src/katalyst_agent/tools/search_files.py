@@ -14,7 +14,7 @@ def regex_search_files(path: str, regex: str, file_pattern: str = None, auto_app
     Each match object has: 'file', 'line', 'content'.
     """
     logger = get_logger()
-    logger.info(f"Entered regex_search_files with path: {path}, regex: {regex}, file_pattern: {file_pattern}, auto_approve: {auto_approve}")
+    logger.debug(f"Entered regex_search_files with path: {path}, regex: {regex}, file_pattern: {file_pattern}, auto_approve: {auto_approve}")
 
     # Check for required arguments
     if not path or not regex:
@@ -65,5 +65,5 @@ def regex_search_files(path: str, regex: str, file_pattern: str = None, auto_app
     result_json = {"matches": matches}
     if match_count >= SEARCH_FILES_MAX_RESULTS:
         result_json["info"] = f"Results truncated at {SEARCH_FILES_MAX_RESULTS} matches."
-    logger.info("Exiting regex_search_files")
+    logger.debug("Exiting regex_search_files")
     return json.dumps(result_json)

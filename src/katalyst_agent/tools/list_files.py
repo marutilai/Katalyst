@@ -28,7 +28,7 @@ def list_files(path: str, recursive: bool, respect_gitignore: bool = True) -> st
     Returns a JSON string with keys: 'path' (input path), 'files' (list of found files/dirs), or 'error'.
     """
     logger = get_logger()
-    logger.info(f"DEBUG list_files CALLED WITH: path='{path}' (type: {type(path)}), recursive={recursive} (type: {type(recursive)}), respect_gitignore={respect_gitignore} (type: {type(respect_gitignore)})")
+    logger.debug(f"DEBUG list_files CALLED WITH: path='{path}' (type: {type(path)}), recursive={recursive} (type: {type(recursive)}), respect_gitignore={respect_gitignore} (type: {type(respect_gitignore)})")
 
     if not os.path.exists(path):
         logger.error(f"Path does not exist: {path}")
@@ -69,5 +69,5 @@ def list_files(path: str, recursive: bool, respect_gitignore: bool = True) -> st
             logger.error(f"Error listing files in {path}: {e}")
             return format_list_files_response(path, error=f"Could not list files in {path}: {e}")
 
-    logger.info(f"Exiting list_files with {len(result)} entries.")
+    logger.debug(f"Exiting list_files with {len(result)} entries.")
     return format_list_files_response(path, files=result)

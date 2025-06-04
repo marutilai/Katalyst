@@ -78,16 +78,16 @@ def run_katalyst_task(user_input: str, project_state: dict, graph) -> KatalystSt
 
 
     # --- Print Full Chat History (always useful) ---
-    print("\n--- FULL CHAT HISTORY ---")
-    chat_history = final_state.chat_history # Already a list of BaseMessage objects
+    # Move chat history to debug log, not terminal
+    chat_history = final_state.chat_history
     if chat_history:
+        logger.debug("\n--- FULL CHAT HISTORY ---")
         for msg_idx, msg in enumerate(chat_history):
-            # Ensure content is extracted correctly, handling potential None
             content = getattr(msg, 'content', None)
             if content is None and hasattr(msg, 'additional_kwargs') and 'content' in msg.additional_kwargs:
-                content = msg.additional_kwargs['content'] # For some AIMessage structures
-            
-            print(f"Message {msg_idx}: [{msg.__class__.__name__}] {content if content is not None else str(msg)}")
+                content = msg.additional_kwargs['content']
+            logger.debug(f"Message {msg_idx}: [{msg.__class__.__name__}] {content if content is not None else str(msg)}")
+        print("\n(Full chat history written to katalyst_agent.log)")
     else:
         print("  (No chat history recorded for this run)")
 

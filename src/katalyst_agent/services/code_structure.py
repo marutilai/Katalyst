@@ -13,7 +13,7 @@ def extract_code_definitions(path: str) -> Dict:
     Respects .gitignore when listing files in a directory.
     """
     logger = get_logger()
-    logger.info(f"Extracting code definitions from: {path}")
+    logger.debug(f"Extracting code definitions from: {path}")
     if not os.path.exists(path):
         logger.error(f"Path does not exist: {path}")
         return {'error': f'Path does not exist: {path}'}

@@ -21,7 +21,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
     * Returns: The updated KatalystState.    
     """
     logger = get_logger()
-    logger.info("[TOOL_RUNNER] Starting tool_runner node...")
+    logger.debug("[TOOL_RUNNER] Starting tool_runner node...")
 
     # Only run if agent_outcome is an AgentAction (otherwise skip)
     agent_action = state.agent_outcome
@@ -32,7 +32,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
     # Extract tool name and input arguments from the AgentAction
     tool_name = agent_action.tool
     tool_input = agent_action.tool_input or {}
-    logger.info(f"[TOOL_RUNNER] Executing tool: {tool_name} with input: {tool_input}")
+    logger.debug(f"[TOOL_RUNNER] Executing tool: {tool_name} with input: {tool_input}")
 
     # Look up the tool function in the registry
     tool_fn = REGISTERED_TOOL_FUNCTIONS_MAP.get(tool_name)
@@ -48,7 +48,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 tool_input = {**tool_input, 'auto_approve': state.auto_approve}
             # Call the tool function with the provided arguments
             observation = tool_fn(**tool_input)
-            logger.info(f"[TOOL_RUNNER] Tool '{tool_name}' returned observation: {observation}")
+            logger.debug(f"[TOOL_RUNNER] Tool '{tool_name}' returned observation: {observation}")
         except Exception as e:
             # Catch and log any exceptions during tool execution
             observation = f"[ERROR] Exception while running tool '{tool_name}': {e}"
@@ -60,5 +60,5 @@ def tool_runner(state: KatalystState) -> KatalystState:
     # Clear agent_outcome after processing
     state.agent_outcome = None
 
-    logger.info("[TOOL_RUNNER] End of tool_runner node.")
+    logger.debug("[TOOL_RUNNER] End of tool_runner node.")
     return state

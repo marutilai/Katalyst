@@ -24,10 +24,10 @@ def replanner(state: KatalystState) -> KatalystState:
     * Returns: The updated KatalystState.    
     """
     logger = get_logger()
-    logger.info("[REPLANNER] Starting replanner node...")
+    logger.debug("[REPLANNER] Starting replanner node...")
 
     if state.response:
-        logger.info("[REPLANNER] Final answer already set. No replanning needed.")
+        logger.debug("[REPLANNER] Final answer already set. No replanning needed.")
         return state
 
     llm = get_llm_instructor()
@@ -46,7 +46,7 @@ def replanner(state: KatalystState) -> KatalystState:
         "5. Return your response as a JSON object with a single key \"subtasks\" containing a list of strings (the new subtask descriptions). Example: {\"subtasks\": [\"New subtask 1 description.\", \"New subtask 2 description.\"]}\n\n"
         "CURRENT SITUATION: The previous plan of subtasks is now exhausted, or a specific replanning event was triggered. Analyze the progress and provide your JSON response."
     )
-    logger.info(f"[REPLANNER] Prompt to LLM:\n{prompt}")
+    logger.debug(f"[REPLANNER] Prompt to LLM:\n{prompt}")
     response = llm.chat.completions.create(
         messages=[{"role": "system", "content": prompt}],
         response_model=SubtaskList,
@@ -54,7 +54,7 @@ def replanner(state: KatalystState) -> KatalystState:
     )
     logger.debug(f"[REPLANNER] Raw LLM response: {response}")
     subtasks = response.subtasks
-    logger.info(f"[REPLANNER] Parsed new subtasks: {subtasks}")
+    logger.debug(f"[REPLANNER] Parsed new subtasks: {subtasks}")
 
     state.task_queue = subtasks
     state.task_idx = 0
@@ -62,5 +62,5 @@ def replanner(state: KatalystState) -> KatalystState:
     state.error_message = None
 
     state.chat_history.append(AIMessage(content=f"[REPLANNER] Generated new plan:\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(subtasks))))
-    logger.info("[REPLANNER] End of replanner node.")
+    logger.debug("[REPLANNER] End of replanner node.")
     return state

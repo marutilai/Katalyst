@@ -24,7 +24,7 @@ def ask_followup_question(question: str, follow_up: List[str] = None, mode: str 
     Returns the user's answer as a JSON string (with 'question' and 'answer' keys).
     """
     logger = get_logger()
-    logger.info(f"Entered ask_followup_question with question='{question}', follow_up_list='{follow_up}'")
+    logger.debug(f"Entered ask_followup_question with question='{question}', follow_up_list='{follow_up}'")
 
     if not isinstance(question, str) or not question.strip():
         logger.error("No valid 'question' provided to ask_followup_question.")

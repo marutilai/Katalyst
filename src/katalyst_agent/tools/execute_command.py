@@ -37,7 +37,7 @@ def execute_command(command: str, cwd: str = None, timeout: int = 30, auto_appro
     Returns a JSON string detailing the command output, error, or user denial with feedback.
     """
     logger = get_logger()
-    logger.info(f"Entered execute_command with command={command}, cwd={cwd}, timeout={timeout}, auto_approve={auto_approve}")
+    logger.debug(f"Entered execute_command with command={command}, cwd={cwd}, timeout={timeout}, auto_approve={auto_approve}")
 
     # Validate command
     if not command or not isinstance(command, str):
@@ -102,3 +102,5 @@ def execute_command(command: str, cwd: str = None, timeout: int = 30, auto_appro
     except Exception as e:
         logger.exception(f"Error executing command '{command}'.")
         return format_execute_command_response(False, command, absolute_cwd, error=f"An unexpected error occurred while executing command '{command}': {e}")
+    finally:
+        logger.debug("Exiting execute_command")

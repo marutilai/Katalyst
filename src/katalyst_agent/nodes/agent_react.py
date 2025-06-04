@@ -34,7 +34,7 @@ def agent_react(state: KatalystState) -> KatalystState:
     * Returns: The updated KatalystState.
     """
     logger = get_logger()
-    logger.info(f"[AGENT_REACT] Starting agent_react node...")
+    logger.debug(f"[AGENT_REACT] Starting agent_react node...")
     
     # 1) Inner-loop guard: prevent infinite loops in the ReAct cycle
     state.inner_cycles += 1
@@ -114,7 +114,7 @@ def agent_react(state: KatalystState) -> KatalystState:
         {"role": "system", "content": system_message_content},
         {"role": "user", "content": user_message_content}
     ]
-    logger.info(f"[AGENT_REACT] LLM messages: {llm_messages}")
+    logger.debug(f"[AGENT_REACT] LLM messages: {llm_messages}")
 
     # 4) Call the LLM for a structured ReAct response
     # --------------------------------------------------------------------------
@@ -131,7 +131,7 @@ def agent_react(state: KatalystState) -> KatalystState:
         temperature=0.1,
     )
     logger.debug(f"[AGENT_REACT] Raw LLM response: {response}")
-    logger.info(f"[AGENT_REACT] Parsed output: {response.dict()}")
+    logger.debug(f"[AGENT_REACT] Parsed output: {response.dict()}")
 
     # 5) Log the LLM's thought and action to chat_history for traceability
     state.chat_history.append(AIMessage(content=f"Thought: {response.thought}"))
@@ -147,7 +147,7 @@ def agent_react(state: KatalystState) -> KatalystState:
             log=f"Thought: {response.thought}\nAction: {response.action}\nAction Input: {str(args_dict)}"
         )
         state.error_message = None
-        logger.info(f"[AGENT_REACT] Action requested: {response.action} with input {args_dict}")
+        logger.debug(f"[AGENT_REACT] Action requested: {response.action} with input {args_dict}")
 
     # 7) If "final_answer" key is present, wrap in AgentFinish and update state
     elif response.final_answer:
@@ -156,7 +156,7 @@ def agent_react(state: KatalystState) -> KatalystState:
             log=f"Thought: {response.thought}\nFinal Answer: {response.final_answer}",
         )
         state.error_message = None
-        logger.info(f"[AGENT_REACT] Final answer provided: {response.final_answer}")
+        logger.debug(f"[AGENT_REACT] Final answer provided: {response.final_answer}")
 
     # 8) If neither "action" nor "final_answer", treat as parsing error or replan
     else:
@@ -170,5 +170,5 @@ def agent_react(state: KatalystState) -> KatalystState:
             )
             logger.warning("[AGENT_REACT] No valid action or final answer in LLM output. Retry.")
 
-    logger.info(f"[AGENT_REACT] End of agent_react node.")
+    logger.debug(f"[AGENT_REACT] End of agent_react node.")
     return state

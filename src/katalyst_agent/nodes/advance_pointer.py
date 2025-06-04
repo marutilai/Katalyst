@@ -25,7 +25,7 @@ def advance_pointer(state: KatalystState) -> KatalystState:
     * Returns: The updated KatalystState.    
     """
     logger = get_logger()
-    logger.info("[ADVANCE_POINTER] Starting advance_pointer node...")
+    logger.debug("[ADVANCE_POINTER] Starting advance_pointer node...")
 
     # 1) Log completion: get the subtask and summary from agent_outcome
     if isinstance(state.agent_outcome, AgentFinish):
@@ -49,12 +49,12 @@ def advance_pointer(state: KatalystState) -> KatalystState:
     # 3) If plan is exhausted, check outer-loop guard
     if state.task_idx >= len(state.task_queue):
         state.outer_cycles += 1
-        logger.info(f"[ADVANCE_POINTER] Plan exhausted. Incremented outer_cycles to {state.outer_cycles}.")
+        logger.debug(f"[ADVANCE_POINTER] Plan exhausted. Incremented outer_cycles to {state.outer_cycles}.")
         if state.outer_cycles > state.max_outer_cycles:
             state.response = (
                 f"Stopped: outer loop exceeded {state.max_outer_cycles} cycles."
             )
-            logger.warning(f"[ADVANCE_POINTER] Outer loop limit exceeded. Setting response and terminating.")
+            logger.info(f"[ADVANCE_POINTER] Outer loop limit exceeded. Setting response and terminating.")
 
-    logger.info("[ADVANCE_POINTER] End of advance_pointer node.")
+    logger.debug("[ADVANCE_POINTER] End of advance_pointer node.")
     return state

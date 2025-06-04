@@ -23,7 +23,7 @@ def planner(state: KatalystState) -> KatalystState:
     * Returns: The updated KatalystState.
     """
     logger = get_logger()
-    logger.info(f"[PLANNER] Starting planner node...")
+    logger.debug(f"[PLANNER] Starting planner node...")
 
     llm = get_llm_instructor()
     prompt = (
@@ -33,7 +33,7 @@ def planner(state: KatalystState) -> KatalystState:
         f"Task: {state.task}\n"
         "Return the subtasks as a JSON list of strings."
     )    
-    logger.info(f"[PLANNER] Prompt to LLM:\n{prompt}")
+    logger.debug(f"[PLANNER] Prompt to LLM:\n{prompt}")
     # Call the LLM with Instructor and Pydantic response model
     response = llm.chat.completions.create(
         messages=[{"role": "system", "content": prompt}],
@@ -42,7 +42,7 @@ def planner(state: KatalystState) -> KatalystState:
     )
     logger.debug(f"[PLANNER] Raw LLM response: {response}")
     subtasks = response.subtasks
-    logger.info(f"[PLANNER] Parsed subtasks: {subtasks}")
+    logger.debug(f"[PLANNER] Parsed subtasks: {subtasks}")
     
     # Update state
     state.task_queue = subtasks
@@ -54,5 +54,5 @@ def planner(state: KatalystState) -> KatalystState:
 
     # Log the plan to chat_history
     state.chat_history.append(AIMessage(content=f"Generated plan:\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(subtasks))))
-    logger.info(f"[PLANNER] End of planner node.")
+    logger.debug(f"[PLANNER] End of planner node.")
     return state
