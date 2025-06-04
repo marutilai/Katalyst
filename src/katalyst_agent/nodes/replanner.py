@@ -43,6 +43,7 @@ def replanner(state: KatalystState) -> KatalystState:
         "   - Avoid re-listing subtasks whose outcomes indicate they have already effectively contributed to the goal, UNLESS a previous attempt clearly failed (e.g., user cancelled, error occurred) and a *different approach or re-attempt* is needed.\n"
         "   - If information gathering subtasks (like asking the user) were marked complete but their summary indicates the information wasn't actually obtained, you MUST re-issue those subtasks, possibly with more specific instructions for the agent executing them.\n"
         "5. Return your response as a JSON object with a single key \"subtasks\" containing a list of strings (the new subtask descriptions). Example: {\"subtasks\": [\"New subtask 1 description.\", \"New subtask 2 description.\"]}\n\n"
+        "6. If you are unsure, confused, or cannot determine the next step with confidence, you MUST add a subtask that uses the 'request_user_input' tool to ask the user for clarification or guidance. Do not guess or proceed without user input in such cases.\n"
         "CURRENT SITUATION: The previous plan of subtasks is now exhausted, or a specific replanning event (like a tool requesting it or an unrecoverable error) was triggered. Analyze the progress and provide your JSON response."
     )
     logger.debug(f"[REPLANNER] Prompt to LLM:\n{prompt}")

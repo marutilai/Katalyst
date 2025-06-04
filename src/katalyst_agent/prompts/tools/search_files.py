@@ -1,7 +1,7 @@
 from textwrap import dedent
 
 SEARCH_FILES_PROMPT = dedent("""
-# search_files Tool
+# regex_search_files Tool
 
 Description: Use this tool to perform a regex search across files in a specified directory, providing context-rich results. This tool searches for patterns or specific content across multiple files, displaying each match with file name and line number.
 
@@ -13,7 +13,7 @@ Description: Use this tool to perform a regex search across files in a specified
 ## Example of how to structure your JSON response to use this tool:
 {
   "thought": "I want to find all TODO comments in the codebase.",
-  "action": "search_files",
+  "action": "regex_search_files",
   "action_input": {
     "path": ".",
     "regex": "TODO"
@@ -23,7 +23,7 @@ Description: Use this tool to perform a regex search across files in a specified
 Another example, searching only TypeScript files:
 {
   "thought": "I want to find all function definitions in TypeScript files.",
-  "action": "search_files",
+  "action": "regex_search_files",
   "action_input": {
     "path": ".",
     "regex": "function ",
