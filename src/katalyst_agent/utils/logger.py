@@ -35,7 +35,7 @@ def get_logger():
         console_handler.setLevel(logging.INFO)
         logger.addHandler(console_handler)
 
-        print(f"[LOGGER] katalyst_agent.log will be written to: {_LOG_FILE}")
+        print(f"[LOGGER] Logs will be written to: {_LOG_FILE}")
 
     logger.setLevel(logging.DEBUG)  # Capture everything; handlers filter output
     return logger

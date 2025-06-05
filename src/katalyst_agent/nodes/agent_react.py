@@ -177,6 +177,7 @@ def agent_react(state: KatalystState) -> KatalystState:
         messages=llm_messages,
         response_model=AgentReactOutput,
         temperature=0.1,
+        model=os.getenv("KATALYST_LITELLM_MODEL", "gpt-4.1"),
     )
     logger.debug(f"[AGENT_REACT] Raw LLM response: {response}")
     logger.debug(f"[AGENT_REACT] Parsed output: {response.dict()}")

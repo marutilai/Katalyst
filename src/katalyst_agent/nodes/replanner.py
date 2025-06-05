@@ -9,6 +9,7 @@ from katalyst_agent.utils.error_handling import (
     classify_error,
     format_error_for_llm,
 )
+import os
 
 
 def replanner(state: KatalystState) -> KatalystState:
@@ -108,6 +109,7 @@ def replanner(state: KatalystState) -> KatalystState:
             response_model=SubtaskList,  # Expects {"subtasks": ["task1", "task2", ...]}
             temperature=0.3,  # Lower temperature for more deterministic planning
             max_retries=2,  # Add retries for instructor
+            model=os.getenv("KATALYST_LITELLM_MODEL", "gpt-4.1"),
         )
         logger.debug(
             f"[REPLANNER] Raw LLM response from instructor: {llm_response_model}"

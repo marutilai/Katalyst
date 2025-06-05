@@ -113,6 +113,7 @@ def planner(state: KatalystState) -> KatalystState:
             messages=[{"role": "system", "content": prompt}],
             response_model=SubtaskList,
             temperature=0.3,
+            model=os.getenv("KATALYST_LITELLM_MODEL", "gpt-4.1"),
         )
         logger.debug(f"[PLANNER] Raw LLM response: {response}")
         subtasks = response.subtasks
