@@ -4,10 +4,10 @@ A modular, node-based terminal coding agent for Python, designed for robust, ext
 
 ## Quick Setup
 
-To install all dependencies, simply run:
+To install Katalyst from PyPI, simply run:
 
 ```bash
-poetry install
+pip install katalyst
 ```
 
 **Important:**
@@ -28,27 +28,6 @@ The `search_files` tool requires [ripgrep](https://github.com/BurntSushi/ripgrep
 
 Katalyst includes both unit and functional tests. For detailed information about running tests, writing new tests, and test coverage, see [TESTS.md](TESTS.md).
 
-## Running Tests & Checking Coverage
-
-To run all tests:
-
-```
-pytest
-```
-
-To check test coverage:
-
-```
-pytest --cov=src/katalyst_agent
-```
-
-This will show a coverage report in the terminal. For a detailed HTML report:
-
-```
-pytest --cov=src/katalyst_agent --cov-report=html
-```
-
-The HTML report will be in the `htmlcov/` directory.
 
 ## TODO
 
