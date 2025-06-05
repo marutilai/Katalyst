@@ -5,6 +5,12 @@ from langchain_core.messages import AIMessage
 from katalyst_agent.utils.models import SubtaskList
 from katalyst_agent.utils.logger import get_logger
 from katalyst_agent.utils.tools import extract_tool_descriptions
+from katalyst_agent.utils.error_handling import (
+    ErrorType,
+    create_error_message,
+    classify_error,
+    format_error_for_llm,
+)
 
 
 def planner(state: KatalystState) -> KatalystState:
@@ -37,20 +43,14 @@ def planner(state: KatalystState) -> KatalystState:
         "The ReAct agent can execute specific actions using a set of tools.\n"
         "When you generate subtasks, try to make them clearly actionable by one of these tools if appropriate.\n"
     )
-    tools_section = (
-        "# TOOLS AVAILABLE\n"
-        f"{tool_list_str}\n"
-    )
+    tools_section = "# TOOLS AVAILABLE\n" f"{tool_list_str}\n"
     instructions_section = (
         "# INSTRUCTIONS\n"
         "When generating subtasks, if a specific tool is clearly the best fit, you can phrase the subtask like:\n"
         "'Use the <tool_name> tool to ...' OR 'Determine ...' (and the ReAct agent will pick the right tool).\n"
         "Your primary goal is to create a logical sequence of steps (subtasks).\n"
     )
-    task_section = (
-        "# TASK\n"
-        f"{state.task}\n"
-    )
+    task_section = "# TASK\n" f"{state.task}\n"
     output_format_section = (
         "# OUTPUT FORMAT\n"
         "Break down the above high-level task into a short, ordered list of concrete subtasks.\n"
@@ -58,33 +58,50 @@ def planner(state: KatalystState) -> KatalystState:
         "Return the subtasks as a JSON list of strings.\n"
     )
 
-    prompt = "\n\n".join([
-        context_section,
-        tools_section,
-        instructions_section,
-        task_section,
-        output_format_section
-    ])
-    logger.debug(f"[PLANNER] Prompt to LLM:\n{prompt}")
-    # Call the LLM with Instructor and Pydantic response model
-    response = llm.chat.completions.create(
-        messages=[{"role": "system", "content": prompt}],
-        response_model=SubtaskList,
-        temperature=0.3,
+    prompt = "\n\n".join(
+        [
+            context_section,
+            tools_section,
+            instructions_section,
+            task_section,
+            output_format_section,
+        ]
     )
-    logger.debug(f"[PLANNER] Raw LLM response: {response}")
-    subtasks = response.subtasks
-    logger.debug(f"[PLANNER] Parsed subtasks: {subtasks}")
-    
-    # Update state
-    state.task_queue = subtasks
-    state.task_idx = 0
-    state.outer_cycles = 0
-    state.completed_tasks = []
-    state.response = None
-    state.error_message = None
+    logger.debug(f"[PLANNER] Prompt to LLM:\n{prompt}")
 
-    # Log the plan to chat_history
-    state.chat_history.append(AIMessage(content=f"Generated plan:\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(subtasks))))
+    try:
+        # Call the LLM with Instructor and Pydantic response model
+        response = llm.chat.completions.create(
+            messages=[{"role": "system", "content": prompt}],
+            response_model=SubtaskList,
+            temperature=0.3,
+        )
+        logger.debug(f"[PLANNER] Raw LLM response: {response}")
+        subtasks = response.subtasks
+        logger.debug(f"[PLANNER] Parsed subtasks: {subtasks}")
+
+        # Update state
+        state.task_queue = subtasks
+        state.task_idx = 0
+        state.outer_cycles = 0
+        state.completed_tasks = []
+        state.response = None
+        state.error_message = None
+
+        # Log the plan to chat_history
+        plan_message = f"Generated plan:\n" + "\n".join(
+            f"{i+1}. {s}" for i, s in enumerate(subtasks)
+        )
+        state.chat_history.append(AIMessage(content=plan_message))
+        logger.info(f"[PLANNER] {plan_message}")
+
+    except Exception as e:
+        error_msg = create_error_message(
+            ErrorType.LLM_ERROR, f"Failed to generate plan: {str(e)}", "PLANNER"
+        )
+        logger.error(f"[PLANNER] {error_msg}")
+        state.error_message = error_msg
+        state.response = "Failed to generate initial plan. Please try again."
+
     logger.debug(f"[PLANNER] End of planner node.")
     return state

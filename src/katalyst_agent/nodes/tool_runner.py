@@ -2,8 +2,15 @@ from katalyst_agent.state import KatalystState
 from katalyst_agent.utils.logger import get_logger
 from katalyst_agent.utils.tools import get_tool_functions_map
 from langchain_core.agents import AgentAction
+from katalyst_agent.utils.error_handling import (
+    ErrorType,
+    create_error_message,
+    classify_error,
+    format_error_for_llm,
+)
 
 REGISTERED_TOOL_FUNCTIONS_MAP = get_tool_functions_map()
+
 
 def tool_runner(state: KatalystState) -> KatalystState:
     """
@@ -18,7 +25,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
     * Appends the tuple (state.agent_outcome, observation_string) to state.action_trace.
     * Clears state.agent_outcome = None (as the action has been processed).
     * If the tool execution itself caused an error that should immediately halt this ReAct sub-task or even the P-n-E loop, it could set state.error_message or even state.response. (Usually, tool errors become observations for the next agent_react step).
-    * Returns: The updated KatalystState.    
+    * Returns: The updated KatalystState.
     """
     logger = get_logger()
     logger.debug("[TOOL_RUNNER] Starting tool_runner node...")
@@ -26,7 +33,9 @@ def tool_runner(state: KatalystState) -> KatalystState:
     # Only run if agent_outcome is an AgentAction (otherwise skip)
     agent_action = state.agent_outcome
     if not isinstance(agent_action, AgentAction):
-        logger.warning("[TOOL_RUNNER] No AgentAction found in state.agent_outcome. Skipping tool execution.")
+        logger.warning(
+            "[TOOL_RUNNER] No AgentAction found in state.agent_outcome. Skipping tool execution."
+        )
         return state
 
     # Extract tool name and input arguments from the AgentAction
@@ -38,20 +47,30 @@ def tool_runner(state: KatalystState) -> KatalystState:
     tool_fn = REGISTERED_TOOL_FUNCTIONS_MAP.get(tool_name)
     if not tool_fn:
         # Tool not found: record error and skip execution
-        observation = f"[ERROR] Tool '{tool_name}' not found in registry."
+        observation = create_error_message(
+            ErrorType.TOOL_ERROR,
+            f"Tool '{tool_name}' not found in registry.",
+            "TOOL_RUNNER",
+        )
         logger.error(f"[TOOL_RUNNER] {observation}")
         state.error_message = observation
     else:
         try:
             # If the tool accepts auto_approve, always pass it from state
-            if 'auto_approve' in tool_fn.__code__.co_varnames:
-                tool_input = {**tool_input, 'auto_approve': state.auto_approve}
+            if "auto_approve" in tool_fn.__code__.co_varnames:
+                tool_input = {**tool_input, "auto_approve": state.auto_approve}
             # Call the tool function with the provided arguments
             observation = tool_fn(**tool_input)
-            logger.debug(f"[TOOL_RUNNER] Tool '{tool_name}' returned observation: {observation}")
+            logger.debug(
+                f"[TOOL_RUNNER] Tool '{tool_name}' returned observation: {observation}"
+            )
         except Exception as e:
             # Catch and log any exceptions during tool execution
-            observation = f"[ERROR] Exception while running tool '{tool_name}': {e}"
+            observation = create_error_message(
+                ErrorType.TOOL_ERROR,
+                f"Exception while running tool '{tool_name}': {e}",
+                "TOOL_RUNNER",
+            )
             logger.exception(f"[TOOL_RUNNER] {observation}")
             state.error_message = observation
 

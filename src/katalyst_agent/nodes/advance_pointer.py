@@ -1,6 +1,13 @@
 from katalyst_agent.state import KatalystState
 from katalyst_agent.utils.logger import get_logger
 from langchain_core.agents import AgentFinish
+from katalyst_agent.utils.error_handling import (
+    ErrorType,
+    create_error_message,
+    classify_error,
+    format_error_for_llm,
+)
+
 
 def advance_pointer(state: KatalystState) -> KatalystState:
     """
@@ -22,7 +29,7 @@ def advance_pointer(state: KatalystState) -> KatalystState:
     * If true, increments state.outer_cycles += 1.
     * Checks if state.outer_cycles > state.max_outer_cycles:
     * If true, sets state.response to an error message (e.g., "Outer loop limit exceeded...").
-    * Returns: The updated KatalystState.    
+    * Returns: The updated KatalystState.
     """
     logger = get_logger()
     logger.debug("[ADVANCE_POINTER] Starting advance_pointer node...")
@@ -33,11 +40,25 @@ def advance_pointer(state: KatalystState) -> KatalystState:
             current_subtask = state.task_queue[state.task_idx]
         except IndexError:
             current_subtask = "[UNKNOWN_SUBTASK]"
+            error_msg = create_error_message(
+                ErrorType.PARSING_ERROR,
+                "Could not find current subtask in task queue.",
+                "ADVANCE_POINTER",
+            )
+            logger.warning(f"[ADVANCE_POINTER] {error_msg}")
+
         summary = state.agent_outcome.return_values.get("output", "[NO_OUTPUT]")
         state.completed_tasks.append((current_subtask, summary))
-        logger.info(f"[ADVANCE_POINTER] Completed subtask: {current_subtask} | Summary: {summary}")
+        logger.info(
+            f"[ADVANCE_POINTER] Completed subtask: {current_subtask} | Summary: {summary}"
+        )
     else:
-        logger.warning("[ADVANCE_POINTER] [Warning] Called without AgentFinish; skipping subtask logging.")
+        error_msg = create_error_message(
+            ErrorType.PARSING_ERROR,
+            "Called without AgentFinish; skipping subtask logging.",
+            "ADVANCE_POINTER",
+        )
+        logger.warning(f"[ADVANCE_POINTER] {error_msg}")
 
     # 2) Move to next subtask and reset loop state
     state.task_idx += 1
@@ -49,12 +70,17 @@ def advance_pointer(state: KatalystState) -> KatalystState:
     # 3) If plan is exhausted, check outer-loop guard
     if state.task_idx >= len(state.task_queue):
         state.outer_cycles += 1
-        logger.debug(f"[ADVANCE_POINTER] Plan exhausted. Incremented outer_cycles to {state.outer_cycles}.")
+        logger.debug(
+            f"[ADVANCE_POINTER] Plan exhausted. Incremented outer_cycles to {state.outer_cycles}."
+        )
         if state.outer_cycles > state.max_outer_cycles:
-            state.response = (
-                f"Stopped: outer loop exceeded {state.max_outer_cycles} cycles."
+            error_msg = create_error_message(
+                ErrorType.LLM_ERROR,
+                f"Outer loop exceeded {state.max_outer_cycles} cycles.",
+                "ADVANCE_POINTER",
             )
-            logger.info(f"[ADVANCE_POINTER] Outer loop limit exceeded. Setting response and terminating.")
+            state.response = error_msg
+            logger.info(f"[ADVANCE_POINTER] {error_msg}")
 
     logger.debug("[ADVANCE_POINTER] End of advance_pointer node.")
     return state
