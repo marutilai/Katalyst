@@ -37,7 +37,6 @@ def planner(state: KatalystState) -> KatalystState:
     tool_list_str = "\n".join(f"- {name}: {desc}" for name, desc in tool_descriptions)
 
     # Modular prompt sections
-    # Modular prompt sections
     context_section = (
         "# CONTEXT\n"
         "You are an expert planning assistant for a ReAct-style AI agent. Your primary responsibility is to break down a high-level user GOAL into a sequence of concrete, actionable, and logically ordered sub-tasks. Each sub-task will be executed by a ReAct agent that can use a specific set of tools."

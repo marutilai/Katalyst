@@ -24,6 +24,10 @@ The `search_files` tool requires [ripgrep](https://github.com/BurntSushi/ripgrep
 
 - Automatic project state persistence: Katalyst saves your project state (such as chat history) to `.katalyst_state.json` in your project directory after every command. This happens in the background—no user action required. When you return to your project, your session context is automatically restored.
 
+## Testing
+
+Katalyst includes both unit and functional tests. For detailed information about running tests, writing new tests, and test coverage, see [TESTS.md](TESTS.md).
+
 ## Running Tests & Checking Coverage
 
 To run all tests:
