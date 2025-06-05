@@ -37,33 +37,53 @@ def planner(state: KatalystState) -> KatalystState:
     tool_list_str = "\n".join(f"- {name}: {desc}" for name, desc in tool_descriptions)
 
     # Modular prompt sections
+    # Modular prompt sections
     context_section = (
         "# CONTEXT\n"
-        "You are a planning assistant for a ReAct agent. Your job is to break down the user's high-level goal into a logical sequence of actionable subtasks.\n"
-        "The ReAct agent can execute specific actions using a set of tools.\n"
-        "When you generate subtasks, try to make them clearly actionable by one of these tools if appropriate.\n"
+        "You are an expert planning assistant for a ReAct-style AI agent. Your primary responsibility is to break down a high-level user GOAL into a sequence of concrete, actionable, and logically ordered sub-tasks. Each sub-task will be executed by a ReAct agent that can use a specific set of tools."
     )
-    tools_section = "# TOOLS AVAILABLE\n" f"{tool_list_str}\n"
-    instructions_section = (
-        "# INSTRUCTIONS\n"
-        "When generating subtasks, if a specific tool is clearly the best fit, you can phrase the subtask like:\n"
-        "'Use the <tool_name> tool to ...' OR 'Determine ...' (and the ReAct agent will pick the right tool).\n"
-        "Your primary goal is to create a logical sequence of steps (subtasks).\n"
+
+    available_tools_section = (
+        "# AVAILABLE TOOLS FOR THE ReAct AGENT\n"
+        "The ReAct agent that will execute your sub-tasks has access to the following tools. Understand their capabilities to create effective sub-tasks:\n"
+        f"{tool_list_str}\n"  # Use the concise list here
+        "NOTE: The ReAct agent does NOT have a 'navigate' or 'change directory' tool. All file operations must use tools that accept full or relative paths (e.g., 'list_files', 'read_file', 'write_to_file' with a 'path' argument)."
     )
-    task_section = "# TASK\n" f"{state.task}\n"
+
+    subtask_guidelines_section = (
+        "# SUB-TASK GENERATION GUIDELINES\n"
+        "1.  **Action-Oriented:** Each sub-task should describe a clear action to be performed. If the action involves interacting with the file system, user, or executing commands, it will likely map to a tool call by the ReAct agent.\n"
+        "2.  **Tool Implication:** Whenever possible, phrase sub-tasks so they clearly imply which of the available tools the ReAct agent should use. For example:\n"
+        "    - Instead of: 'Determine the contents of config.json.'\n"
+        "    - Prefer:     'Use the `read_file` tool to get the content of 'config.json'.'\n"
+        "    - Instead of: 'Go to the src/utils directory and find all Python files.'\n"
+        "    - Prefer:     'Use the `list_files` tool to find all Python files in the 'src/utils' directory.' (The ReAct agent can then filter for .py)\n"
+        "                  OR 'Use `search_files` with path 'src/utils' and file_pattern '*.py' to get Python files.'\n"
+        "3.  **Parameter Inclusion (Implicit or Explicit):** If a sub-task implies a tool that needs specific parameters (like a path for `read_file`), try to include that necessary information directly in the sub-task description. The ReAct agent will extract it.\n"
+        "    - Example: 'Create a new directory named `my_project_folder`.' (Implies `write_to_file` might be used with a placeholder, or a future `create_directory` tool. For now, `write_to_file` makes directories if path is given for a file within it.)\n"
+        "    - Better: 'Create a placeholder file named `.gitkeep` inside a new directory `my_project_folder` using `write_to_file`.' (This directly uses an existing tool to achieve folder creation).\n"
+        "4.  **User Interaction:** If information is needed from the user (filename, content, confirmation), the sub-task MUST be phrased to instruct the ReAct agent to use the `request_user_input` tool.\n"
+        "    - Example: 'Use the `request_user_input` tool to ask the user for the desired project name, suggesting `new_project`.'\n"
+        "5.  **Single, Concrete Step:** Each sub-task should represent a single, manageable step for the ReAct agent.\n"
+        "6.  **Logical Order:** Sub-tasks must be in a sequence that makes sense for achieving the overall GOAL.\n"
+        "7.  **Exhaustive (for the initial plan):** The initial plan should attempt to cover all necessary steps to reach the GOAL.\n"
+        "8.  **Avoid Abstract Actions:** Do not create subtasks like 'Navigate to directory X' or 'Understand the file structure'. Instead, create subtasks that use tools to achieve these underlying goals, e.g., 'Use `list_files` on directory X to understand its structure.'"
+    )
+
+    goal_section = "# HIGH-LEVEL USER GOAL\n" f"{state.task}\n"
+
     output_format_section = (
         "# OUTPUT FORMAT\n"
-        "Break down the above high-level task into a short, ordered list of concrete subtasks.\n"
-        "Each subtask should be a single sentence, and the list should be exhaustive and in logical order.\n"
-        "Return the subtasks as a JSON list of strings.\n"
+        'Based on the GOAL, the AVAILABLE TOOLS, and the SUB-TASK GENERATION GUIDELINES, provide your response as a JSON object with a single key "subtasks". The value should be a list of strings, where each string is a sub-task description.\n'
+        'Example JSON output: {"subtasks": ["Use the `list_files` tool to list contents of the current directory.", "Use the `request_user_input` tool to ask the user which file they want to read from the list."]}'
     )
 
     prompt = "\n\n".join(
         [
             context_section,
-            tools_section,
-            instructions_section,
-            task_section,
+            available_tools_section,
+            subtask_guidelines_section,
+            goal_section,
             output_format_section,
         ]
     )
