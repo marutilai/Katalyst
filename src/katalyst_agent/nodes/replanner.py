@@ -44,24 +44,61 @@ def replanner(state: KatalystState) -> KatalystState:
         else "No sub-tasks have been completed yet."
     )
 
-    prompt = (
-        "You are an intelligent planning assistant. Your role is to analyze the progress towards an overall goal and, if necessary, create a new plan of subtasks.\n\n"
-        f"ORIGINAL GOAL: {state.task}\n\n"
-        "COMPLETED SUBTASKS & THEIR OUTCOMES (most recent first for context):\n"
-        f"{completed_tasks_str}\n\n"  # Display completed tasks
-        "INSTRUCTIONS:\n"
-        "1. Carefully review the ORIGINAL GOAL and the COMPLETED SUBTASKS & THEIR OUTCOMES.\n"
-        "2. Determine if the ORIGINAL GOAL has been fully achieved. Consider the summaries of completed subtasks carefully. "
-        "   If a subtask was to gather information (e.g., 'Ask user for filename') and its summary is just the question itself, that information was NOT gathered.\n"
-        "3. If the ORIGINAL GOAL is fully achieved, you MUST return an empty list for 'subtasks': {\"subtasks\": []}.\n"
-        "4. If the ORIGINAL GOAL is NOT YET achieved, generate a NEW, logically ordered list of concrete subtask descriptions required to fully achieve the remaining parts of the ORIGINAL GOAL. Each subtask should be a single, actionable sentence.\n"
-        "   - Focus on the *next actionable steps*.\n"
-        "   - Avoid re-listing subtasks whose outcomes indicate they have already effectively contributed to the goal, UNLESS a previous attempt clearly failed (e.g., user cancelled, error occurred) and a *different approach or re-attempt* is needed.\n"
-        "   - If information gathering subtasks (like asking the user) were marked complete but their summary indicates the information wasn't actually obtained, you MUST re-issue those subtasks, possibly with more specific instructions for the agent executing them.\n"
-        '5. Return your response as a JSON object with a single key "subtasks" containing a list of strings (the new subtask descriptions). Example: {"subtasks": ["New subtask 1 description.", "New subtask 2 description."]}\n\n'
-        "6. If you are unsure, confused, or cannot determine the next step with confidence, you MUST add a subtask that uses the 'request_user_input' tool to ask the user for clarification or guidance. Do not guess or proceed without user input in such cases.\n"
-        "CURRENT SITUATION: The previous plan of subtasks is now exhausted, or a specific replanning event (like a tool requesting it or an unrecoverable error) was triggered. Analyze the progress and provide your JSON response."
-    )
+    prompt = f"""
+        # REPLANNER ROLE
+        You are an intelligent planning assistant responsible for analyzing progress and determining the next steps. 
+        Your role is to either confirm task completion or generate a new plan of subtasks to achieve the remaining goals.
+
+        # TASK ANALYSIS
+        ORIGINAL GOAL: {state.task}
+
+        COMPLETED SUBTASKS & THEIR OUTCOMES (most recent first):
+        {completed_tasks_str}
+
+        # DECISION GUIDELINES
+        1. Carefully review the ORIGINAL GOAL and COMPLETED SUBTASKS.
+        2. Determine if the ORIGINAL GOAL has been fully achieved by considering:
+           - All required information has been gathered
+           - All necessary files have been created/modified
+           - All user interactions have been completed
+           - All validation steps have been performed
+        3. If the goal is complete, return an empty list: {{"subtasks": []}}
+        4. If the goal is NOT complete, generate a new plan that:
+           - Focuses on remaining tasks only
+           - Avoids repeating completed tasks
+           - Addresses any failed or incomplete tasks
+           - Maintains logical task ordering
+
+        # SUBTASK GENERATION RULES
+        When creating new subtasks:
+        1. Each subtask must be a single, actionable step
+        2. Use clear, tool-specific language (e.g., 'Use read_file to...')
+        3. Include necessary parameters in the description
+        4. Order tasks logically (e.g., read before write)
+        5. Handle dependencies appropriately
+
+        # ERROR RECOVERY
+        If previous tasks failed or were incomplete:
+        1. Analyze why the previous attempt failed
+        2. Propose a different approach
+        3. Add validation steps to confirm success
+        4. Consider asking for user guidance if needed
+
+        # OUTPUT FORMAT
+        Return a JSON object with a single key 'subtasks' containing a list of strings.
+        Example: {{"subtasks": ["Use read_file to check config.json", "Create src/ directory"]}}
+
+        # COMPLETION CHECKLIST
+        Before returning an empty list (completion), verify:
+        1. All required information is available
+        2. All necessary files exist with correct content
+        3. All user interactions are complete
+        4. No pending tasks remain
+        5. No errors need to be addressed
+
+        CURRENT SITUATION: The previous plan is exhausted or a replanning event was triggered. 
+        Analyze the progress and provide your JSON response.
+    """
     logger.debug(f"[REPLANNER] Prompt to LLM:\n{prompt}")
 
     try:
