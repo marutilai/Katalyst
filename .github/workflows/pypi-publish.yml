@@ -1,9 +1,8 @@
-name: Publish Python 🐍 distribution 📦 to PyPI on tag
+name: Publish Python 🐍 distribution 📦 to PyPI on release
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'  # Triggers on version tags like v1.2.3
+  release:
+    types: [published]
 
 jobs:
   build-and-publish:
