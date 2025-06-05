@@ -5,15 +5,23 @@ from katalyst_agent.state import KatalystState
 
 __all__ = ["route_after_agent", "route_after_pointer", "route_after_replanner"]
 
+
 def route_after_agent(state: KatalystState) -> Union[str, object]:
     """
     1) If state.response is already set (inner guard tripped), return END.
-    2) Else if the last LLM outcome was AgentAction, go to "tool_runner".
-    3) Else (AgentFinish), go to "advance_pointer".
+    2) If state.error_message contains [GRAPH_RECURSION], go to "replanner".
+    3) Else if the last LLM outcome was AgentAction, go to "tool_runner".
+    4) Else (AgentFinish), go to "advance_pointer".
     """
-    if state.response: # inner guard tripped
+    if state.response:  # inner guard tripped
         return END
-    return "tool_runner" if isinstance(state.agent_outcome, AgentAction) else "advance_pointer"
+    if state.error_message and "[GRAPH_RECURSION]" in state.error_message:
+        return "replanner"
+    return (
+        "tool_runner"
+        if isinstance(state.agent_outcome, AgentAction)
+        else "advance_pointer"
+    )
 
 
 def route_after_pointer(state: KatalystState) -> Union[str, object]:

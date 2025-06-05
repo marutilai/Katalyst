@@ -15,6 +15,8 @@ class ErrorType(Enum):
                  Sets both error_message and response.
     - REPLAN_REQUESTED: Special type for agent-initiated replanning.
                        Triggers high-level replanning flow.
+    - GRAPH_RECURSION: Indicates a recursion error in the graph execution.
+                      Triggers replanning to handle the error gracefully.
     - UNKNOWN: Fallback for unclassified errors.
     """
 
@@ -22,6 +24,7 @@ class ErrorType(Enum):
     PARSING_ERROR = "PARSING_ERROR"
     LLM_ERROR = "LLM_ERROR"
     REPLAN_REQUESTED = "REPLAN_REQUESTED"
+    GRAPH_RECURSION = "GRAPH_RECURSION"
     UNKNOWN = "UNKNOWN"
 
 
@@ -60,6 +63,7 @@ def classify_error(error_message: str) -> Tuple[ErrorType, str]:
         "[PARSING_ERROR]": ErrorType.PARSING_ERROR,
         "[LLM_ERROR]": ErrorType.LLM_ERROR,
         "[REPLAN_REQUESTED]": ErrorType.REPLAN_REQUESTED,
+        "[GRAPH_RECURSION]": ErrorType.GRAPH_RECURSION,
     }
 
     for tag, error_type in error_types.items():
@@ -104,5 +108,10 @@ def format_error_for_llm(error_type: ErrorType, error_details: str) -> str:
         return (
             f"Replanning requested: {error_details}\n"
             "The current approach isn't working. Please request replanning."
+        )
+    elif error_type == ErrorType.GRAPH_RECURSION:
+        return (
+            f"Graph recursion detected: {error_details}\n"
+            "The current execution path has entered a loop. Please request replanning to try a different approach."
         )
     return f"Unknown error occurred: {error_details}"

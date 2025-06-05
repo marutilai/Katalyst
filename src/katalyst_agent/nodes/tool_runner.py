@@ -8,6 +8,7 @@ from katalyst_agent.utils.error_handling import (
     classify_error,
     format_error_for_llm,
 )
+from langgraph.errors import GraphRecursionError
 
 REGISTERED_TOOL_FUNCTIONS_MAP = get_tool_functions_map()
 
@@ -64,8 +65,18 @@ def tool_runner(state: KatalystState) -> KatalystState:
             logger.debug(
                 f"[TOOL_RUNNER] Tool '{tool_name}' returned observation: {observation}"
             )
+        except GraphRecursionError as e:
+            # Handle graph recursion error by triggering replanning
+            error_msg = create_error_message(
+                ErrorType.GRAPH_RECURSION,
+                f"Graph recursion detected: {str(e)}",
+                "TOOL_RUNNER",
+            )
+            logger.warning(f"[TOOL_RUNNER] {error_msg}")
+            state.error_message = error_msg
+            observation = error_msg
         except Exception as e:
-            # Catch and log any exceptions during tool execution
+            # Catch and log any other exceptions during tool execution
             observation = create_error_message(
                 ErrorType.TOOL_ERROR,
                 f"Exception while running tool '{tool_name}': {e}",
