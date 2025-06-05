@@ -1,6 +1,6 @@
 [project]
 name = "katalyst"
-version = "0.1.1"
+version = "0.2.0"
 description = "A terminal coding agent for Python."
 authors = [{name = "Maruti Agarwal", email = "marutiagarwal@gmail.com"}]
 readme = "README.md"
