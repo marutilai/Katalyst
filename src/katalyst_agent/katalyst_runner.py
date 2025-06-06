@@ -14,6 +14,9 @@ def run_katalyst_task(
     and prints a summary of the outcome.
     """
     logger = get_logger()
+    logger.info(
+        "\n==================== 🚀🚀🚀  KATALYST RUN START  🚀🚀🚀 ====================\n"
+    )
     logger.info(f"[KATALYST_RUNNER] Starting new task: '{user_input}'")
 
     # --- Prepare Initial State for the Graph ---
@@ -106,7 +109,7 @@ def run_katalyst_task(
             logger.debug(
                 f"Message {msg_idx}: [{msg.__class__.__name__}] {content if content is not None else str(msg)}"
             )
-        print(f"[LOGGER] logs will be written to: {_LOG_FILE}")
+        print(f"[LOGGER] Logs are written to: {_LOG_FILE}")
     else:
         print("  (No chat history recorded for this run)")
 

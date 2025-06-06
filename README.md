@@ -2,6 +2,9 @@
 
 A modular, node-based terminal coding agent for Python, designed for robust, extensible, and production-ready workflows.
 
+![Katalyst Coding Agent Architecture](docs/images/katalyst-coding-agent-dag.png)
+*Figure: Architecture diagram of the Katalyst Coding Agent (DAG/graph structure)*
+
 ## Quick Setup
 
 To install Katalyst from PyPI, simply run:
