@@ -1,6 +1,12 @@
 from katalyst_agent.state import KatalystState
-from katalyst_agent.services.llms import get_llm_instructor
-from katalyst_agent.utils.models import ReplannerOutput
+from katalyst_agent.services.llms import (
+    get_llm_instructor,
+    get_llm_fallbacks,
+    get_llm_timeout,
+)
+from katalyst_agent.utils.models import (
+    ReplannerOutput,
+)
 from langchain_core.messages import AIMessage
 from katalyst_agent.utils.logger import get_logger
 from katalyst_agent.utils.error_handling import (
@@ -103,7 +109,8 @@ def replanner(state: KatalystState) -> KatalystState:
     logger.debug(f"[REPLANNER] Prompt to LLM:\n{prompt}")
 
     try:
-        # Call LLM to get new subtasks
+        fallbacks = get_llm_fallbacks()
+        timeout = get_llm_timeout()
         llm_response_model = llm.chat.completions.create(
             messages=[{"role": "system", "content": prompt}],
             response_model=ReplannerOutput,  # Expects {"is_complete": bool, "subtasks": [...]}
@@ -113,7 +120,16 @@ def replanner(state: KatalystState) -> KatalystState:
             # LiteLLM's native retries for API call failures
             num_retries=2,
             model=os.getenv("KATALYST_LITELLM_MODEL", "gpt-4.1"),
+            fallbacks=fallbacks if fallbacks else None,
+            timeout=timeout,
         )
+        # Check if the model used is the same as the one configured or a fallback was used
+        actual_model = getattr(llm_response_model, "model", None)
+        if actual_model and actual_model != os.getenv(
+            "KATALYST_LITELLM_MODEL", "gpt-4.1"
+        ):
+            logger.info(f"[LLM] Fallback model used: {actual_model}")
+
         logger.debug(
             f"[REPLANNER] Raw LLM response from instructor: {llm_response_model}"
         )
