@@ -1,7 +1,7 @@
 from textwrap import dedent
 
-APPLY_DIFF_PROMPT = dedent('''
-# apply_diff Tool
+APPLY_SOURCE_CODE_DIFF_PROMPT = dedent('''
+# apply_source_code_diff Tool
 
 Description: Use this tool to apply precise, surgical code changes to a file using a search/replace diff format. You can batch multiple changes in a single request by including multiple SEARCH/REPLACE blocks. The tool will maintain proper indentation and formatting while making changes. Always use the read_file tool first to get the exact content and line numbers for your diff.
 

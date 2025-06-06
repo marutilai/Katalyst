@@ -83,7 +83,7 @@ diff_syntax_tests = [
     ),
     KatalystTestCase(
         name="add_agent_version",
-        task="In src/katalyst_agent/main.py, inside the repl function's else block where initial_state is created, add a new key-value pair: 'agent_version': '1.0.0'. Use the apply_diff tool. Show me the proposed change first.",
+        task="In src/katalyst_agent/main.py, inside the repl function's else block where initial_state is created, add a new key-value pair: 'agent_version': '1.0.0'. Use the apply_source_code_diff tool. Show me the proposed change first.",
         expected_output="agent_version",
         auto_approve=False,  # Requires user interaction
     ),
@@ -102,7 +102,7 @@ command_tests = [
 complex_tests = [
     KatalystTestCase(
         name="refactor_logger_function",
-        task="I want to refactor the get_logger function in src/katalyst_agent/utils/logger.py. First, search for all files in src/katalyst_agent that import get_logger from this path. Then, read the get_logger function itself. After that, ask me for the new desired name for this function. Finally, use apply_diff to rename the function definition in logger.py and update all import statements in the previously found files.",
+        task="I want to refactor the get_logger function in src/katalyst_agent/utils/logger.py. First, search for all files in src/katalyst_agent that import get_logger from this path. Then, read the get_logger function itself. After that, ask me for the new desired name for this function. Finally, use apply_source_code_diff to rename the function definition in logger.py and update all import statements in the previously found files.",
         expected_output="get_logger",
         auto_approve=False,  # Requires user interaction
     ),
