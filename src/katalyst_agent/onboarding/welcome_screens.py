@@ -47,7 +47,7 @@ def screen_2_trust_folder(folder_path):
 def screen_3_final_tips(cwd):
     welcome_text = (
         "[bold red]*[/bold red] Welcome to [bold]Katalyst Agent![/bold]\n\n"
-        "[dim]/help for help, /status for your current setup[/dim]\n\n"
+        "[dim]/help for help, /provider to set LLM provider, /model to set LLM model[/dim]\n\n"
         f"[bold]cwd:[/bold] {cwd}"
     )
     console.print(Panel(welcome_text, border_style="red", expand=False))
@@ -56,8 +56,9 @@ def screen_3_final_tips(cwd):
 Tips for getting started:
 
 1. Run `/init` to create a KATALYST.md file with instructions for Katalyst
-2. Use Katalyst to help with file analysis, editing, bash commands and git
-3. Be as specific as you would with another engineer for the best results
+2. Use `/provider` to switch between OpenAI and Anthropic
+3. Use `/model` to select specific models (gpt4.1 for OpenAI, sonnet4/opus4 for Anthropic)
+4. Be as specific as you would with another engineer for the best results
 
 *Tip:* Start with small features or bug fixes, tell Katalyst to propose a plan, and verify its suggested edits
         """,

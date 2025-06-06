@@ -153,4 +153,7 @@ Temporary Items
 katalyst_dev_scripts/
 
 # Katalyst state
-.katalyst_state.json 
+.katalyst_state.json
+
+# KATALYST.md
+KATALYST.md 

@@ -7,3 +7,4 @@
 - [DONE] Explore LangGraph React/Code agents for planning
 - Ollama for local models 
 - Langfuse for observability
+- Test for languages other than Python
