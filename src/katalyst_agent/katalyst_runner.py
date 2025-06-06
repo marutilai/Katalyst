@@ -32,10 +32,12 @@ def run_katalyst_task(
         "chat_history", []
     )  # Already deserialized by persistence.py
 
+    initial_cwd = os.getcwd()
     # Construct the initial state dictionary for Pydantic model validation
     # KatalystState Pydantic model will fill in defaults for other fields.
     initial_state_dict = {
         "task": user_input,
+        "project_root_cwd": initial_cwd,
         "llm_provider": llm_provider,  # This should be part of KatalystState if nodes need it
         "llm_model_name": llm_model_name,  # This too
         "auto_approve": auto_approve,

@@ -6,8 +6,15 @@ from langchain_core.messages import BaseMessage
 
 class KatalystState(BaseModel):
     # ── immutable run-level inputs ─────────────────────────────────────────
-    task: str = Field(..., description="Top-level user request that kicks off the whole run.")
-    auto_approve: bool = Field(False, description="If True, file-writing tools skip interactive confirmation.")
+    task: str = Field(
+        ..., description="Top-level user request that kicks off the whole run."
+    )
+    auto_approve: bool = Field(
+        False, description="If True, file-writing tools skip interactive confirmation."
+    )
+    project_root_cwd: str = Field(
+        ..., description="The CWD from which Katalyst was launched."
+    )
 
     # ── long-horizon planning ─────────────────────────────────────────────
     task_queue: List[str] = Field(
@@ -51,7 +58,8 @@ class KatalystState(BaseModel):
 
     # ── error / completion flags ──────────────────────────────────────────
     error_message: Optional[str] = Field(
-        None, description="Captured exception text with trace (fed back into LLM for self-repair)."
+        None,
+        description="Captured exception text with trace (fed back into LLM for self-repair).",
     )
     response: Optional[str] = Field(
         None, description="Final deliverable once the outer loop terminates."

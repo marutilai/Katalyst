@@ -9,6 +9,7 @@ from katalyst_agent.utils.error_handling import (
     format_error_for_llm,
 )
 from langgraph.errors import GraphRecursionError
+import os
 
 REGISTERED_TOOL_FUNCTIONS_MAP = get_tool_functions_map()
 
@@ -60,8 +61,18 @@ def tool_runner(state: KatalystState) -> KatalystState:
             # If the tool accepts auto_approve, always pass it from state
             if "auto_approve" in tool_fn.__code__.co_varnames:
                 tool_input = {**tool_input, "auto_approve": state.auto_approve}
+            # Resolve any relative 'path' argument using state.project_root_cwd
+            tool_input_resolved = dict(tool_input)  # Make a copy
+            if (
+                "path" in tool_input_resolved
+                and isinstance(tool_input_resolved["path"], str)
+                and not os.path.isabs(tool_input_resolved["path"])
+            ):
+                tool_input_resolved["path"] = os.path.abspath(
+                    os.path.join(state.project_root_cwd, tool_input_resolved["path"])
+                )
             # Call the tool function with the provided arguments
-            observation = tool_fn(**tool_input)
+            observation = tool_fn(**tool_input_resolved)
             logger.debug(
                 f"[TOOL_RUNNER] Tool '{tool_name}' returned observation: {observation}"
             )
