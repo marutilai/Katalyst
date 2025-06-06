@@ -40,7 +40,7 @@ Example 1: Successful non-recursive listing of current directory:
   "path": ".",
   "files": [
     "src/",
-    "README.md",
+    "installme.md",
     "pyproject.toml"
   ]
 }

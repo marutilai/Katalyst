@@ -96,6 +96,7 @@ def handle_provider_command():
     provider = "openai" if choice == "1" else "anthropic"
     os.environ["KATALYST_LITELLM_PROVIDER"] = provider
     console.print(f"[green]Provider set to: {provider}[/green]")
+    console.print(f"[yellow]Now choose a model for {provider} using /model[/yellow]")
 
 
 def handle_model_command():
@@ -106,8 +107,9 @@ def handle_model_command():
     if provider == "openai":
         console.print("\n[bold]Available OpenAI models:[/bold]")
         console.print("1. gpt4.1")
-        choice = Prompt.ask("Select model", choices=["1"], default="1")
-        model = "gpt4.1"
+        console.print("2. gpt-4.1-mini")
+        choice = Prompt.ask("Select model", choices=["1", "2"], default="1")
+        model = "gpt4.1" if choice == "1" else "gpt-4.1-mini"
     else:  # anthropic
         console.print("\n[bold]Available Anthropic models:[/bold]")
         console.print("1. sonnet4")
