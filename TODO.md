@@ -5,4 +5,5 @@
 - Generalize the check_syntax utility (in src/katalyst_agent/tools/write_to_file.py) to support syntax checking for more languages (not just Python).
 - Write more tests for all tools and measure/improve test coverage.
 - [DONE] Explore LangGraph React/Code agents for planning
-- Explore Ollama for local models 
+- Ollama for local models 
+- Langfuse for observability

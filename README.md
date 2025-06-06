@@ -25,7 +25,38 @@ The `search_files` tool requires [ripgrep](https://github.com/BurntSushi/ripgrep
 
 ## Features
 
-- Automatic project state persistence: Katalyst saves your project state (such as chat history) to `.katalyst_state.json` in your project directory after every command. This happens in the background—no user action required. When you return to your project, your session context is automatically restored.
+- Automatic project state persistence: Katalyst saves your project state (such as chat history) to `.katalyst_state.json` in your project directory after every command. 
+
+- Modular Node-Based Architecture: Built on a robust DAG (Directed Acyclic Graph) structure that enables flexible and extensible workflows. The system uses a two-level agent structure with an outer planning loop and inner ReAct (Reason-Act) cycles.
+
+- Intelligent Task Planning: Automatically breaks down complex tasks into manageable sub-tasks and executes them sequentially with built-in error recovery and replanning capabilities.
+
+- Rich Tool Integration: Comprehensive set of built-in tools for:
+  - File operations (reading, writing, searching)
+  - Code analysis and syntax checking
+  - Terminal command execution
+  - And more, with easy extensibility for custom tools
+
+- Robust Error Handling: Sophisticated error recovery system that can:
+  - Classify and format errors for better LLM understanding
+  - Automatically trigger replanning when needed
+  - Maintain detailed error traces for debugging
+
+- Multi-Language Support: Built-in support for multiple programming languages including:
+  - Python
+  - JavaScript/TypeScript
+  - JSX/TSX
+  - (More languages will be added soon...)
+
+- Interactive CLI: User-friendly command-line interface with:
+  - Helpful welcome screens and onboarding
+  - Real-time feedback and progress updates
+  - Detailed logging for debugging
+
+- Configurable LLM Integration: Flexible LLM provider support with:
+  - Default OpenAI integration
+  - Configurable model selection
+  - Easy extension for other LLM providers
 
 ## Testing
 
