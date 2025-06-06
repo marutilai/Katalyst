@@ -1,6 +1,6 @@
 from katalyst_agent.state import KatalystState
 from katalyst_agent.services.llms import get_llm_instructor
-from katalyst_agent.utils.models import SubtaskList
+from katalyst_agent.utils.models import ReplannerOutput
 from langchain_core.messages import AIMessage
 from katalyst_agent.utils.logger import get_logger
 from katalyst_agent.utils.error_handling import (
@@ -63,8 +63,8 @@ def replanner(state: KatalystState) -> KatalystState:
            - All necessary files have been created/modified
            - All user interactions have been completed
            - All validation steps have been performed
-        3. If the goal is complete, return an empty list: {{"subtasks": []}}
-        4. If the goal is NOT complete, generate a new plan that:
+        3. If the goal is complete, return is_complete: true and an empty subtasks list: {{"subtasks": []}}
+        4. If the goal is NOT complete, return is_complete: false and a new subtasks list.
            - Focuses on remaining tasks only
            - Avoids repeating completed tasks
            - Addresses any failed or incomplete tasks
@@ -86,11 +86,11 @@ def replanner(state: KatalystState) -> KatalystState:
         4. Consider asking for user guidance if needed
 
         # OUTPUT FORMAT
-        Return a JSON object with a single key 'subtasks' containing a list of strings.
-        Example: {{"subtasks": ["Use read_file to check config.json", "Create src/ directory"]}}
+        Return a JSON object with two keys: 'is_complete' (boolean) and 'subtasks' (list of strings).
+        Example: {{"is_complete": true, "subtasks": []}} or {{"is_complete": false, "subtasks": ["task1", "task2"]}}
 
         # COMPLETION CHECKLIST
-        Before returning an empty list (completion), verify:
+        Before returning is_complete: true, verify:
         1. All required information is available
         2. All necessary files exist with correct content
         3. All user interactions are complete
@@ -103,28 +103,30 @@ def replanner(state: KatalystState) -> KatalystState:
     logger.debug(f"[REPLANNER] Prompt to LLM:\n{prompt}")
 
     try:
-        # Call LLM to get new subtasks or an empty list if complete
+        # Call LLM to get new subtasks
         llm_response_model = llm.chat.completions.create(
             messages=[{"role": "system", "content": prompt}],
-            response_model=SubtaskList,  # Expects {"subtasks": ["task1", "task2", ...]}
-            temperature=0.3,  # Lower temperature for more deterministic planning
-            max_retries=2,  # Add retries for instructor
+            response_model=ReplannerOutput,  # Expects {"is_complete": bool, "subtasks": [...]}
+            temperature=0.1,
+            # Instructor's retries for Pydantic validation (if LLM output doesn't fit model)
+            max_retries=2,
+            # LiteLLM's native retries for API call failures
+            num_retries=2,
             model=os.getenv("KATALYST_LITELLM_MODEL", "gpt-4.1"),
         )
         logger.debug(
             f"[REPLANNER] Raw LLM response from instructor: {llm_response_model}"
         )
 
+        is_complete = llm_response_model.is_complete
         new_subtasks = llm_response_model.subtasks
         logger.info(
-            f"[REPLANNER] LLM proposed new subtasks: {new_subtasks if new_subtasks else 'None (goal likely complete)'}"
+            f"[REPLANNER] LLM replanner output: is_complete={is_complete}, subtasks={new_subtasks}"
         )
 
-        if (
-            not new_subtasks
-        ):  # LLM returns an empty list, signaling overall task completion
+        if is_complete or not new_subtasks:
             logger.info(
-                "[REPLANNER] LLM indicated original goal is complete (returned empty subtask list)."
+                "[REPLANNER] LLM indicated original goal is complete (is_complete=True) or no new subtasks are needed."
             )
             state.task_queue = []  # Ensure task queue is empty for routing to END
             state.task_idx = 0  # Reset index
