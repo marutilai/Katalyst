@@ -6,6 +6,19 @@ authors = [{name = "Maruti Agarwal", email = "marutiagarwal@gmail.com"}]
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.12,<4.0"
+dependencies = [
+    "openai>=1.82.0",
+    "langgraph>=0.4.5",
+    "langchain-core>=0.3.61",
+    "dotenv>=0.9.9",
+    "langchain-openai>=0.3.18",
+    "pathspec>=0.12.1",
+    "tree-sitter==0.21.3",
+    "tree-sitter-languages>=1.10.2",
+    "rich>=13.9.4",
+    "instructor>=1.8.3",
+    "litellm>=1.72.1"
+]
 
 [project.scripts]
 katalyst = "katalyst_agent.main:main"

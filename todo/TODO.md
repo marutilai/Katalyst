@@ -9,3 +9,4 @@
 - Langfuse for observability
 - Test for languages other than Python
 - /init command should refer to claude.md for improved output
+- Langgraph long-term memory management
