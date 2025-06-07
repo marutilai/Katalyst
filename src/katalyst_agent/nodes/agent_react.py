@@ -42,10 +42,9 @@ def agent_react(state: KatalystState) -> KatalystState:
     # 1) Inner-loop guard: prevent infinite loops in the ReAct cycle
     state.inner_cycles += 1
     if state.inner_cycles > state.max_inner_cycles:
-        state.response = (
-            f"Stopped: inner loop exceeded {state.max_inner_cycles} cycles "
-            f"(task #{state.task_idx})."
-        )
+        error_msg = f"Inner loop exceeded {state.max_inner_cycles} cycles (task #{state.task_idx})."
+        state.response = f"Stopped: {error_msg}"
+        logger.warning(f"[AGENT_REACT][GUARDRAIL] {error_msg}")
         # Construct an AgentFinish to signal "done" to the router
         state.agent_outcome = AgentFinish(
             return_values={"output": "Inner loop limit exceeded"},

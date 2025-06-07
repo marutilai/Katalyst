@@ -80,7 +80,7 @@ def advance_pointer(state: KatalystState) -> KatalystState:
                 "ADVANCE_POINTER",
             )
             state.response = error_msg
-            logger.info(f"[ADVANCE_POINTER] {error_msg}")
+            logger.warning(f"[ADVANCE_POINTER][GUARDRAIL] {error_msg}")
 
     logger.debug("[ADVANCE_POINTER] End of advance_pointer node.")
     return state

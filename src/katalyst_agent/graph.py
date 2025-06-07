@@ -1,8 +1,13 @@
 from langgraph.graph import StateGraph, START, END
 from langchain_core.agents import AgentAction
+import os
 
 from katalyst_agent.state import KatalystState
-from katalyst_agent.routing import route_after_agent, route_after_pointer, route_after_replanner
+from katalyst_agent.routing import (
+    route_after_agent,
+    route_after_pointer,
+    route_after_replanner,
+)
 from katalyst_agent.nodes.planner import planner
 from katalyst_agent.nodes.agent_react import agent_react
 from katalyst_agent.nodes.tool_runner import tool_runner
@@ -31,39 +36,40 @@ from katalyst_agent.nodes.replanner import replanner
 #    agent_react  →  tool_runner  →  agent_react  (repeat until AgentFinish)
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def build_compiled_graph():
+    recursion_limit = int(os.getenv("KATALYST_RECURSION_LIMIT", 250))
     g = StateGraph(KatalystState)
 
     # ── planner: generates the initial list of sub‑tasks ─────────────────────────
     g.add_node("planner", planner)
 
     # ── INNER LOOP nodes ─────────────────────────────────────────────────────────
-    g.add_node("agent_react",      agent_react)      # LLM emits AgentAction/Finish
-    g.add_node("tool_runner",       tool_runner)      # Executes the chosen tool
-    g.add_node("advance_pointer",   advance_pointer)  # Marks task complete
-
+    g.add_node("agent_react", agent_react)  # LLM emits AgentAction/Finish
+    g.add_node("tool_runner", tool_runner)  # Executes the chosen tool
+    g.add_node("advance_pointer", advance_pointer)  # Marks task complete
 
     # ── replanner: invoked when plan is exhausted or needs adjustment ────────────
-    g.add_node("replanner",        replanner)
+    g.add_node("replanner", replanner)
 
     # ── edges for OUTER LOOP ─────────────────────────────────────────────────────
-    g.add_edge(START,     "planner")        # start → planner
-    g.add_edge("planner", "agent_react")    # initial plan → INNER LOOP
+    g.add_edge(START, "planner")  # start → planner
+    g.add_edge("planner", "agent_react")  # initial plan → INNER LOOP
 
     # ── routing inside INNER LOOP (delegated to router.py) ───────────────────────
     g.add_conditional_edges(
         "agent_react",
-        route_after_agent,                 # may return "tool_runner", "advance_pointer", or END
+        route_after_agent,  # may return "tool_runner", "advance_pointer", or END
         ["tool_runner", "advance_pointer", END],
     )
 
     # tool → agent (reflection)                          (INNER LOOP)
-    g.add_edge("tool_runner",     "agent_react")
+    g.add_edge("tool_runner", "agent_react")
 
     # ── decide whether to re‑plan or continue with next sub‑task ─────────────────
     g.add_conditional_edges(
         "advance_pointer",
-        route_after_pointer,              # may return "agent_react", "replanner", or END
+        route_after_pointer,  # may return "agent_react", "replanner", or END
         ["agent_react", "replanner", END],
     )
 
@@ -74,5 +80,4 @@ def build_compiled_graph():
         ["agent_react", END],
     )
 
-    app = g.compile()
-    return app
+    return g.compile(recursion_limit=recursion_limit)
