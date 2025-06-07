@@ -4,6 +4,7 @@ from katalyst_agent.utils.logger import get_logger
 from katalyst_agent.utils.logger import _LOG_FILE
 from katalyst_agent.state import KatalystState  # Import your Pydantic state model
 from langchain_core.agents import AgentFinish  # To check agent_outcome
+from langgraph.errors import GraphRecursionError
 
 
 def run_katalyst_task(
@@ -50,7 +51,20 @@ def run_katalyst_task(
 
     # --- Invoke the Graph ---
     # The 'result' will be the final KatalystState Pydantic object
-    raw_state = graph.invoke(initial_state_dict)
+    recursion_limit = int(os.getenv("KATALYST_RECURSION_LIMIT", 250))
+    try:
+        raw_state = graph.invoke(
+            initial_state_dict, {"recursion_limit": recursion_limit}
+        )
+    except GraphRecursionError:
+        msg = (
+            f"[GUARDRAIL] Recursion limit ({recursion_limit}) reached. "
+            "Please increase the KATALYST_RECURSION_LIMIT environment variable if needed."
+        )
+        logger.error(msg)
+        print(msg)
+        return None
+
     # If it's not already a KatalystState, convert it
     if not isinstance(raw_state, KatalystState):
         final_state = KatalystState(**dict(raw_state))

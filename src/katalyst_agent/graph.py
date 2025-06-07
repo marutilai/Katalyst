@@ -1,6 +1,5 @@
 from langgraph.graph import StateGraph, START, END
 from langchain_core.agents import AgentAction
-import os
 
 from katalyst_agent.state import KatalystState
 from katalyst_agent.routing import (
@@ -38,7 +37,6 @@ from katalyst_agent.nodes.replanner import replanner
 
 
 def build_compiled_graph():
-    recursion_limit = int(os.getenv("KATALYST_RECURSION_LIMIT", 250))
     g = StateGraph(KatalystState)
 
     # ── planner: generates the initial list of sub‑tasks ─────────────────────────
@@ -80,4 +78,4 @@ def build_compiled_graph():
         ["agent_react", END],
     )
 
-    return g.compile(recursion_limit=recursion_limit)
+    return g.compile()
