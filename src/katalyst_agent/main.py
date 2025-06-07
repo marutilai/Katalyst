@@ -70,7 +70,12 @@ def repl():
 def main():
     ensure_openai_api_key()
     maybe_show_welcome()
-    repl()
+    logger = get_logger()
+    try:
+        repl()
+    except Exception as e:
+        logger.exception("Unhandled exception in main loop.")
+        print(f"An unexpected error occurred: {e}. See the log file for details.")
 
 
 if __name__ == "__main__":
