@@ -1,4 +1,4 @@
-# src/coding_agent/katalyst_runner.py
+# src/app/katalyst_runner.py
 import os
 from katalyst_core.state import KatalystState  # Import your Pydantic state model
 from katalyst_core.utils.logger import get_logger

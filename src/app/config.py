@@ -1,4 +1,4 @@
-# src/coding_agent/config.py
+# src/app/config.py
 # Central configuration and constants for the Katalyst Agent project.
 
 from pathlib import Path
