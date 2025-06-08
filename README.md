@@ -2,6 +2,9 @@
 
 A modular, node-based terminal coding agent for Python, designed for robust, extensible, and production-ready workflows.
 
+![Katalyst Demo: Installation and Usage](docs/images/katalyst_demo.gif)
+*Figure: Demo showing how to install and use Katalyst from the terminal*
+
 ![Katalyst Coding Agent Architecture](docs/images/katalyst-coding-agent-dag.png)
 *Figure: Architecture diagram of the Katalyst Coding Agent (DAG/graph structure)*
 
