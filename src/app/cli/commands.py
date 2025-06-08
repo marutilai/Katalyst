@@ -1,8 +1,8 @@
 import os
 from rich.console import Console
 from rich.prompt import Prompt
-from coding_agent.onboarding.doc_templates import get_katalyst_md_template
-from coding_agent.onboarding.summarize import summarize_text
+from app.onboarding.doc_templates import get_katalyst_md_template
+from app.onboarding.summarize import summarize_text
 
 console = Console()
 

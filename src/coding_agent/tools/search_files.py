@@ -3,7 +3,7 @@ import subprocess
 from katalyst_core.utils.logger import get_logger
 from katalyst_core.utils.tools import katalyst_tool
 from shutil import which
-from coding_agent.config import SEARCH_FILES_MAX_RESULTS  # Centralized config
+from app.config import SEARCH_FILES_MAX_RESULTS  # Centralized config
 import json
 
 

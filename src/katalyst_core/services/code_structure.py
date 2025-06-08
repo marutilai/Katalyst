@@ -3,7 +3,7 @@ from typing import List, Dict, Union
 from tree_sitter_languages import get_parser
 from katalyst_core.utils.logger import get_logger
 from katalyst_core.utils.gitignore import load_gitignore_patterns
-from coding_agent.config import EXT_TO_LANG
+from app.config import EXT_TO_LANG
 
 
 def extract_code_definitions(path: str) -> Dict:

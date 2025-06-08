@@ -1,6 +1,6 @@
 import os
 import json
-from coding_agent.config import STATE_FILE
+from app.config import STATE_FILE
 from katalyst_core.utils.logger import get_logger
 from langchain_core.messages import message_to_dict, messages_from_dict
 

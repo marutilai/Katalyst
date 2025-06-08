@@ -3,17 +3,17 @@ import json
 from dotenv import load_dotenv
 from katalyst_core.graph import build_compiled_graph
 from katalyst_core.utils.logger import get_logger
-from coding_agent.onboarding import welcome_screens
-from coding_agent.config import ONBOARDING_FLAG, STATE_FILE
+from app.onboarding import welcome_screens
+from app.config import ONBOARDING_FLAG, STATE_FILE
 from katalyst_core.utils.environment import ensure_openai_api_key
-from coding_agent.cli.persistence import load_project_state, save_project_state
-from coding_agent.cli.commands import (
+from app.cli.persistence import load_project_state, save_project_state
+from app.cli.commands import (
     show_help,
     handle_init_command,
     handle_provider_command,
     handle_model_command,
 )
-from coding_agent.katalyst_runner import run_katalyst_task
+from app.katalyst_runner import run_katalyst_task
 
 # Load environment variables from .env file
 load_dotenv()
