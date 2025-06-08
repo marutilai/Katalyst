@@ -16,8 +16,13 @@ To install Katalyst from PyPI, simply run:
 pip install katalyst
 ```
 
-**Important:**
-You must set your OpenAI API key as the environment variable `OPENAI_API_KEY` or add it to a `.env` file in your project directory. The first time you run `katalyst`, you will be prompted to enter your API key if it is missing. You can get an API key from [https://platform.openai.com/account/api-keys](https://platform.openai.com/account/api-keys).
+**1. Copy the example environment file:**
+
+```bash
+cp .env.example .env
+```
+
+**2.** You must set your OpenAI API key as the environment variable `OPENAI_API_KEY` or add it to a `.env` file in your project directory.
 
 ## Searching Files (ripgrep required)
 
