@@ -5,6 +5,8 @@ from katalyst_core.utils.logger import get_logger
 from katalyst_core.utils.logger import _LOG_FILE
 from langchain_core.agents import AgentFinish  # To check agent_outcome
 from langgraph.errors import GraphRecursionError
+from katalyst_core.utils.state_utils import load_persisted_state
+from typing import List
 
 
 def run_katalyst_task(
@@ -31,12 +33,10 @@ def run_katalyst_task(
     # Max iterations for inner and outer loops can also come from config or be fixed
 
     # Load persisted parts of the state
-    if hasattr(project_state, "chat_history"):
-        loaded_chat_history = project_state.chat_history
-    elif isinstance(project_state, dict):
-        loaded_chat_history = project_state.get("chat_history", [])
-    else:
-        loaded_chat_history = []
+    loaded_chat_history = load_persisted_state(project_state, "chat_history", [], List)
+    loaded_playbook_guidelines = load_persisted_state(
+        project_state, "playbook_guidelines", None, str
+    )
 
     initial_cwd = os.getcwd()
     # Construct the initial state dictionary for Pydantic model validation
@@ -48,6 +48,7 @@ def run_katalyst_task(
         "llm_model_name": llm_model_name,  # This too
         "auto_approve": auto_approve,
         "chat_history": loaded_chat_history,
+        "playbook_guidelines": loaded_playbook_guidelines,
         # task_queue, task_idx, completed_tasks, action_trace, cycles will be initialized by planner/nodes
         # error_message, response, agent_outcome will be None or default
         # max_inner_cycles and max_outer_cycles will use Pydantic defaults if not overridden

@@ -78,17 +78,18 @@ def agent_react(state: KatalystState) -> KatalystState:
         - To search within files, you MUST use the 'regex_search_files' tool.
         - Do NOT assume you can 'navigate' or 'list files' by just stating it in a 'final_answer'. You must use a tool if the subtask implies interacting with the file system.
 
+        # SCRATCHPAD & REDUNDANCY RULES
+        - Always use the scratchpad (previous actions and observations) to inform your reasoning and avoid repeating any tool calls or actions that have already been performed for the current sub-task.
+        - Never ask the user for information that is already available in the scratchpad or previous tool outputs.
+        - Do not repeat tool calls with the same arguments if the result is already present in the scratchpad.
+        - If the required information is already available from previous steps, use it directly in your reasoning and proceed to the next logical step or provide a final answer.
+
         # FINAL ANSWER GUIDELINES
         When providing a final_answer after using tools:
         1. Be concise and clear about what was accomplished
         2. Mention which tool was used and what data is now available
         3. If multiple tools were used, summarize the key outcomes
         4. Do not repeat the full tool output in the final_answer
-        5. Examples of good final answers:
-           - "Used read_file to access config.json. Configuration data available in observation."
-           - "Listed files in src/ and found 5 Python files. File list available."
-           - "Searched for 'import' in Python files. Found 3 matches. Results available in observation."
-           - "Created project structure with src/, tests/, and docs/ directories. Ready for next step."
 
         # ERROR RECOVERY
         If you encounter an error:

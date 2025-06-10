@@ -64,14 +64,11 @@ def handle_init_command(graph):
 
     # Create a new KatalystState with the playbook guidelines and a simple task
     state = KatalystState(
-        task="Generate project documentation as described in the playbook.",
+        task="Execute the project initialization playbook to generate KATALYST.md.",
         playbook_guidelines=playbook.content_md,
         auto_approve=True,
         project_root_cwd=os.getcwd(),
     )
-
-    # Run the planner to generate the plan
-    state = planner(state)
 
     # Run the full Katalyst execution engine to generate KATALYST.md
     final_state = run_katalyst_task(state.task, state, graph)
