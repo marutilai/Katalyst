@@ -159,4 +159,7 @@ katalyst_dev_scripts/
 KATALYST.md
 
 # Cursor rules
-.cursorrules 
+.cursorrules
+
+# Katalyst directory
+.katalyst/ 
