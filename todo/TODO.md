@@ -16,3 +16,5 @@
 - Long-term memory management
 - Telemetry for usage-based data collection
 - Create several pre-defined plans and rag over them as needed to help planner
+- capability for pausing and continuing the dag execution flow? ideally serializable & de-serializable execution state. 
+- Support understanding existing code base and making changes to it
