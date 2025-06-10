@@ -17,6 +17,7 @@ def planner(state: KatalystState) -> KatalystState:
     """
     Generate initial subtask list in state.task_queue, set state.task_idx = 0, etc.
     Uses Instructor to get a structured list of subtasks from the LLM.
+    If state.playbook_guidelines is provided, include it in the prompt as additional planning constraints.
 
     * Primary Task: Call an LLM to generate an initial, ordered list of sub-task descriptions based on the main state.task.
     * State Changes:
@@ -36,6 +37,15 @@ def planner(state: KatalystState) -> KatalystState:
     tool_descriptions = extract_tool_descriptions()
     tool_list_str = "\n".join(f"- {name}: {desc}" for name, desc in tool_descriptions)
 
+    playbook_guidelines = getattr(state, "playbook_guidelines", None)
+    playbook_section = (
+        f"\n# PLAYBOOK GUIDELINES\n"
+        f"{playbook_guidelines}\n"
+        "Do not search for or ask the user to select a playbook file. The playbook guidelines are already provided in the input. Use them directly.\n"
+        if playbook_guidelines
+        else ""
+    )
+
     prompt = f"""
         # ROLE
         You are a planning assistant for a ReAct-style AI agent. Your job is to break down a high-level user GOAL into a logically ordered list of atomic, executable sub-tasks. Each sub-task will be performed by an agent that can call tools, but cannot perform abstract reasoning or inference beyond what the tools enable.
@@ -44,6 +54,7 @@ def planner(state: KatalystState) -> KatalystState:
         The agent executing your sub-tasks has access to the following tools:
         {tool_list_str}
 
+        {playbook_section}
         Constraints:
         - The agent cannot navigate directories or inspect file systems directly.
         - All file operations must use tools that accept explicit paths (e.g., 'list_files', 'read_file', 'write_to_file').
@@ -93,7 +104,7 @@ def planner(state: KatalystState) -> KatalystState:
         {state.task}
 
         # OUTPUT FORMAT
-        Based on the GOAL, the AVAILABLE TOOLS, and the SUBTASK GENERATION GUIDELINES, provide your response as a JSON object with a single key "subtasks". The value should be a list of strings, where each string is a sub-task description.
+        Based on the GOAL, the AVAILABLE TOOLS, the SUBTASK GENERATION GUIDELINES{', and the PLAYBOOK GUIDELINES' if playbook_guidelines else ''}, provide your response as a JSON object with a single key "subtasks". The value should be a list of strings, where each string is a sub-task description.
 
         Example JSON output:
         {{

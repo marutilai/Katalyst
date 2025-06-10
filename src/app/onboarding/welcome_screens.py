@@ -65,10 +65,6 @@ Tips for getting started:
         style="white",
     )
     console.print(tips_md)
-    console.print(
-        '\n[bold]>[/bold] Try "edit <filepath> to..."\n', style="white on black"
-    )
-    console.print("[dim]? for shortcuts[/dim]\n")
 
 
 # Example usage (for testing):

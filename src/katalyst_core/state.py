@@ -82,5 +82,10 @@ class KatalystState(BaseModel):
         description="Abort outer loop once this many cycles are hit.",
     )
 
+    # ── playbook / plan context ─────────────────────────────────────────────
+    playbook_guidelines: Optional[str] = Field(
+        None, description="Playbook or plan guidelines for the current run."
+    )
+
     class Config:
         arbitrary_types_allowed = True  # Enables AgentAction / AgentFinish

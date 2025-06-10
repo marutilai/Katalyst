@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from katalyst_core.graph import build_compiled_graph
 from katalyst_core.utils.logger import get_logger
 from app.onboarding import welcome_screens
-from app.config import ONBOARDING_FLAG, STATE_FILE
+from app.config import ONBOARDING_FLAG
 from katalyst_core.utils.environment import ensure_openai_api_key
 from app.cli.persistence import load_project_state, save_project_state
 from app.cli.commands import (
@@ -20,7 +20,6 @@ load_dotenv()
 
 
 def maybe_show_welcome():
-    project_state = load_project_state()
     if not ONBOARDING_FLAG.exists():
         welcome_screens.screen_1_welcome_and_security()
         welcome_screens.screen_2_trust_folder(os.getcwd())
@@ -45,7 +44,7 @@ def repl():
         if user_input == "/help":
             show_help()
         elif user_input == "/init":
-            handle_init_command()
+            handle_init_command(graph)
         elif user_input == "/provider":
             handle_provider_command()
         elif user_input == "/model":

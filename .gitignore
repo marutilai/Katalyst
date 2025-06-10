@@ -156,4 +156,7 @@ katalyst_dev_scripts/
 .katalyst_state.json
 
 # KATALYST.md
-KATALYST.md 
+KATALYST.md
+
+# Cursor rules
+.cursorrules 

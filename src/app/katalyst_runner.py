@@ -8,7 +8,9 @@ from langgraph.errors import GraphRecursionError
 
 
 def run_katalyst_task(
-    user_input: str, project_state: dict, graph
+    user_input: str,
+    project_state: dict,
+    graph,
 ) -> KatalystState:  # Added type hints
     """
     Prepares the initial state for a Katalyst task run, invokes the graph,
@@ -29,9 +31,12 @@ def run_katalyst_task(
     # Max iterations for inner and outer loops can also come from config or be fixed
 
     # Load persisted parts of the state
-    loaded_chat_history = project_state.get(
-        "chat_history", []
-    )  # Already deserialized by persistence.py
+    if hasattr(project_state, "chat_history"):
+        loaded_chat_history = project_state.chat_history
+    elif isinstance(project_state, dict):
+        loaded_chat_history = project_state.get("chat_history", [])
+    else:
+        loaded_chat_history = []
 
     initial_cwd = os.getcwd()
     # Construct the initial state dictionary for Pydantic model validation

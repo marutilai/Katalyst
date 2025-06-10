@@ -1,8 +1,11 @@
 import os
 from rich.console import Console
 from rich.prompt import Prompt
-from app.onboarding.doc_templates import get_katalyst_md_template
-from app.onboarding.summarize import summarize_text
+from pathlib import Path
+from app.playbook_navigator import PlaybookNavigator
+from katalyst_core.state import KatalystState
+from coding_agent.nodes.planner import planner
+from app.katalyst_runner import run_katalyst_task
 
 console = Console()
 
@@ -40,50 +43,46 @@ def build_ascii_tree(start_path, prefix=""):
     return tree_lines
 
 
-def handle_init_command():
-    """
-    Analyze the current directory and generate a KATALYST.md documentation file.
-    - Lists project structure (clean ASCII tree)
-    - Summarizes README.md and config files
-    - Uses onboarding templates/utilities
-    """
-    # 1. List project structure as ASCII tree
-    project_tree = "\n".join(["."] + build_ascii_tree("."))
+def get_init_plan(plan_name: str) -> str:
+    plan_path = Path("plans/planner") / f"{plan_name}.md"
+    if plan_path.exists():
+        return plan_path.read_text()
+    return ""
 
-    # 2. Summarize README.md
-    if os.path.exists("README.md"):
-        with open("README.md", "r") as f:
-            readme_summary = summarize_text(f.read())
+
+def handle_init_command(graph):
+    """
+    Retrieve the playbook for /init, use its text as the planner task, and execute the full Katalyst engine to generate KATALYST.md.
+    """
+    navigator = PlaybookNavigator()
+    playbook = navigator.get_playbook_by_id(
+        "project_init"
+    )  # or "init_plan" if that's your ID
+    if not playbook:
+        console.print("[red]No playbook found for /init![/red]")
+        return
+
+    # Create a new KatalystState with the playbook guidelines and a simple task
+    state = KatalystState(
+        task="Generate project documentation as described in the playbook.",
+        playbook_guidelines=playbook.content_md,
+        auto_approve=True,
+        project_root_cwd=os.getcwd(),
+    )
+
+    # Run the planner to generate the plan
+    state = planner(state)
+
+    # Run the full Katalyst execution engine to generate KATALYST.md
+    final_state = run_katalyst_task(state.task, state, graph)
+
+    # Write the output to KATALYST.md
+    if final_state and final_state.response:
+        with open("KATALYST.md", "w") as f:
+            f.write(final_state.response)
+        console.print("[green]KATALYST.md created with generated output![/green]")
     else:
-        readme_summary = "No README.md found."
-
-    # 3. Summarize config files
-    config_files = ["setup.py", "pyproject.toml", "requirements.txt"]
-    config_summaries_list = []
-    for fname in config_files:
-        if os.path.exists(fname):
-            with open(fname, "r") as f:
-                summary = summarize_text(f.read())
-            config_summaries_list.append(f"### {fname}\n{summary}")
-    config_summaries = (
-        "\n\n".join(config_summaries_list)
-        if config_summaries_list
-        else "No config files found."
-    )
-
-    # 4. (Optional) Extract common commands from README or configs
-    common_commands = "(Add common commands here if needed)"
-
-    # 5. Write KATALYST.md using the template
-    katalyst_md = get_katalyst_md_template().format(
-        project_tree=project_tree,
-        readme_summary=readme_summary,
-        config_summaries=config_summaries,
-        common_commands=common_commands,
-    )
-    with open("KATALYST.md", "w") as f:
-        f.write(katalyst_md)
-    console.print("[green]KATALYST.md created with project documentation![/green]")
+        console.print("[red]Failed to generate KATALYST.md.[/red]")
 
 
 def handle_provider_command():

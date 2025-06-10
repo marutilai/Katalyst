@@ -17,7 +17,8 @@ dependencies = [
     "tree-sitter-languages>=1.10.2",
     "rich>=13.9.4",
     "instructor>=1.8.3",
-    "litellm>=1.72.1"
+    "litellm>=1.72.1",
+    "bm25s (>=0.2.13,<0.3.0)"
 ]
 
 [project.scripts]

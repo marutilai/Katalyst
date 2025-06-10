@@ -16,6 +16,12 @@ EXT_TO_LANG = {
     ".jsx": "javascript",
 }
 
-# Onboarding and project state persistence
-ONBOARDING_FLAG = Path.home() / ".katalyst_agent_onboarded"
-STATE_FILE = ".katalyst_state.json"
+# Directory for all Katalyst agent state, cache, and index files
+KATALYST_DIR = Path(".katalyst")
+KATALYST_DIR.mkdir(exist_ok=True)
+
+# Onboarding flag (now inside .katalyst)
+ONBOARDING_FLAG = KATALYST_DIR / "onboarded"
+
+# State file for the agent (now inside .katalyst)
+KATALYST_STATE_FILE = KATALYST_DIR / "katalyst_state.json"
