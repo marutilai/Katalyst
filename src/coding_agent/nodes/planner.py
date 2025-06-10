@@ -2,7 +2,7 @@ import os
 from katalyst_core.state import KatalystState
 from katalyst_core.services.llms import get_llm_instructor
 from langchain_core.messages import AIMessage
-from katalyst_core.utils.models import SubtaskList
+from katalyst_core.utils.models import SubtaskList, PlaybookEvaluation
 from katalyst_core.utils.logger import get_logger
 from katalyst_core.utils.tools import extract_tool_descriptions
 from katalyst_core.utils.error_handling import (
@@ -17,7 +17,7 @@ def planner(state: KatalystState) -> KatalystState:
     """
     Generate initial subtask list in state.task_queue, set state.task_idx = 0, etc.
     Uses Instructor to get a structured list of subtasks from the LLM.
-    If state.playbook_guidelines is provided, include it in the prompt as additional planning constraints.
+    If state.playbook_guidelines is provided, evaluate its relevance and use it appropriately.
 
     * Primary Task: Call an LLM to generate an initial, ordered list of sub-task descriptions based on the main state.task.
     * State Changes:
@@ -38,26 +38,98 @@ def planner(state: KatalystState) -> KatalystState:
     tool_list_str = "\n".join(f"- {name}: {desc}" for name, desc in tool_descriptions)
 
     playbook_guidelines = getattr(state, "playbook_guidelines", None)
-    playbook_section = (
-        f"\n# PLAYBOOK GUIDELINES\n"
-        f"{playbook_guidelines}\n"
-        "Do not search for or ask the user to select a playbook file. The playbook guidelines are already provided in the input. Use them directly.\n"
-        if playbook_guidelines
-        else ""
-    )
+
+    # First, evaluate playbook relevance if guidelines exist
+    if playbook_guidelines:
+        evaluation_prompt = f"""
+        # TASK
+        Evaluate the relevance and applicability of the provided playbook guidelines to the current task.
+        Think step by step about how well the guidelines match the task requirements.
+
+        # CURRENT TASK
+        {state.task}
+
+        # PLAYBOOK GUIDELINES
+        {playbook_guidelines}
+
+        # EVALUATION CRITERIA
+        1. Direct Relevance: How directly do the guidelines address the specific task?
+        2. Completeness: Do the guidelines cover all necessary aspects of the task?
+        3. Specificity: Are the guidelines specific enough to be actionable?
+        4. Flexibility: Do the guidelines allow for necessary adaptations?
+
+        # OUTPUT FORMAT
+        Provide your evaluation as a JSON object with the following structure:
+        {{
+            "relevance_score": float,  # 0.0 to 1.0, where 1.0 means perfect relevance
+            "is_directly_applicable": boolean,  # Whether guidelines can be used as strict requirements
+            "key_guidelines": [string],  # List of most relevant guideline points
+            "reasoning": string,  # Step-by-step explanation of your evaluation
+            "usage_recommendation": string  # How to best use these guidelines (e.g., "strict", "reference", "ignore")
+        }}
+        """
+
+        try:
+            evaluation = llm.chat.completions.create(
+                messages=[{"role": "system", "content": evaluation_prompt}],
+                response_model=PlaybookEvaluation,
+                temperature=0.1,
+                model=os.getenv("KATALYST_LITELLM_MODEL", "gpt-4.1"),
+            )
+            logger.debug(f"[PLANNER] Playbook evaluation: {evaluation}")
+
+            # Log the evaluation reasoning
+            state.chat_history.append(
+                AIMessage(content=f"Playbook evaluation:\n{evaluation.reasoning}")
+            )
+
+            # Adjust playbook section based on evaluation
+            if evaluation.is_directly_applicable and evaluation.relevance_score > 0.8:
+                playbook_section = f"""
+                # PLAYBOOK GUIDELINES (STRICT REQUIREMENTS)
+                These guidelines are highly relevant and must be followed strictly:
+                {playbook_guidelines}
+                """
+            elif evaluation.relevance_score > 0.5:
+                playbook_section = f"""
+                # PLAYBOOK GUIDELINES (REFERENCE)
+                These guidelines may be helpful but should be adapted as needed:
+                {playbook_guidelines}
+                """
+            else:
+                playbook_section = f"""
+                # PLAYBOOK GUIDELINES (INFORMATIONAL)
+                These guidelines are provided for reference but may not be directly applicable:
+                {playbook_guidelines}
+                """
+        except Exception as e:
+            logger.warning(f"[PLANNER] Failed to evaluate playbook: {str(e)}")
+            playbook_section = f"""
+            # PLAYBOOK GUIDELINES
+            {playbook_guidelines}
+            """
+    else:
+        playbook_section = ""
 
     prompt = f"""
         # ROLE
         You are a planning assistant for a ReAct-style AI agent. Your job is to break down a high-level user GOAL into a logically ordered list of atomic, executable sub-tasks. Each sub-task will be performed by an agent that can call tools, but cannot perform abstract reasoning or inference beyond what the tools enable.
 
-        # TOOL AWARENESS
-        The agent executing your sub-tasks has access to the following tools:
+        # AGENT CAPABILITIES
+        1. Tool Usage
+        The agent has access to the following tools:
         {tool_list_str}
 
+        2. LLM Analysis & Summarization
+        After reading files using the 'read_file' tool, the agent can:
+        - Analyze and summarize file contents
+        - Extract key information and patterns
+        - Identify relationships between components
+        - Generate descriptive explanations
+        - Provide insights about code structure and design
+        This means you can include sub-tasks that require analysis or summarization after reading files.
+
         {playbook_section}
-        Constraints:
-        - The agent cannot navigate directories or inspect file systems directly.
-        - All file operations must use tools that accept explicit paths (e.g., 'list_files', 'read_file', 'write_to_file').
 
         # SUBTASK GUIDELINES
 
@@ -65,11 +137,15 @@ def planner(state: KatalystState) -> KatalystState:
         - Every sub-task must describe a clear, concrete action.
         - Avoid abstract goals like "analyze", "determine", "navigate".
         - Instead of: "Understand config file"
-            Use: "Use 'read_file' to read 'config/settings.json'"
+            Use: "Use 'read_file' to read 'config/settings.json' and summarize its key configuration parameters"
 
-        2. Tool-Oriented
-        - Phrase each sub-task so that it clearly maps to a known tool.
-        - Prefer clarity and determinism over brevity.
+        2. Tool-Oriented with LLM Analysis
+        - Phrase each sub-task to clearly map to either a tool or LLM analysis.
+        - For file analysis tasks, specify both the file reading and what to analyze.
+        - Examples:
+            - "Use 'read_file' to read 'src/main.py' and summarize its main functionality"
+            - "Use 'read_file' to read 'tests/test_main.py' and identify the test coverage gaps"
+            - "Use 'read_file' to read 'README.md' and extract the project's key features"
 
         3. Parameter-Specific
         - Include all required parameters inline (e.g., filenames, paths, content).
@@ -91,6 +167,7 @@ def planner(state: KatalystState) -> KatalystState:
         6. Logical Ordering
         - Ensure dependencies are respected.
         - Create directories or files before trying to read or write into them.
+        - Read files before asking for analysis or summarization.
 
         7. Complete but Minimal
         - Cover all necessary steps implied by the goal.
@@ -104,13 +181,14 @@ def planner(state: KatalystState) -> KatalystState:
         {state.task}
 
         # OUTPUT FORMAT
-        Based on the GOAL, the AVAILABLE TOOLS, the SUBTASK GENERATION GUIDELINES{', and the PLAYBOOK GUIDELINES' if playbook_guidelines else ''}, provide your response as a JSON object with a single key "subtasks". The value should be a list of strings, where each string is a sub-task description.
+        Based on the GOAL, the AVAILABLE TOOLS, the AGENT CAPABILITIES, and the SUBTASK GUIDELINES{', and the PLAYBOOK GUIDELINES' if playbook_guidelines else ''}, provide your response as a JSON object with a single key "subtasks". The value should be a list of strings, where each string is a sub-task description.
 
         Example JSON output:
         {{
             "subtasks": [
                 "Use the `list_files` tool to list contents of the current directory.",
-                "Use the `request_user_input` tool to ask the user which file they want to read from the list."
+                "Use the `read_file` tool to read 'README.md' and summarize its key features and requirements.",
+                "Use the `request_user_input` tool to ask the user which file they want to analyze next."
             ]
         }}
     """

@@ -39,3 +39,23 @@ class AgentReactOutput(BaseModel):
     replan_requested: bool = Field(
         False, description="If true, signals the agent to trigger replanning."
     )
+
+
+class PlaybookEvaluation(BaseModel):
+    """Model for evaluating playbook guidelines relevance and applicability."""
+
+    relevance_score: float = Field(
+        ge=0.0,
+        le=1.0,
+        description="Score from 0.0 to 1.0 indicating how relevant the playbook is to the current task",
+    )
+    is_directly_applicable: bool = Field(
+        description="Whether the guidelines can be used as strict requirements"
+    )
+    key_guidelines: List[str] = Field(
+        description="List of most relevant guideline points"
+    )
+    reasoning: str = Field(description="Step-by-step explanation of the evaluation")
+    usage_recommendation: str = Field(
+        description="How to best use these guidelines (e.g., 'strict', 'reference', 'ignore')"
+    )
