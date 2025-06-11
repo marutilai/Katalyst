@@ -16,19 +16,13 @@ Description: This plan is used by the planner when user runs the `/init` command
 
 ## 3. Directory Tree
 - Generate a clean ASCII tree representation of the directory and file layout (recursively, respecting .gitignore), excluding hidden files and build artifacts.
-  - Use `list_files`, `ascii_tree` utility, or `/init` logic as appropriate.
+  - Use `list_files` to get all file paths first.
 
 ## 4. Detailed Component Breakdown (File/Module Level)
 - For each significant source file/module:
-  - List the file path (e.g., `src/app/main.py`).
-  - Summarize the file's purpose (1-2 sentences).
-  - List all classes and functions using code introspection.
-    - Use `list_code_definitions`.
-  - For each class:
-    - Summarize the class's role (1 sentence).
-  - For each top-level or critical function/method:
-    - Show the function/method signature.
-    - Summarize what the function does (1 sentence).
+  - **Use the `summarize_code_structure` tool.** This tool will provide a summary of the file's purpose and its key components.
+  - **Use the `list_code_definition_names` tool.** This will list all classes, functions, and their line numbers for detailed breakdown.
+  - After gathering information from these tools, synthesize the detailed component breakdown.
 
 ## 5. README.md Summary (if exists)
 - Read and summarize the project's main README file.

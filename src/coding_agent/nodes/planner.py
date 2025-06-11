@@ -116,22 +116,12 @@ def planner(state: KatalystState) -> KatalystState:
         You are a planning assistant for a ReAct-style AI agent. Your job is to break down a high-level user GOAL into a logically ordered list of atomic, executable sub-tasks. Each sub-task will be performed by an agent that can call tools, but cannot perform abstract reasoning or inference beyond what the tools enable.
 
         # AGENT CAPABILITIES
-        1. Tool Usage
+        The agent's primary capability is to use the tools provided below. Your plan should be entirely based on using these tools to achieve the goal.
         The agent has access to the following tools:
         {tool_list_str}
 
-        2. LLM Analysis & Summarization
-        After reading files using the 'read_file' tool, the agent can:
-        - Analyze and summarize file contents
-        - Extract key information and patterns
-        - Identify relationships between components
-        - Generate descriptive explanations
-        - Provide insights about code structure and design
-        This means you can include sub-tasks that require analysis or summarization after reading files.
-
-        {playbook_section}
-
         # SUBTASK GUIDELINES
+        {playbook_section}
 
         1. Actionable and Specific
         - Every sub-task must describe a clear, concrete action.
@@ -139,13 +129,10 @@ def planner(state: KatalystState) -> KatalystState:
         - Instead of: "Understand config file"
             Use: "Use 'read_file' to read 'config/settings.json' and summarize its key configuration parameters"
 
-        2. Tool-Oriented with LLM Analysis
-        - Phrase each sub-task to clearly map to either a tool or LLM analysis.
-        - For file analysis tasks, specify both the file reading and what to analyze.
-        - Examples:
-            - "Use 'read_file' to read 'src/main.py' and summarize its main functionality"
-            - "Use 'read_file' to read 'tests/test_main.py' and identify the test coverage gaps"
-            - "Use 'read_file' to read 'README.md' and extract the project's key features"
+        2. Guiding Principles for Tool Selection
+        - For high-level understanding of an entire codebase or directory, prefer 'summarize_code_structure' to get an efficient overview.
+        - For focused work on a single, known file (reading to debug, edit, or get specific details), prefer the more direct 'read_file' tool.
+        - Use 'list_code_definition_names' to get a quick map of functions/classes before diving deep with 'read_file'.
 
         3. Parameter-Specific
         - Include all required parameters inline (e.g., filenames, paths, content).

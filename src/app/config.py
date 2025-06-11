@@ -25,3 +25,33 @@ ONBOARDING_FLAG = KATALYST_DIR / "onboarded"
 
 # State file for the agent (now inside .katalyst)
 KATALYST_STATE_FILE = KATALYST_DIR / "katalyst_state.json"
+
+# Common directories and files to ignore in addition to .gitignore
+KATALYST_IGNORE_PATTERNS = {
+    # Version control
+    ".git",
+    ".svn",
+    ".hg",
+    # Build and cache
+    "__pycache__",
+    ".pytest_cache",
+    "dist",
+    "build",
+    "*.pyc",
+    "*.pyo",
+    "*.pyd",
+    # Environment
+    ".env",
+    "venv",
+    ".venv",
+    "env",
+    # IDE
+    ".idea",
+    ".vscode",
+    ".cursor",
+    # OS
+    ".DS_Store",
+    "Thumbs.db",
+    # Project specific
+    ".katalyst",
+}
