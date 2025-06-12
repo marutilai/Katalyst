@@ -90,7 +90,7 @@ class PlaybookNavigator:
             metadata = PlaybookMetadata(
                 playbook_id=playbook_id,
                 title=title,
-                description=description,
+                description=description or "No description provided.",
                 agent_type=agent_type,
                 tags=[],
             )

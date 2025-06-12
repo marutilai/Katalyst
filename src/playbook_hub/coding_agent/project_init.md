@@ -9,7 +9,7 @@
 - **Goal:** Understand the project's main purpose, architecture, and stated goals.
 - **Method:**
   1. Use the `read_file` tool to get the contents of the main `README.md`.
-  2. Use the `summarize_code_structure` tool on the primary source directory (e.g., `src/` or `app/`).
+  2. Use the `analyze_code_structure` tool on the primary source directory (e.g., `src/` or `app/`).
   3. Synthesize the results from these tools into a concise, one-paragraph project overview.
 
 ### Tech Stack: How to determine the project's tech stack and dependencies?
@@ -27,7 +27,7 @@
 ### Code Analysis: How to analyze a specific source code file in detail?
 - **Goal:** Understand a file's purpose, what it contains, and how it's structured.
 - **Method:**
-  1. **Use the `summarize_code_structure` tool on the file's path.** This provides a conceptual summary.
+  1. **Use the `analyze_code_structure` tool on the file's path.** This provides a conceptual summary.
   2. **Use the `list_code_definition_names` tool on the file's path.** This provides a structural map of all classes and functions.
   3. Combine the summary and the list of definitions to create a detailed breakdown for that component.
 
