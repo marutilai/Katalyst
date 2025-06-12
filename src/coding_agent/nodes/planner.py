@@ -130,9 +130,11 @@ def planner(state: KatalystState) -> KatalystState:
             Use: "Use 'read_file' to read 'config/settings.json' and summarize its key configuration parameters"
 
         2. Guiding Principles for Tool Selection
-        - For high-level understanding of an entire codebase or directory, prefer 'summarize_code_structure' to get an efficient overview.
+        - For high-level understanding of an entire codebase or directory, prefer 'generate_directory_overview' to get an efficient overview.
+        - Only call 'generate_directory_overview' once per top-level directory (e.g., 'src/', 'app/'). It will recursively include all nested subdirectories and files, so there is no need to call it again for subdirectories within the same parent directory.
         - For focused work on a single, known file (reading to debug, edit, or get specific details), prefer the more direct 'read_file' tool.
         - Use 'list_code_definition_names' to get a quick map of functions/classes before diving deep with 'read_file'.
+        - For getting a list of files, use the `list_files` tool.
 
         3. Parameter-Specific
         - Include all required parameters inline (e.g., filenames, paths, content).

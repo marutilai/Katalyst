@@ -1,7 +1,7 @@
 from textwrap import dedent
 
 # Tool-level description and usage notes for generate_directory_overview
-gENERATE_DIRECTORY_OVERVIEW_PROMPT = dedent("""
+GENERATE_DIRECTORY_OVERVIEW_PROMPT = dedent("""
 # generate_directory_overview Tool
 
 Description: Provides a high-level, "big picture" overview and documentation of a codebase by scanning a directory, summarizing each source file, and creating a final overall summary. It is the most efficient tool for understanding the purpose and architecture of multiple files at once. The tool recursively scans a directory, summarizes each file, and provides an overall architectural summary.
@@ -16,6 +16,7 @@ Description: Provides a high-level, "big picture" overview and documentation of 
 - You ONLY need to provide the 'dir_path' to the directory. The tool will handle reading all files internally.
 - **ALWAYS call this tool on a top-level directory (e.g., 'src/', 'app/') to get a comprehensive overview.**
 - The tool is designed to be called **ONCE** per major directory.
+- **When called on a directory, it will recursively analyze all nested subdirectories and files. There is no need to call it again for subdirectories within the same parent directory.**
 - The tool will automatically respect .gitignore patterns to avoid analyzing build artifacts, dependencies, etc.
 
 ## Parameters for 'action_input' object:

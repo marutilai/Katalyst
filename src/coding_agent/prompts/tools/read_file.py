@@ -9,9 +9,6 @@ Description: Use this tool to read the contents of a single, specific file. This
 - When you need the exact, full content of a known file to plan a change.
 - When you are working on a sub-task that involves modifying a single file.
 - For reading non-code files like README.md, package.json, or pyproject.toml.
-
-## When NOT to Use This Tool:
-- **For high-level understanding of an entire directory or codebase.** For that, use the `summarize_code_structure` tool, which is more efficient for broad analysis.
                                                               
 ## Parameters for 'action_input' object:
 - path: (string, required) File path to read (relative to workspace)

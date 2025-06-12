@@ -2,15 +2,17 @@ import os
 import pytest
 import json
 from pathlib import Path
-from src.coding_agent.tools.summarize_code_structure import summarize_code_structure
+from src.coding_agent.tools.generate_directory_overview import (
+    generate_directory_overview,
+)
 
 # Test data directory
-TEST_DATA_DIR = Path(__file__).parent / "test_data" / "summarize_code_structure"
+TEST_DATA_DIR = Path(__file__).parent / "test_data" / "generate_directory_overview"
 
 
 @pytest.fixture(scope="module")
 def setup_test_files():
-    """Create test files for summarization."""
+    """Create test files for directory overview generation."""
     # Create test directory if it doesn't exist
     TEST_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -38,7 +40,7 @@ def main():
     with open(readme_path, "w") as f:
         f.write("""
 # Test Project
-This is a test project for the summarize_code_structure tool.
+This is a test project for the generate_directory_overview tool.
 """)
 
     yield
@@ -50,25 +52,17 @@ This is a test project for the summarize_code_structure tool.
 
 
 @pytest.mark.asyncio
-async def test_summarize_single_file(setup_test_files):
-    """Test summarizing a single file."""
-    result = await summarize_code_structure(str(TEST_DATA_DIR / "test_module.py"))
-
-    assert "summaries" in result
-    assert len(result["summaries"]) == 1
-
-    summary = result["summaries"][0]
-    assert summary["file_path"] == str(TEST_DATA_DIR / "test_module.py")
-    assert "TestClass" in summary["key_classes"]
-    assert "main" in summary["key_functions"]
-    assert "helper_function" in summary["key_functions"]
-    assert len(summary["summary"]) > 0
+async def test_generate_directory_overview_single_file(setup_test_files):
+    """Test that generating an overview for a single file returns an error (only directories are allowed)."""
+    result = await generate_directory_overview(str(TEST_DATA_DIR / "test_module.py"))
+    assert "error" in result
+    assert "directory" in result["error"].lower()
 
 
 @pytest.mark.asyncio
-async def test_summarize_directory(setup_test_files):
-    """Test summarizing an entire directory."""
-    result = await summarize_code_structure(str(TEST_DATA_DIR))
+async def test_generate_directory_overview_directory(setup_test_files):
+    """Test generating an overview for an entire directory."""
+    result = await generate_directory_overview(str(TEST_DATA_DIR))
 
     assert "summaries" in result
     assert len(result["summaries"]) >= 2  # Should include both Python and README files
@@ -88,23 +82,23 @@ async def test_summarize_directory(setup_test_files):
 
 
 @pytest.mark.asyncio
-async def test_nonexistent_path():
+async def test_generate_directory_overview_nonexistent_path():
     """Test behavior with nonexistent path."""
-    result = await summarize_code_structure("nonexistent/path")
+    result = await generate_directory_overview("nonexistent/path")
     assert "error" in result
     assert "not found" in result["error"].lower()
 
 
 @pytest.mark.asyncio
-async def test_empty_directory(tmp_path):
+async def test_generate_directory_overview_empty_directory(tmp_path):
     """Test behavior with empty directory."""
-    result = await summarize_code_structure(str(tmp_path))
+    result = await generate_directory_overview(str(tmp_path))
     assert "error" in result
     assert "no files to summarize" in result["error"].lower()
 
 
 @pytest.mark.asyncio
-async def test_respect_gitignore(setup_test_files):
+async def test_generate_directory_overview_respect_gitignore(setup_test_files):
     """Test that gitignore patterns are respected."""
     # Create a .gitignore file
     gitignore_path = TEST_DATA_DIR / ".gitignore"
@@ -116,7 +110,9 @@ async def test_respect_gitignore(setup_test_files):
     with open(ignored_path, "w") as f:
         f.write("This should be ignored")
 
-    result = await summarize_code_structure(str(TEST_DATA_DIR), respect_gitignore=True)
+    result = await generate_directory_overview(
+        str(TEST_DATA_DIR), respect_gitignore=True
+    )
 
     # Cleanup
     gitignore_path.unlink()

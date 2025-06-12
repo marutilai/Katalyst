@@ -1,20 +1,22 @@
 import os
 import pytest
-from src.coding_agent.tools.summarize_code_structure import summarize_code_structure
+from src.coding_agent.tools.generate_directory_overview import (
+    generate_directory_overview,
+)
 
 
 @pytest.mark.asyncio
-async def test_summarize_code_structure_functional():
+async def test_generate_directory_overview_functional():
     """
-    Functional test: Run summarize_code_structure on a real project directory and print the results for manual review.
+    Functional test: Run generate_directory_overview on a real project directory and print the results for manual review.
     """
     # Use the root of the current project as the test directory
-    project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../src"))
+    project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../src/"))
     print(f"\n[Functional Test] Summarizing project directory: {project_dir}")
 
-    result = await summarize_code_structure(project_dir)
+    result = await generate_directory_overview(project_dir)
 
-    print("\n--- FUNCTIONAL TEST: summarize_code_structure ---")
+    print("\n--- FUNCTIONAL TEST: generate_directory_overview ---")
     print("Overall Summary:")
     print(result.get("overall_summary", "<none>"))
     print("\nMain Components:")

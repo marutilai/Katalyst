@@ -82,7 +82,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 # Otherwise, call it directly
                 observation = tool_fn(**tool_input_resolved)
 
-            # The observation for summarize_code_structure is a dict, convert to JSON string
+            # The observation for generate_directory_overview is a dict, convert to JSON string
             if isinstance(observation, dict):
                 import json
 
