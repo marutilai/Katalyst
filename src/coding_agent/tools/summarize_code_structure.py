@@ -98,6 +98,9 @@ async def summarize_code_structure(
             """If you are given a set of file summaries, write a concise overall summary of the codebase's purpose, architecture, and main components. Identify the most important files, classes, or modules. Respond in the following JSON format:\n{"overall_summary": "...", "main_components": [...]}.""",
             "",
         )
+        logger.debug(
+            f"[summarize_code_structure] Prompt for {file_path}:\n{prompt[:5000]}"
+        )
         response = await llm.chat.completions.create(
             model=model,
             messages=[{"role": "system", "content": prompt}],

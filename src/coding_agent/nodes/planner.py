@@ -149,7 +149,6 @@ def planner(state: KatalystState) -> KatalystState:
         - Instead of: "Set up project structure"
             Use:
             - "Use 'write_to_file' to create empty file 'src/main.py'"
-            - "Use 'write_to_file' to create empty file 'tests/test_main.py'"
 
         6. Logical Ordering
         - Ensure dependencies are respected.

@@ -19,3 +19,4 @@
 - capability for pausing and continuing the dag execution flow? ideally serializable & de-serializable execution state. 
 - Support understanding existing code base and making changes to it
 - Use local reasoning model for planning such as Magistral
+- The planner should follow playbook more closely --> improve /init output quality

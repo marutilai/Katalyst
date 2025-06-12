@@ -1,33 +1,38 @@
-# Plan for /init Command
+# Playbook: Generating a Project Overview (`KATALYST.md`)
 
-Description: This plan is used by the planner when user runs the `/init` command. It guides the agent to generate a comprehensive `KATALYST.md` file that documents the project's purpose, architecture, dependencies, structure, and key components. The plan covers project summary, tech stack, file structure, detailed breakdowns, and README summary. Use this plan to help onboard new contributors or provide a high-level overview of the codebase. Do not include or reference this guidance in the output.
+**Description:** This playbook provides a comprehensive strategy for creating a `KATALYST.md` file. It's the primary playbook for the `/init` command but its sections can also guide other analysis tasks. Each section outlines a goal and the specific tools required to achieve it.
 
-## 0. Metadata
-- Target output file: KATALYST.md
-- Format: GitHub-flavoured Markdown
-- Sections (in order): Project Overview → Tech Stack → Directory Tree → Component Details → README Snapshot → How to Contribute → Next Steps
-    
-## 1. Overall Project Overview
-- Generate a high-level description of the project, including its main purpose, core architecture, and goals.
+**Target File:** `KATALYST.md`
+**Output Format:** GitHub-flavoured Markdown
 
-## 2. Tech Stack & Key Dependencies
-- Read and summarize the project's primary programming languages, frameworks, and significant libraries.
-  - Use `read_file` (for `pyproject.toml`, `requirements.txt`, `setup.py`) and summarize the relevant sections.
+### Overview: How to get a high-level overview of the project?
+- **Goal:** Understand the project's main purpose, architecture, and stated goals.
+- **Method:**
+  1. Use the `read_file` tool to get the contents of the main `README.md`.
+  2. Use the `summarize_code_structure` tool on the primary source directory (e.g., `src/` or `app/`).
+  3. Synthesize the results from these tools into a concise, one-paragraph project overview.
 
-## 3. Directory Tree
-- Generate a clean ASCII tree representation of the directory and file layout (recursively, respecting .gitignore), excluding hidden files and build artifacts.
-  - Use `list_files` to get all file paths first.
+### Tech Stack: How to determine the project's tech stack and dependencies?
+- **Goal:** Identify the programming languages, frameworks, and key libraries used.
+- **Method:**
+  1. Use the `read_file` tool to inspect dependency files in this order of priority: `pyproject.toml`, `requirements.txt`, `package.json`, `setup.py`.
+  2. Summarize the `[dependencies]` or `[project]` sections of the file found.
 
-## 4. Detailed Component Breakdown (File/Module Level)
-- For each significant source file/module:
-  - **Use the `summarize_code_structure` tool.** This tool will provide a summary of the file's purpose and its key components.
-  - **Use the `list_code_definition_names` tool.** This will list all classes, functions, and their line numbers for detailed breakdown.
-  - After gathering information from these tools, synthesize the detailed component breakdown.
+### File Structure: How to visualize the project's file structure?
+- **Goal:** Create a clean ASCII tree of the project layout.
+- **Method:**
+  1. Use the `list_files` tool with the `recursive=True` parameter on the project root (`.`).
+  2. Format the resulting list of files into an ASCII tree, respecting `.gitignore` and excluding hidden files or build artifacts (like `__pycache__`).
 
-## 5. README.md Summary (if exists)
-- Read and summarize the project's main README file.
-- Use `read_file` and summarize the content if the file exists.
+### Code Analysis: How to analyze a specific source code file in detail?
+- **Goal:** Understand a file's purpose, what it contains, and how it's structured.
+- **Method:**
+  1. **Use the `summarize_code_structure` tool on the file's path.** This provides a conceptual summary.
+  2. **Use the `list_code_definition_names` tool on the file's path.** This provides a structural map of all classes and functions.
+  3. Combine the summary and the list of definitions to create a detailed breakdown for that component.
 
-## 6. Final Remark
-- Do not ask the user for any additional input; all information must be gathered from the codebase and existing files.
-- The playbook guidelines are strict requirements. Do not deviate from them or ask the user for any file names or additional input.
+### Final Assembly Instructions
+- After gathering all information from the steps above, synthesize the content.
+- Arrange the final output in the following section order: `Project Overview`, `Tech Stack`, `Directory Tree`, `Component Details`, and a `README Snapshot`.
+- Use the `write_to_file` tool to save the complete document to `KATALYST.md`.
+- **Strict Requirement:** Do not ask the user for any file names or additional input during this process. All information must be derived from the codebase.

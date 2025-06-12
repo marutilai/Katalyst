@@ -22,6 +22,12 @@ Description: Provides a high-level, "big picture" analysis of a codebase by scan
 - path: (string, required) The path of the file or directory to summarize.
 - respect_gitignore: (boolean, optional) If true, .gitignore patterns will be respected when scanning a directory. Defaults to true.
 
+## For a single file, provide the file content below:
+{context}
+
+## For a set of file summaries, provide the summaries below:
+{docs}
+
 ## Example of how to structure your JSON response to use this tool:
 {
   "thought": "I need to get a high-level overview of the 'src/app' directory.",
