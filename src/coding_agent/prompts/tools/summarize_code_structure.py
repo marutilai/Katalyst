@@ -1,5 +1,6 @@
 from textwrap import dedent
 
+# Tool-level description and usage notes for summarize_code_structure
 SUMMARIZE_CODE_STRUCTURE_PROMPT = dedent("""
 # summarize_code_structure Tool
 
@@ -21,47 +22,4 @@ Description: Provides a high-level, "big picture" analysis of a codebase by scan
 ## Parameters for 'action_input' object:
 - path: (string, required) The path of the file or directory to summarize.
 - respect_gitignore: (boolean, optional) If true, .gitignore patterns will be respected when scanning a directory. Defaults to true.
-
-## For a single file, provide the file content below:
-{context}
-
-## For a set of file summaries, provide the summaries below:
-{docs}
-
-## Example of how to structure your JSON response to use this tool:
-{
-  "thought": "I need to get a high-level overview of the 'src/app' directory.",
-  "action": "summarize_code_structure",
-  "action_input": {
-    "path": "src/app"
-  }
-}
-
-## Tool Output Format (Observation):
-The tool will return a JSON string as its observation. This JSON object will have the following keys:
-- 'summaries': (list of dicts) A list of individual file summary objects.
-- 'overall_summary': (string, optional) An AI-generated summary of the entire codebase's purpose and architecture.
-- 'main_components': (list of strings, optional) A list of key files or modules identified by the AI.
-- 'error': (string, optional) An error message if something went wrong (e.g., path not found).
-
-## Example Tool Outputs (Observation JSON):
-
-Example 1: Successful summary:
-{
-  "summaries": [
-    {
-      "file_path": "src/app/main.py",
-      "summary": "This file contains the main entry point and REPL loop for the application.",
-      "key_classes": [],
-      "key_functions": ["main", "repl"]
-    }
-  ],
-  "overall_summary": "The application is a command-line agent with a REPL interface...",
-  "main_components": ["src/app/main.py", "src/katalyst_core/graph.py"]
-}
-
-Example 2: Path not found:
-{
-  "error": "Path not found: src/non_existent_dir"
-}
 """)

@@ -1,15 +1,21 @@
-"""
-Given a set of file summaries, produce an overall summary of the codebase. Return a JSON object with:
-- overall_summary: str (a concise summary of the codebase's purpose, architecture, and main components)
-- main_components: list[str] (the most important files, classes, or modules)
-"""
+from textwrap import dedent
 
-REDUCE_PROMPT = """
-You are a codebase documentation assistant.
-Given a list of file summaries, write a concise overall summary of the codebase's purpose, architecture, and main components.
-Identify the most important files, classes, or modules.
-Respond in the following JSON format:
-{"overall_summary": "...", "main_components": [...]}.
-File summaries:
-{docs}
-"""
+SUMMARIZE_CODE_STRUCTURE_REDUCE_PROMPT = dedent("""
+# summarize_code_structure (Reduce Step)
+
+Description: Given a set of file summaries, produce an overall summary of the codebase's purpose, architecture, and main components. Identify the most important files, classes, or modules.
+
+## Input
+- File summaries: {docs}
+
+## Output Format
+Return a JSON object with the following keys:
+- overall_summary: (string) A concise summary of the codebase's purpose, architecture, and main components
+- main_components: (list of strings) The most important files, classes, or modules
+
+## Example Output
+{
+  "overall_summary": "The application is a command-line agent with a REPL interface...",
+  "main_components": ["src/app/main.py", "src/katalyst_core/graph.py"]
+}
+""")

@@ -9,9 +9,12 @@ from langgraph.constants import Send
 from pydantic import BaseModel
 import operator
 
-# Load the unified prompt
-from src.coding_agent.prompts.tools.summarize_code_structure import (
-    SUMMARIZE_CODE_STRUCTURE_PROMPT,
+# Import the map and reduce prompts
+from src.coding_agent.prompts.tools.summarize_code_structure_map import (
+    SUMMARIZE_CODE_STRUCTURE_MAP_PROMPT,
+)
+from src.coding_agent.prompts.tools.summarize_code_structure_reduce import (
+    SUMMARIZE_CODE_STRUCTURE_REDUCE_PROMPT,
 )
 
 logger = get_logger()
@@ -93,13 +96,9 @@ async def summarize_code_structure(
                     }
                 ]
             }
-        prompt = SUMMARIZE_CODE_STRUCTURE_PROMPT.replace("{context}", content)
-        prompt = prompt.replace(
-            """If you are given a set of file summaries, write a concise overall summary of the codebase's purpose, architecture, and main components. Identify the most important files, classes, or modules. Respond in the following JSON format:\n{"overall_summary": "...", "main_components": [...]}.""",
-            "",
-        )
+        prompt = SUMMARIZE_CODE_STRUCTURE_MAP_PROMPT.replace("{context}", content)
         logger.debug(
-            f"[summarize_code_structure] Prompt for {file_path}:\n{prompt[:5000]}"
+            f"[summarize_code_structure] Map prompt for {file_path}:\n{prompt[:5000]}"
         )
         response = await llm.chat.completions.create(
             model=model,
@@ -127,11 +126,8 @@ async def summarize_code_structure(
                 if "summary" in s
             ]
         )
-        prompt = SUMMARIZE_CODE_STRUCTURE_PROMPT.replace("{docs}", docs)
-        prompt = prompt.replace(
-            """If you are given the contents of a single code file, write a concise summary of its purpose, main logic, and key components. Identify and list any important classes and functions. Respond in the following JSON format:\n{"file_path": "...", "summary": "...", "key_classes": [...], "key_functions": [...]}.""",
-            "",
-        )
+        prompt = SUMMARIZE_CODE_STRUCTURE_REDUCE_PROMPT.replace("{docs}", docs)
+        logger.debug(f"[summarize_code_structure] Reduce prompt:\n{prompt[:5000]}")
         response = await llm.chat.completions.create(
             model=model,
             messages=[{"role": "system", "content": prompt}],
