@@ -50,38 +50,39 @@ def get_init_plan(plan_name: str) -> str:
     return ""
 
 
-def handle_init_command(graph):
+def handle_init_command(graph, config):
     """
     Retrieve the playbook for /init, use its text as the planner task, and execute the full Katalyst engine to generate KATALYST.md.
     """
     navigator = PlaybookNavigator()
-    playbook = navigator.get_playbook_by_id(
-        "project_init"
-    )  # or "init_plan" if that's your ID
+    navigator = PlaybookNavigator()
+    playbook = navigator.get_playbook_by_id("project_init")
     if not playbook:
         console.print("[red]No playbook found for /init![/red]")
         return
 
-    # Create a new KatalystState with the playbook guidelines and a simple task
-    state = KatalystState(
-        task="Execute the project initialization playbook to generate .katalyst/project_knowledge.json.",
-        playbook_guidelines=playbook.content_md,
-        auto_approve=True,
-        project_root_cwd=os.getcwd(),
-    )
+    # Create the input dictionary for this specific task
+    # Note: This will run in the SAME conversation thread, which is fine.
+    # A more advanced version might use a separate thread_id for system tasks like /init.
+    init_input = {
+        "task": "Execute the project initialization playbook to generate .katalyst/project_knowledge.json.",
+        "playbook_guidelines": playbook.content_md,
+        "auto_approve": True,  # Always auto-approve for the init process
+        "project_root_cwd": os.getcwd(),
+    }
 
-    # Run the full Katalyst execution engine to generate .katalyst/project_knowledge.json
-    final_state = run_katalyst_task(state.task, state, graph)
+    # Run the full Katalyst execution engine
+    final_state = None
+    for event in graph.stream(init_input, config, stream_mode="values"):
+        final_state = event
 
-    # Write the output to KATALYST.md
-    if final_state and final_state.response:
-        with open(".katalyst/project_knowledge.json", "w") as f:
-            f.write(final_state.response)
-        console.print(
-            "[green].katalyst/project_knowledge.json created with generated output![/green]"
-        )
+    # The final step of the playbook should be a `write_to_file` call,
+    # so we can check the 'response' from the replanner for the final summary.
+    if final_state and final_state.get("response"):
+        console.print(f"[green]Project initialization complete![/green]")
+        console.print(final_state.get("response"))
     else:
-        console.print("[red]Failed to generate .katalyst/project_knowledge.json [/red]")
+        console.print("[red]Failed to generate .katalyst/project_knowledge.json.[/red]")
 
 
 def handle_provider_command():
