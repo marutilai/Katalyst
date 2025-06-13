@@ -1,4 +1,4 @@
-# src/coding_agent/utils/tools.py
+# katalyst/katalyst_core/utils/tools.py
 import os
 import importlib
 from typing import List, Tuple, Dict
@@ -120,7 +120,9 @@ def get_formatted_tool_prompts_for_llm(tool_functions_map: Dict[str, Callable]) 
             func, "_prompt_var", f"{tool_function_name.upper()}_PROMPT"
         )
         try:
-            module_path = f"src.coding_agent.prompts.tools.{prompt_module_base_name}"
+            module_path = (
+                f"katalyst.coding_agent.prompts.tools.{prompt_module_base_name}"
+            )
             module = importlib.import_module(module_path)
             if hasattr(module, prompt_variable_name):
                 prompt_string = getattr(module, prompt_variable_name)
@@ -154,7 +156,7 @@ def extract_tool_descriptions():
         prompt_module = getattr(func, "_prompt_module", tool_name)
         prompt_var = getattr(func, "_prompt_var", f"{tool_name.upper()}_PROMPT")
         try:
-            module_path = f"src.coding_agent.prompts.tools.{prompt_module}"
+            module_path = f"katalyst.coding_agent.prompts.tools.{prompt_module}"
             module = importlib.import_module(module_path)
             prompt_str = getattr(module, prompt_var, None)
             if not prompt_str or not isinstance(prompt_str, str):

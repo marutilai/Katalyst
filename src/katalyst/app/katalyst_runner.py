@@ -1,6 +1,8 @@
-# src/app/katalyst_runner.py
+# katalyst/app/katalyst_runner.py
 import os
-from katalyst.katalyst_core.state import KatalystState  # Import your Pydantic state model
+from katalyst.katalyst_core.state import (
+    KatalystState,
+)  # Import your Pydantic state model
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.logger import _LOG_FILE
 from langchain_core.agents import AgentFinish  # To check agent_outcome
