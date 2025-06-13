@@ -1,4 +1,4 @@
-from src.coding_agent.tools.attempt_completion import attempt_completion
+from katalyst.coding_agent.tools.attempt_completion import attempt_completion
 
 
 def test_attempt_completion_success():

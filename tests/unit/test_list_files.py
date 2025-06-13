@@ -1,5 +1,5 @@
 import os
-from src.coding_agent.tools.list_files import list_files
+from katalyst.coding_agent.tools.list_files import list_files
 
 
 def test_list_files_success(tmp_path):

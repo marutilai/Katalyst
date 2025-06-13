@@ -1,4 +1,4 @@
-from src.coding_agent.tools.execute_command import execute_command
+from katalyst.coding_agent.tools.execute_command import execute_command
 import sys
 
 

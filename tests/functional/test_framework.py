@@ -4,9 +4,9 @@ from pathlib import Path
 import json
 import time
 from datetime import datetime
-from src.katalyst_core.state import KatalystState
-from src.katalyst_core.graph import build_compiled_graph
-from src.katalyst_core.utils.logger import get_logger
+from katalyst.katalyst_core.state import KatalystState
+from katalyst.katalyst_core.graph import build_compiled_graph
+from katalyst.katalyst_core.utils.logger import get_logger
 
 
 @dataclass

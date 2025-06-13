@@ -1,5 +1,5 @@
 import pytest
-from src.coding_agent.tools.request_user_input import request_user_input
+from katalyst.coding_agent.tools.request_user_input import request_user_input
 import json
 
 

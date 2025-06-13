@@ -2,7 +2,7 @@ import os
 import pytest
 import json
 from pathlib import Path
-from src.coding_agent.tools.generate_directory_overview import (
+from katalyst.coding_agent.tools.generate_directory_overview import (
     generate_directory_overview,
 )
 

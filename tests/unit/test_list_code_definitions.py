@@ -1,7 +1,7 @@
 import os
 import json
 import pytest
-from src.coding_agent.tools.list_code_definitions import list_code_definition_names
+from katalyst.coding_agent.tools.list_code_definitions import list_code_definition_names
 
 
 def write_sample_file(filename, content):

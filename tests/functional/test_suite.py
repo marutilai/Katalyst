@@ -52,7 +52,7 @@ search_read_tests = [
     ),
     KatalystTestCase(
         name="find_python_imports",
-        task="Find all Python files (.py) in the src/coding_agent/nodes directory that import the KatalystState. For each match, show me the line number and the matching line. Then, ask me if I want to see the full content of src/coding_agent/nodes/invoke_llm.py.",
+        task="Find all Python files (.py) in the katalyst/coding_agent/nodes directory that import the KatalystState. For each match, show me the line number and the matching line. Then, ask me if I want to see the full content of katalyst/coding_agent/nodes/invoke_llm.py.",
         expected_output="KatalystState",
         auto_approve=False,  # Requires user interaction
     ),
@@ -62,12 +62,12 @@ search_read_tests = [
 code_analysis_tests = [
     KatalystTestCase(
         name="list_write_file_definitions",
-        task="List all function and class definitions in src/coding_agent/tools/write_to_file.py. Then, read the content of the write_to_file function itself from that file.",
+        task="List all function and class definitions in katalyst.coding_agent.tools/write_to_file.py. Then, read the content of the write_to_file function itself from that file.",
         expected_output="def write_to_file",
     ),
     KatalystTestCase(
         name="analyze_utils_directory",
-        task="Analyze the src/coding_agent/utils directory. For each Python file, list its function definitions. Then ask me which function from xml_parser.py I'd like to understand better.",
+        task="Analyze the katalyst/coding_agent/utils directory. For each Python file, list its function definitions. Then ask me which function from xml_parser.py I'd like to understand better.",
         expected_output="def",
         auto_approve=False,  # Requires user interaction
     ),
@@ -77,13 +77,13 @@ code_analysis_tests = [
 diff_syntax_tests = [
     KatalystTestCase(
         name="change_logger_name",
-        task="Read the file src/coding_agent/utils/logger.py. Then, propose a diff to change the _LOGGER_NAME from 'coding_agent' to 'katalyst_logger'. Apply this diff only after my confirmation. Ensure the syntax is still valid after the change.",
+        task="Read the file katalyst/coding_agent/utils/logger.py. Then, propose a diff to change the _LOGGER_NAME from 'coding_agent' to 'katalyst_logger'. Apply this diff only after my confirmation. Ensure the syntax is still valid after the change.",
         expected_output="diff",
         auto_approve=False,  # Requires user interaction
     ),
     KatalystTestCase(
         name="add_agent_version",
-        task="In src/coding_agent/main.py, inside the repl function's else block where initial_state is created, add a new key-value pair: 'agent_version': '1.0.0'. Use the apply_source_code_diff tool. Show me the proposed diff and apply it after my confirmation.",
+        task="In katalyst/coding_agent/main.py, inside the repl function's else block where initial_state is created, add a new key-value pair: 'agent_version': '1.0.0'. Use the apply_source_code_diff tool. Show me the proposed diff and apply it after my confirmation.",
         expected_output="agent_version",
         auto_approve=False,  # Requires user interaction
     ),
@@ -102,14 +102,14 @@ command_tests = [
 complex_tests = [
     KatalystTestCase(
         name="refactor_logger_function",
-        task="I want to refactor the get_logger function in src/coding_agent/utils/logger.py. First, search for all files in src/coding_agent that import get_logger from this path. Then, read the get_logger function itself. After that, ask me for the new desired name for this function. Finally, use apply_source_code_diff to rename the function.",
+        task="I want to refactor the get_logger function in katalyst/coding_agent/utils/logger.py. First, search for all files in katalyst/coding_agent that import get_logger from this path. Then, read the get_logger function itself. After that, ask me for the new desired name for this function. Finally, use apply_source_code_diff to rename the function.",
         expected_output="get_logger",
         auto_approve=False,  # Requires user interaction
     ),
     KatalystTestCase(
         name="create_and_run_sandbox",
-        task="Create a new Python file src/coding_agent/experiments/sandbox.py. Inside this file, write a simple function called greet(name: str) -> str that returns f'Hello, {name}!'. After writing the file, execute it with the command python src/coding_agent/experiments/sandbox.py if it had a main block to print a greeting (modify it to do so if needed, then execute).",
-        expected_files={"src/coding_agent/experiments/sandbox.py": "def greet"},
+        task="Create a new Python file katalyst/coding_agent/experiments/sandbox.py. Inside this file, write a simple function called greet(name: str) -> str that returns f'Hello, {name}!'. After writing the file, execute it with the command python katalyst/coding_agent/experiments/sandbox.py if it had a main block to print a greeting (modify it to do so if needed, then execute).",
+        expected_files={"katalyst/coding_agent/experiments/sandbox.py": "def greet"},
     ),
 ]
 

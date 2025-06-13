@@ -1,5 +1,5 @@
 import os
-from src.coding_agent.tools.read_file import read_file
+from katalyst.coding_agent.tools.read_file import read_file
 
 
 def write_sample_file(filename, content):
