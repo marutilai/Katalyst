@@ -3,8 +3,13 @@ from textwrap import dedent
 READ_FILE_TOOL_PROMPT = dedent("""
 # read_file Tool
 
-Description: Use this tool to read the contents of a file. By default, you should read the entire file unless you have a strong reason to suspect it is extremely large (e.g., many megabytes) AND you only need a small, specific section. If you do read in chunks using 'start_line' and 'end_line', be systematic in your 'thought' process to track progress and ensure you cover the necessary parts or the entire file if needed for the sub-task. Do not use this tool for binary files.
+Description: Use this tool to read the contents of a single, specific file. This is your primary tool for focused tasks like understanding the logic of one file, preparing to make a specific edit, or debugging. By default, you should read the entire file unless you have a strong reason to suspect it is extremely large (e.g., many megabytes) AND you only need a small, specific section. If you do read in chunks using 'start_line' and 'end_line', be systematic in your 'thought' process to track progress and ensure you cover the necessary parts or the entire file if needed for the sub-task. Do not use this tool for binary files.
 
+## When to Use This Tool:
+- When you need the exact, full content of a known file to plan a change.
+- When you are working on a sub-task that involves modifying a single file.
+- For reading non-code files like README.md, package.json, or pyproject.toml.
+                                                              
 ## Parameters for 'action_input' object:
 - path: (string, required) File path to read (relative to workspace)
 - start_line: (integer, optional) Starting line number (1-based, inclusive). Only use if you need a specific section.

@@ -1,39 +1,48 @@
-# Plan for /init Command
+# Playbook: Building the Project Knowledge Base
 
-Description: This plan is used by the planner when user runs the `/init` command. It guides the agent to generate a comprehensive `KATALYST.md` file that documents the project's purpose, architecture, dependencies, structure, and key components. The plan covers project summary, tech stack, file structure, detailed breakdowns, and README summary. Use this plan to help onboard new contributors or provide a high-level overview of the codebase. Do not include or reference this guidance in the output.
+**Description:** This playbook outlines the comprehensive strategy for creating a structured, machine-readable knowledge base of the entire project. This process is triggered by the `/init` command. The final output is a single JSON file, `.katalyst/project_knowledge.json`, which will serve as the agent's persistent memory to accelerate and improve all future tasks.
 
-## 0. Metadata
-- Target output file: KATALYST.md
-- Format: GitHub-flavoured Markdown
-- Sections (in order): Project Overview → Tech Stack → Directory Tree → Component Details → README Snapshot → How to Contribute → Next Steps
-    
-## 1. Overall Project Overview
-- Generate a high-level description of the project, including its main purpose, core architecture, and goals.
+**Target File:** `.katalyst/project_knowledge.json`  
+**Output Format:** A single JSON object with the following top-level keys:
+- `project_overview`: A summary of the project's purpose, derived from the README.
+- `tech_stack`: A summary of dependencies and technologies from `pyproject.toml` or `requirements.txt`.
+- `directory_listing`: A complete, recursive list of all files and directories.
+- `component_details`: A detailed breakdown of each source file, including its summary, key functions, and classes.
 
-## 2. Tech Stack & Key Dependencies
-- Read and summarize the project's primary programming languages, frameworks, and significant libraries.
-  - Use `read_file` (for `pyproject.toml`, `requirements.txt`, `setup.py`) and summarize the relevant sections.
+## Step 1: Get the Full File Structure
+**Goal:** Create a complete map of all files and directories in the project.  
+**Method:**
+- Use the `list_files` tool with `path='.'` and `recursive=True`.
+- Store the resulting list of file paths. This data will populate the `directory_listing` key in the final JSON object.
 
-## 3. Directory Tree
-- Generate a clean ASCII tree representation of the directory and file layout (recursively, respecting .gitignore), excluding hidden files and build artifacts.
-  - Use `list_files`, `ascii_tree` utility, or `/init` logic as appropriate.
+## Step 2: Extract the Project Overview
+**Goal:** Understand the project's stated purpose from its primary documentation.  
+**Method:**
+- Use the `read_file` tool to get the contents of the main `README.md` file.
+- Summarize this content. The summary will be the value for the `project_overview` key.
 
-## 4. Detailed Component Breakdown (File/Module Level)
-- For each significant source file/module:
-  - List the file path (e.g., `src/app/main.py`).
-  - Summarize the file's purpose (1-2 sentences).
-  - List all classes and functions using code introspection.
-    - Use `list_code_definitions`.
-  - For each class:
-    - Summarize the class's role (1 sentence).
-  - For each top-level or critical function/method:
-    - Show the function/method signature.
-    - Summarize what the function does (1 sentence).
+## Step 3: Determine the Tech Stack
+**Goal:** Identify the project's programming languages, frameworks, and key libraries.  
+**Method:**
+- Use the `read_file` tool to inspect dependency files in this order of priority: `pyproject.toml`, `requirements.txt`.
+- Summarize the `[dependencies]` or equivalent sections from the file found. This summary will be the value for the `tech_stack` key.
 
-## 5. README.md Summary (if exists)
-- Read and summarize the project's main README file.
-- Use `read_file` and summarize the content if the file exists.
+## Step 4: Analyze All Source Code Components
+**Goal:** Create a detailed, file-by-file analysis of the entire codebase. This is the most critical step.  
+**Method:**
+- Use the `generate_directory_overview` tool on the primary source directory (e.g., `src/` or the project root `.`).
+- This tool performs a map-reduce analysis internally, returning a detailed summary for every file, including its purpose, key functions, and key classes.
+- The list of individual file summaries returned by this tool will be the value for the `component_details` key.
 
-## 6. Final Remark
-- Do not ask the user for any additional input; all information must be gathered from the codebase and existing files.
-- The playbook guidelines are strict requirements. Do not deviate from them or ask the user for any file names or additional input.
+## Step 5: Final Assembly and Persistent Storage
+**Goal:** Combine all gathered information into a single JSON object and save it to disk.  
+**Method:**
+- **Synthesize:** In memory, construct the final JSON object by assembling the data from Steps 1, 2, 3, and 4 into the pre-defined structure (`project_overview`, `tech_stack`, etc.).
+- **Save:** Use the `write_to_file` tool to save the synthesized JSON object.
+  - `path`: `.katalyst/project_knowledge.json`
+  - `content`: The complete, beautified JSON string of the synthesized data.
+
+## Strict Execution Requirements
+- The final output of this entire process must be the creation of the `.katalyst/project_knowledge.json` file.
+- Do not ask the user for any file names or additional input. All information must be derived automatically from the codebase.
+- The steps must be followed sequentially, as the final assembly step depends on the successful completion of all preceding analysis steps.

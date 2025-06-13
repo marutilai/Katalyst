@@ -1,7 +1,7 @@
 from katalyst_core.utils.logger import get_logger
 from katalyst_core.utils.tools import katalyst_tool
 import os
-from katalyst_core.utils.gitignore import load_gitignore_patterns
+from katalyst_core.utils.file_utils import load_gitignore_patterns
 import json
 
 

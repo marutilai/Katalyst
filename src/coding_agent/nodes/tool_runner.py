@@ -1,3 +1,5 @@
+import asyncio
+import inspect
 from katalyst_core.state import KatalystState
 from katalyst_core.utils.logger import get_logger
 from katalyst_core.utils.tools import get_tool_functions_map
@@ -17,7 +19,7 @@ REGISTERED_TOOL_FUNCTIONS_MAP = get_tool_functions_map()
 def tool_runner(state: KatalystState) -> KatalystState:
     """
     Runs the tool from state.agent_outcome (an AgentAction) and appends to action_trace.
-    Always returns state.
+    Handles both synchronous and asynchronous tools.
 
     * Primary Task: Execute the specified tool with the provided arguments.
     * State Changes:
@@ -58,11 +60,11 @@ def tool_runner(state: KatalystState) -> KatalystState:
         state.error_message = observation
     else:
         try:
-            # If the tool accepts auto_approve, always pass it from state
+            # Prepare tool input
             if "auto_approve" in tool_fn.__code__.co_varnames:
                 tool_input = {**tool_input, "auto_approve": state.auto_approve}
-            # Resolve any relative 'path' argument using state.project_root_cwd
-            tool_input_resolved = dict(tool_input)  # Make a copy
+
+            tool_input_resolved = dict(tool_input)
             if (
                 "path" in tool_input_resolved
                 and isinstance(tool_input_resolved["path"], str)
@@ -71,8 +73,21 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 tool_input_resolved["path"] = os.path.abspath(
                     os.path.join(state.project_root_cwd, tool_input_resolved["path"])
                 )
-            # Call the tool function with the provided arguments
-            observation = tool_fn(**tool_input_resolved)
+
+            # Check if the tool is an async function
+            if inspect.iscoroutinefunction(tool_fn):
+                # If it's async, run it in an event loop
+                observation = asyncio.run(tool_fn(**tool_input_resolved))
+            else:
+                # Otherwise, call it directly
+                observation = tool_fn(**tool_input_resolved)
+
+            # The observation for generate_directory_overview is a dict, convert to JSON string
+            if isinstance(observation, dict):
+                import json
+
+                observation = json.dumps(observation, indent=2)
+
             logger.debug(
                 f"[TOOL_RUNNER] Tool '{tool_name}' returned observation: {observation}"
             )
@@ -97,7 +112,9 @@ def tool_runner(state: KatalystState) -> KatalystState:
             state.error_message = observation
 
     # Record the (AgentAction, observation) tuple in the action trace
-    state.action_trace.append((agent_action, observation))
+    state.action_trace.append(
+        (agent_action, str(observation))
+    )  # Ensure observation is a string
     # Clear agent_outcome after processing
     state.agent_outcome = None
 
