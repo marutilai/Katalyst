@@ -5,7 +5,7 @@ import bm25s
 from pydantic import BaseModel, Field
 import os
 from datetime import datetime
-from app.config import KATALYST_DIR
+from src.app.config import KATALYST_DIR
 
 # Directory where all playbook markdown files are stored (recursively searched)
 PLAYBOOKS_HUB_DIR = Path("src/playbook_hub")
@@ -148,13 +148,16 @@ class PlaybookNavigator:
             return []
         query_tokens = bm25s.tokenize([query], stopwords="en")
         results, scores = self.bm25.retrieve(query_tokens, k=k)
-        indices = results[0]
         found = []
-        for idx in indices:
-            meta = self.playbooks_metadata[idx]
+        print(f"DEBUG - Number of results: {len(results[0])}")
+        for result in results[0]:
+            meta = self.playbooks_metadata[result["id"]]
+            print(f"DEBUG - Playbook title: {meta.title}")
+            print(f"DEBUG - Playbook description: {meta.description}")
             if agent_type and meta.agent_type != agent_type:
                 continue
             found.append(meta)
+        print(f"DEBUG - Total playbooks found: {len(found)}")
         return found
 
     def get_playbook_by_id(self, playbook_id: str) -> Optional[Playbook]:

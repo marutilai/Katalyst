@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src" / "app"))
-from app.playbook_navigator import PlaybookNavigator
+from src.app.playbook_navigator import PlaybookNavigator
 
 
 @pytest.fixture(scope="module")

@@ -1,5 +1,5 @@
 import os
-from coding_agent.tools.write_to_file import write_to_file
+from src.coding_agent.tools.write_to_file import write_to_file
 
 
 def test_write_to_file_success():

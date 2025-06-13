@@ -1,5 +1,5 @@
 import os
-from coding_agent.tools.read_file import read_file
+from src.coding_agent.tools.read_file import read_file
 
 
 def write_sample_file(filename, content):

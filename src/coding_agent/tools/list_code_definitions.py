@@ -1,7 +1,7 @@
 from typing import Dict
-from katalyst_core.utils.logger import get_logger
-from katalyst_core.utils.tools import katalyst_tool
-from katalyst_core.services.code_structure import extract_code_definitions
+from src.katalyst_core.utils.logger import get_logger
+from src.katalyst_core.utils.tools import katalyst_tool
+from src.katalyst_core.services.code_structure import extract_code_definitions
 import json
 
 

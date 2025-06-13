@@ -2,7 +2,7 @@ import os
 import shutil
 import pytest
 import json
-from coding_agent.tools.search_files import regex_search_files
+from src.coding_agent.tools.search_files import regex_search_files
 
 
 @pytest.fixture(autouse=True)

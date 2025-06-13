@@ -1,4 +1,4 @@
-from coding_agent.tools.execute_command import execute_command
+from src.coding_agent.tools.execute_command import execute_command
 import sys
 
 

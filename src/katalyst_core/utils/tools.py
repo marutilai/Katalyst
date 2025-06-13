@@ -53,7 +53,7 @@ def get_tool_names_and_params() -> Tuple[List[str], List[str], Dict[str, List[st
     tool_param_map = {}
     for filename in os.listdir(TOOLS_IMPLEMENTATION_DIR):
         if filename.endswith(".py") and not filename.startswith("__"):
-            module_name = f"coding_agent.tools.{filename[:-3]}"
+            module_name = f"src.coding_agent.tools.{filename[:-3]}"
             module = importlib.import_module(module_name)
             for attr in dir(module):
                 func = getattr(module, attr)
@@ -85,7 +85,7 @@ def get_tool_functions_map() -> Dict[str, callable]:
 
     for filename in os.listdir(TOOLS_IMPLEMENTATION_DIR):
         if filename.endswith(".py") and not filename.startswith("__"):
-            module_name = f"coding_agent.tools.{filename[:-3]}"
+            module_name = f"src.coding_agent.tools.{filename[:-3]}"
             try:
                 module = importlib.import_module(module_name)
                 for attr_name in dir(module):
@@ -120,7 +120,7 @@ def get_formatted_tool_prompts_for_llm(tool_functions_map: Dict[str, Callable]) 
             func, "_prompt_var", f"{tool_function_name.upper()}_PROMPT"
         )
         try:
-            module_path = f"coding_agent.prompts.tools.{prompt_module_base_name}"
+            module_path = f"src.coding_agent.prompts.tools.{prompt_module_base_name}"
             module = importlib.import_module(module_path)
             if hasattr(module, prompt_variable_name):
                 prompt_string = getattr(module, prompt_variable_name)
@@ -154,7 +154,7 @@ def extract_tool_descriptions():
         prompt_module = getattr(func, "_prompt_module", tool_name)
         prompt_var = getattr(func, "_prompt_var", f"{tool_name.upper()}_PROMPT")
         try:
-            module_path = f"coding_agent.prompts.tools.{prompt_module}"
+            module_path = f"src.coding_agent.prompts.tools.{prompt_module}"
             module = importlib.import_module(module_path)
             prompt_str = getattr(module, prompt_var, None)
             if not prompt_str or not isinstance(prompt_str, str):

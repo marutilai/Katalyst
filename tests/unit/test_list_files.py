@@ -1,5 +1,5 @@
 import os
-from coding_agent.tools.list_files import list_files
+from src.coding_agent.tools.list_files import list_files
 
 
 def test_list_files_success(tmp_path):

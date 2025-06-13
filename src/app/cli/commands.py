@@ -2,10 +2,10 @@ import os
 from rich.console import Console
 from rich.prompt import Prompt
 from pathlib import Path
-from app.playbook_navigator import PlaybookNavigator
-from katalyst_core.state import KatalystState
-from coding_agent.nodes.planner import planner
-from app.katalyst_runner import run_katalyst_task
+from src.app.playbook_navigator import PlaybookNavigator
+from src.katalyst_core.state import KatalystState
+from src.coding_agent.nodes.planner import planner
+from src.app.katalyst_runner import run_katalyst_task
 
 console = Console()
 

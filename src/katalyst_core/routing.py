@@ -1,7 +1,7 @@
 from typing import Union
 from langgraph.graph import END
 from langchain_core.agents import AgentAction
-from katalyst_core.state import KatalystState
+from src.katalyst_core.state import KatalystState
 
 __all__ = ["route_after_agent", "route_after_pointer", "route_after_replanner"]
 

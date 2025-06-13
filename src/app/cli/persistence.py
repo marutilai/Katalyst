@@ -1,7 +1,7 @@
 import os
 import json
-from app.config import KATALYST_STATE_FILE
-from katalyst_core.utils.logger import get_logger
+from src.app.config import KATALYST_STATE_FILE
+from src.katalyst_core.utils.logger import get_logger
 from langchain_core.messages import message_to_dict, messages_from_dict
 
 

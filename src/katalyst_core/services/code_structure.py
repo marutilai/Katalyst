@@ -1,9 +1,9 @@
 import os
 from typing import List, Dict, Union
 from tree_sitter_languages import get_parser
-from katalyst_core.utils.logger import get_logger
-from katalyst_core.utils.file_utils import load_gitignore_patterns
-from app.config import EXT_TO_LANG
+from src.katalyst_core.utils.logger import get_logger
+from src.katalyst_core.utils.file_utils import load_gitignore_patterns
+from src.app.config import EXT_TO_LANG
 
 
 def extract_code_definitions(path: str) -> Dict:

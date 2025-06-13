@@ -1,6 +1,6 @@
 # Playbook: Building the Project Knowledge Base
 
-**Description:** This playbook outlines the comprehensive strategy for creating a structured, machine-readable knowledge base of the entire project. This process is triggered by the `/init` command. The final output is a single JSON file, `.katalyst/project_knowledge.json`, which will serve as the agent's persistent memory to accelerate and improve all future tasks.
+Description: This playbook outlines the comprehensive strategy for creating a structured, machine-readable knowledge base of the entire project. This process is triggered by the `/init` command. The final output is a single JSON file, `.katalyst/project_knowledge.json`, which will serve as the agent's persistent memory to accelerate and improve all future tasks.
 
 **Target File:** `.katalyst/project_knowledge.json`  
 **Output Format:** A single JSON object with the following top-level keys:

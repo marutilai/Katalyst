@@ -1,17 +1,17 @@
 from langgraph.graph import StateGraph, START, END
 from langchain_core.agents import AgentAction
 
-from katalyst_core.state import KatalystState
-from katalyst_core.routing import (
+from src.katalyst_core.state import KatalystState
+from src.katalyst_core.routing import (
     route_after_agent,
     route_after_pointer,
     route_after_replanner,
 )
-from coding_agent.nodes.planner import planner
-from coding_agent.nodes.agent_react import agent_react
-from coding_agent.nodes.tool_runner import tool_runner
-from coding_agent.nodes.advance_pointer import advance_pointer
-from coding_agent.nodes.replanner import replanner
+from src.coding_agent.nodes.planner import planner
+from src.coding_agent.nodes.agent_react import agent_react
+from src.coding_agent.nodes.tool_runner import tool_runner
+from src.coding_agent.nodes.advance_pointer import advance_pointer
+from src.coding_agent.nodes.replanner import replanner
 
 
 # Node-callable functions (define/import elsewhere in your code‑base)

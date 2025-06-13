@@ -1,6 +1,6 @@
 import os
 import json
-from coding_agent.tools.apply_source_code_diff import apply_source_code_diff
+from src.coding_agent.tools.apply_source_code_diff import apply_source_code_diff
 
 
 def write_sample_file(filename, content):

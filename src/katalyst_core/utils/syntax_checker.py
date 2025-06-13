@@ -1,7 +1,7 @@
 import tempfile
 import os
 from tree_sitter_languages import get_parser
-from app.config import EXT_TO_LANG
+from src.app.config import EXT_TO_LANG
 
 # --- Syntax Checking Utilities ---
 # This module provides syntax checking for multiple languages.

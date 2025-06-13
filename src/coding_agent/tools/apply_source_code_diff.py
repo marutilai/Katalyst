@@ -1,8 +1,8 @@
 import os
 import re
-from katalyst_core.utils.logger import get_logger
-from katalyst_core.utils.tools import katalyst_tool
-from katalyst_core.utils.syntax_checker import check_syntax
+from src.katalyst_core.utils.logger import get_logger
+from src.katalyst_core.utils.tools import katalyst_tool
+from src.katalyst_core.utils.syntax_checker import check_syntax
 import tempfile
 import json
 

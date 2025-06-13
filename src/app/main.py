@@ -1,19 +1,19 @@
 import os
 import json
 from dotenv import load_dotenv
-from katalyst_core.graph import build_compiled_graph
-from katalyst_core.utils.logger import get_logger
-from app.onboarding import welcome_screens
-from app.config import ONBOARDING_FLAG
-from katalyst_core.utils.environment import ensure_openai_api_key
-from app.cli.persistence import load_project_state, save_project_state
-from app.cli.commands import (
+from src.katalyst_core.graph import build_compiled_graph
+from src.katalyst_core.utils.logger import get_logger
+from src.app.onboarding import welcome_screens
+from src.app.config import ONBOARDING_FLAG
+from src.katalyst_core.utils.environment import ensure_openai_api_key
+from src.app.cli.persistence import load_project_state, save_project_state
+from src.app.cli.commands import (
     show_help,
     handle_init_command,
     handle_provider_command,
     handle_model_command,
 )
-from app.katalyst_runner import run_katalyst_task
+from src.app.katalyst_runner import run_katalyst_task
 
 # Load environment variables from .env file
 load_dotenv()

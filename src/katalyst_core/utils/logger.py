@@ -2,7 +2,7 @@ import logging
 import os
 import tempfile
 from datetime import datetime
-from katalyst_core.utils.system_info import get_os_info
+from src.katalyst_core.utils.system_info import get_os_info
 
 _LOGGER_NAME = "coding_agent"
 

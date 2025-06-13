@@ -2,7 +2,7 @@ import os
 from typing import List, Set, Optional
 from pathspec import PathSpec
 from pathspec.patterns import GitWildMatchPattern
-from app.config import KATALYST_IGNORE_PATTERNS
+from src.app.config import KATALYST_IGNORE_PATTERNS
 
 
 def load_gitignore_patterns(root_path: str) -> Optional[PathSpec]:

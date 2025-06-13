@@ -1,9 +1,9 @@
 import os
 import subprocess
-from katalyst_core.utils.logger import get_logger
-from katalyst_core.utils.tools import katalyst_tool
+from src.katalyst_core.utils.logger import get_logger
+from src.katalyst_core.utils.tools import katalyst_tool
 from shutil import which
-from app.config import SEARCH_FILES_MAX_RESULTS  # Centralized config
+from src.app.config import SEARCH_FILES_MAX_RESULTS  # Centralized config
 import json
 
 
