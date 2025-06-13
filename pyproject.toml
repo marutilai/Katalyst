@@ -23,7 +23,7 @@ dependencies = [
 ]
 
 [project.scripts]
-katalyst = "katalyst_agent.main:main"
+katalyst = "src.katalyst_agent.main:main"
 
 [build-system]
 requires = ["setuptools", "wheel"]
