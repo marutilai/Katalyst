@@ -1,38 +1,48 @@
-# Playbook: Generating a Project Overview (`KATALYST.md`)
+# Playbook: Building the Project Knowledge Base
 
-**Description:** This playbook provides a comprehensive strategy for creating a `KATALYST.md` file. It's the primary playbook for the `/init` command but its sections can also guide other analysis tasks. Each section outlines a goal and the specific tools required to achieve it.
+**Description:** This playbook outlines the comprehensive strategy for creating a structured, machine-readable knowledge base of the entire project. This process is triggered by the `/init` command. The final output is a single JSON file, `.katalyst/project_knowledge.json`, which will serve as the agent's persistent memory to accelerate and improve all future tasks.
 
-**Target File:** `KATALYST.md`
-**Output Format:** GitHub-flavoured Markdown
+**Target File:** `.katalyst/project_knowledge.json`  
+**Output Format:** A single JSON object with the following top-level keys:
+- `project_overview`: A summary of the project's purpose, derived from the README.
+- `tech_stack`: A summary of dependencies and technologies from `pyproject.toml` or `requirements.txt`.
+- `directory_listing`: A complete, recursive list of all files and directories.
+- `component_details`: A detailed breakdown of each source file, including its summary, key functions, and classes.
 
-### Overview: How to get a high-level overview of the project?
-- **Goal:** Understand the project's main purpose, architecture, and stated goals.
-- **Method:**
-  1. Use the `read_file` tool to get the contents of the main `README.md`.
-  2. Use the `analyze_code_structure` tool on the primary source directory (e.g., `src/` or `app/`).
-  3. Synthesize the results from these tools into a concise, one-paragraph project overview.
+## Step 1: Get the Full File Structure
+**Goal:** Create a complete map of all files and directories in the project.  
+**Method:**
+- Use the `list_files` tool with `path='.'` and `recursive=True`.
+- Store the resulting list of file paths. This data will populate the `directory_listing` key in the final JSON object.
 
-### Tech Stack: How to determine the project's tech stack and dependencies?
-- **Goal:** Identify the programming languages, frameworks, and key libraries used.
-- **Method:**
-  1. Use the `read_file` tool to inspect dependency files in this order of priority: `pyproject.toml`, `requirements.txt`, `package.json`, `setup.py`.
-  2. Summarize the `[dependencies]` or `[project]` sections of the file found.
+## Step 2: Extract the Project Overview
+**Goal:** Understand the project's stated purpose from its primary documentation.  
+**Method:**
+- Use the `read_file` tool to get the contents of the main `README.md` file.
+- Summarize this content. The summary will be the value for the `project_overview` key.
 
-### File Structure: How to visualize the project's file structure?
-- **Goal:** Create a clean ASCII tree of the project layout.
-- **Method:**
-  1. Use the `list_files` tool with the `recursive=True` parameter on the project root (`.`).
-  2. Format the resulting list of files into an ASCII tree, respecting `.gitignore` and excluding hidden files or build artifacts (like `__pycache__`).
+## Step 3: Determine the Tech Stack
+**Goal:** Identify the project's programming languages, frameworks, and key libraries.  
+**Method:**
+- Use the `read_file` tool to inspect dependency files in this order of priority: `pyproject.toml`, `requirements.txt`.
+- Summarize the `[dependencies]` or equivalent sections from the file found. This summary will be the value for the `tech_stack` key.
 
-### Code Analysis: How to analyze a specific source code file in detail?
-- **Goal:** Understand a file's purpose, what it contains, and how it's structured.
-- **Method:**
-  1. **Use the `analyze_code_structure` tool on the file's path.** This provides a conceptual summary.
-  2. **Use the `list_code_definition_names` tool on the file's path.** This provides a structural map of all classes and functions.
-  3. Combine the summary and the list of definitions to create a detailed breakdown for that component.
+## Step 4: Analyze All Source Code Components
+**Goal:** Create a detailed, file-by-file analysis of the entire codebase. This is the most critical step.  
+**Method:**
+- Use the `generate_directory_overview` tool on the primary source directory (e.g., `src/` or the project root `.`).
+- This tool performs a map-reduce analysis internally, returning a detailed summary for every file, including its purpose, key functions, and key classes.
+- The list of individual file summaries returned by this tool will be the value for the `component_details` key.
 
-### Final Assembly Instructions
-- After gathering all information from the steps above, synthesize the content.
-- Arrange the final output in the following section order: `Project Overview`, `Tech Stack`, `Directory Tree`, `Component Details`, and a `README Snapshot`.
-- Use the `write_to_file` tool to save the complete document to `KATALYST.md`.
-- **Strict Requirement:** Do not ask the user for any file names or additional input during this process. All information must be derived from the codebase.
+## Step 5: Final Assembly and Persistent Storage
+**Goal:** Combine all gathered information into a single JSON object and save it to disk.  
+**Method:**
+- **Synthesize:** In memory, construct the final JSON object by assembling the data from Steps 1, 2, 3, and 4 into the pre-defined structure (`project_overview`, `tech_stack`, etc.).
+- **Save:** Use the `write_to_file` tool to save the synthesized JSON object.
+  - `path`: `.katalyst/project_knowledge.json`
+  - `content`: The complete, beautified JSON string of the synthesized data.
+
+## Strict Execution Requirements
+- The final output of this entire process must be the creation of the `.katalyst/project_knowledge.json` file.
+- Do not ask the user for any file names or additional input. All information must be derived automatically from the codebase.
+- The steps must be followed sequentially, as the final assembly step depends on the successful completion of all preceding analysis steps.

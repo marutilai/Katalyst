@@ -64,22 +64,24 @@ def handle_init_command(graph):
 
     # Create a new KatalystState with the playbook guidelines and a simple task
     state = KatalystState(
-        task="Execute the project initialization playbook to generate KATALYST.md.",
+        task="Execute the project initialization playbook to generate .katalyst/project_knowledge.json.",
         playbook_guidelines=playbook.content_md,
         auto_approve=True,
         project_root_cwd=os.getcwd(),
     )
 
-    # Run the full Katalyst execution engine to generate KATALYST.md
+    # Run the full Katalyst execution engine to generate .katalyst/project_knowledge.json
     final_state = run_katalyst_task(state.task, state, graph)
 
     # Write the output to KATALYST.md
     if final_state and final_state.response:
-        with open("KATALYST.md", "w") as f:
+        with open(".katalyst/project_knowledge.json", "w") as f:
             f.write(final_state.response)
-        console.print("[green]KATALYST.md created with generated output![/green]")
+        console.print(
+            "[green].katalyst/project_knowledge.json created with generated output![/green]"
+        )
     else:
-        console.print("[red]Failed to generate KATALYST.md.[/red]")
+        console.print("[red]Failed to generate .katalyst/project_knowledge.json [/red]")
 
 
 def handle_provider_command():
