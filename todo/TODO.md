@@ -20,3 +20,5 @@
 - Support understanding existing code base and making changes to it
 - Use local reasoning model for planning such as Magistral
 - The planner should follow playbook more closely --> improve /init output quality
+- Think of an eval framework to access the quality of coding tasks Katalyst can handle.
+- Current system fails in multi-turn conversations. No memory share between 2 tasks.

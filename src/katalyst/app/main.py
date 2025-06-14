@@ -2,18 +2,19 @@ import os
 import json
 from dotenv import load_dotenv
 from katalyst.katalyst_core.graph import build_compiled_graph
-from katalyst.katalyst_core.utils.logger import get_logger
+from katalyst.katalyst_core.utils.logger import get_logger, _LOG_FILE
 from katalyst.app.onboarding import welcome_screens
 from katalyst.app.config import ONBOARDING_FLAG
 from katalyst.katalyst_core.utils.environment import ensure_openai_api_key
-from katalyst.app.cli.persistence import load_project_state, save_project_state
 from katalyst.app.cli.commands import (
     show_help,
     handle_init_command,
     handle_provider_command,
     handle_model_command,
 )
-from katalyst.app.katalyst_runner import run_katalyst_task
+from langgraph.checkpoint.memory import MemorySaver
+from langchain_core.agents import AgentFinish
+from langgraph.errors import GraphRecursionError
 
 # Load environment variables from .env file
 load_dotenv()
@@ -29,51 +30,108 @@ def maybe_show_welcome():
         welcome_screens.screen_3_final_tips(os.getcwd())
 
 
-def handle_init():
-    with open("KATALYST.md", "w") as f:
-        f.write("# Instructions for Katalyst\n")
-    print("KATALYST.md created.")
+def print_run_summary(final_state: dict):
+    """
+    Prints a nicely formatted summary of the agent run's outcome.
+    """
+    logger = get_logger()
+    final_user_response = final_state.get("response")
+    if final_user_response:
+        if "limit exceeded" in final_user_response.lower():
+            print(f"\n--- KATALYST RUN STOPPED DUE TO LIMIT ---")
+            print(final_user_response)
+        else:
+            print(f"\n--- KATALYST TASK CONCLUDED ---")
+            print(final_user_response)
+    else:
+        print("\n--- KATALYST RUN FINISHED (No explicit overall response message) ---")
+        completed_tasks = final_state.get("completed_tasks", [])
+        if completed_tasks:
+            print("Summary of completed sub-tasks:")
+            for i, (task_desc, summary) in enumerate(completed_tasks):
+                print(f"  {i+1}. '{task_desc}': {summary}")
+        else:
+            print("No sub-tasks were marked as completed with a summary.")
+        last_agent_outcome = final_state.get("agent_outcome")
+        if isinstance(last_agent_outcome, AgentFinish):
+            print(
+                f"Last agent step was a finish with output: {last_agent_outcome.return_values.get('output')}"
+            )
+        elif last_agent_outcome:
+            print(f"Last agent step was an action: {last_agent_outcome.tool}")
+    print(f"[INFO] Full logs are available in: {_LOG_FILE}")
+    print("\nKatalyst Agent is now ready for a new task!")
 
 
 def repl():
     show_help()
-    graph = build_compiled_graph()  # Build the graph once
-    project_state = load_project_state()
+    logger = get_logger()
+    checkpointer = MemorySaver()
+    graph = build_compiled_graph().with_config(checkpointer=checkpointer)
+    conversation_id = "katalyst-main-thread"
+    config = {
+        "configurable": {"thread_id": conversation_id},
+        "recursion_limit": int(os.getenv("KATALYST_RECURSION_LIMIT", 250)),
+    }
     while True:
         user_input = input("> ").strip()
-        if user_input == "/help":
-            show_help()
-        elif user_input == "/init":
-            handle_init_command(graph)
-        elif user_input == "/provider":
-            handle_provider_command()
-        elif user_input == "/model":
-            handle_model_command()
-        elif user_input == "/exit":
-            print("Goodbye!")
-            break
-        elif user_input == "":
+        if user_input.startswith("/"):
+            if user_input == "/help":
+                show_help()
+            elif user_input == "/init":
+                handle_init_command(graph, config)
+            elif user_input == "/provider":
+                handle_provider_command()
+            elif user_input == "/model":
+                handle_model_command()
+            elif user_input == "/exit":
+                print("Goodbye!")
+                break
             continue
-        else:
-            result = run_katalyst_task(user_input, project_state, graph)
-            # Update and save project state after each command
-            project_state.update(
-                {
-                    "chat_history": result.chat_history,  # Persist chat history
-                    # TODO: Add more fields to persist as needed
-                }
+        logger.info(
+            "\n==================== 🚀🚀🚀  KATALYST RUN START  🚀🚀🚀 ===================="
+        )
+        logger.info(f"[MAIN_REPL] Starting new task: '{user_input}'")
+        # Only pass new input for this turn; let checkpointer handle memory
+        current_input = {
+            "task": user_input,
+            "auto_approve": os.getenv("KATALYST_AUTO_APPROVE", "false").lower()
+            == "true",
+            "project_root_cwd": os.getcwd(),
+        }
+        final_state = None
+        try:
+            for event in graph.stream(current_input, config, stream_mode="values"):
+                final_state = event
+        except GraphRecursionError:
+            msg = (
+                f"[GUARDRAIL] Recursion limit ({config['recursion_limit']}) reached. "
+                "The agent is likely in a loop. Please simplify the task or "
+                "increase the KATALYST_RECURSION_LIMIT environment variable if needed."
             )
-            save_project_state(project_state)
+            logger.error(msg)
+            print(f"\n[ERROR] {msg}")
+            continue
+        except Exception as e:
+            logger.exception("An error occurred during graph execution.")
+            print(f"\n[ERROR] An unexpected error occurred: {e}")
+            continue
+        logger.info(
+            "\n==================== 🎉🎉🎉  KATALYST RUN COMPLETE  🎉🎉🎉 ===================="
+        )
+        if final_state:
+            print_run_summary(final_state)
+        else:
+            print("[ERROR] The agent run did not complete successfully.")
 
 
 def main():
     ensure_openai_api_key()
     maybe_show_welcome()
-    logger = get_logger()
     try:
         repl()
     except Exception as e:
-        logger.exception("Unhandled exception in main loop.")
+        get_logger().exception("Unhandled exception in main loop.")
         print(f"An unexpected error occurred: {e}. See the log file for details.")
 
 
