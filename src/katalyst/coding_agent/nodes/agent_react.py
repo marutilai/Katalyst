@@ -162,7 +162,7 @@ def agent_react(state: KatalystState) -> KatalystState:
         {"role": "system", "content": system_message_content},
         {"role": "user", "content": user_message_content},
     ]
-    logger.debug(f"[AGENT_REACT] LLM messages: {llm_messages}")
+    logger.debug(f"[AGENT_REACT] LLM messages (skipped system message): {llm_messages}")
 
     # 4) Call the LLM for a structured ReAct response
     # --------------------------------------------------------------------------
@@ -179,7 +179,6 @@ def agent_react(state: KatalystState) -> KatalystState:
         temperature=0.1,
         model=os.getenv("KATALYST_LITELLM_MODEL", "gpt-4.1"),
     )
-    logger.debug(f"[AGENT_REACT] Raw LLM response: {response}")
     logger.debug(f"[AGENT_REACT] Parsed output: {response.dict()}")
 
     # 5) Log the LLM's thought and action to chat_history for traceability

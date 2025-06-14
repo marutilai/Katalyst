@@ -13,7 +13,7 @@
 - /init command should understand the project: strcture, every function/file/class, etc.
 - /init output should be kept in memory for project context (rag-retrieval for relevant context here)
 - /init update init in the backgorund in regular intervals
-- Long-term memory management
+- Long-term memory management (across conversations)
 - Telemetry for usage-based data collection
 - Create several pre-defined plans and rag over them as needed to help planner
 - capability for pausing and continuing the dag execution flow? ideally serializable & de-serializable execution state. 
@@ -21,4 +21,3 @@
 - Use local reasoning model for planning such as Magistral
 - The planner should follow playbook more closely --> improve /init output quality
 - Think of an eval framework to access the quality of coding tasks Katalyst can handle.
-- Current system fails in multi-turn conversations. No memory share between 2 tasks.
