@@ -52,9 +52,8 @@ def get_init_plan(plan_name: str) -> str:
 
 def handle_init_command(graph, config):
     """
-    Retrieve the playbook for /init, use its text as the planner task, and execute the full Katalyst engine to generate KATALYST.md.
+    Retrieve the playbook for /init, use its text as the planner task, and execute the full Katalyst engine to generate project_knowledge.json.
     """
-    navigator = PlaybookNavigator()
     navigator = PlaybookNavigator()
     playbook = navigator.get_playbook_by_id("project_init")
     if not playbook:
