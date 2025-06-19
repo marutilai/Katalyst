@@ -1,4 +1,5 @@
 from enum import Enum
+import os
 from typing import List, Dict, Optional
 from pathlib import Path
 import json
@@ -140,25 +141,39 @@ class KatalystTestRunner:
         else:
             raise RuntimeError("Unknown user input mode.")
 
-    def _gather_created_files(self) -> Dict[str, str]:
+    def _gather_created_files(self, initial_files: set) -> Dict[str, str]:
         """
-        Collect all files created by the agent for this test case.
-        (For open source: this can be refined as needed.)
+        Collect all files created or modified by the agent for this test case.
+        Only includes files that weren't present in the initial snapshot.
         """
         files = {}
-        for path in Path(".").rglob("*"):
+        current_files = set(p.resolve() for p in Path(".").rglob("*"))
+        new_and_modified_paths = current_files - initial_files
+
+        self.logger.debug(f"Initial files count: {len(initial_files)}")
+        self.logger.debug(f"Current files count: {len(current_files)}")
+        self.logger.debug(f"New/modified files count: {len(new_and_modified_paths)}")
+
+        for path in new_and_modified_paths:
             if path.is_file():
                 try:
-                    with open(path, "r") as f:
-                        files[str(path)] = f.read()
-                except Exception:
+                    # Make path relative for cleaner report
+                    relative_path = str(path.relative_to(Path.cwd()))
+                    content = path.read_text()
+                    files[relative_path] = content
+                    self.logger.debug(f"Found created/modified file: {relative_path}")
+                except Exception as e:
+                    self.logger.debug(f"Could not read file {path}: {e}")
                     continue  # Skip unreadable/binary files
+
+        self.logger.debug(f"Total files gathered: {len(files)}")
         return files
 
     def _run_llm_evaluation(
         self, test_case: KatalystTestCase, result: KatalystTestResult
     ) -> List[str]:
         prompt = build_llm_eval_prompt(test_case, result)
+        # self.logger.debug(f"LLM evaluation prompt: {prompt}")
         try:
             import openai
 
@@ -169,7 +184,7 @@ class KatalystTestRunner:
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0,
-                max_tokens=512,
+                # max_tokens=512,
             )
             content = completion.choices[0].message.content.strip()
             # Robust JSON extraction
@@ -197,6 +212,12 @@ class KatalystTestRunner:
         result = KatalystTestResult(test_case=test_case, success=False)
 
         try:
+            # --- Take a snapshot of files BEFORE the run ---
+            initial_files = set(p.resolve() for p in Path(".").rglob("*"))
+            self.logger.debug(
+                f"Taking initial file snapshot: {len(initial_files)} files found"
+            )
+
             state = KatalystState(
                 task=test_case.task,
                 auto_approve=test_case.auto_approve,
@@ -204,10 +225,33 @@ class KatalystTestRunner:
                 user_input_fn=self._simulate_user_input,
             )
             app = build_compiled_graph()
-            final_state = app.invoke(state)
+            config = {
+                "recursion_limit": int(os.getenv("KATALYST_RECURSION_LIMIT", 250)),
+            }
+
+            # --- Run the agent ---
+            final_state = app.invoke(state, config)
+
+            # Convert the dictionary back to KatalystState object
+            self.logger.debug(f"Graph returned final_state type: {type(final_state)}")
+            self.logger.debug(f"Graph returned final_state content: {final_state}")
+            if isinstance(final_state, dict):
+                self.logger.debug("Converting dict to KatalystState object")
+                final_state = KatalystState(**final_state)
+                self.logger.debug(
+                    f"Converted to KatalystState with response: {final_state.response}"
+                )
+            else:
+                self.logger.debug(
+                    f"Final state is already a {type(final_state)} object"
+                )
+
             result.actual_output = final_state.response
             result.execution_time = time.time() - start_time
-            result.created_files = self._gather_created_files()
+
+            # --- Gather only the files created/modified during the test ---
+            result.created_files = self._gather_created_files(initial_files)
+
             errors = self._run_llm_evaluation(test_case, result)
             if errors:
                 result.error_messages.extend(errors)
