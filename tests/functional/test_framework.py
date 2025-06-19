@@ -10,6 +10,8 @@ from pydantic import BaseModel, Field
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.graph import build_compiled_graph
 from katalyst.katalyst_core.utils.logger import get_logger
+from katalyst.katalyst_core.services.llms import get_llm_instructor
+from tests.functional.test_rubric import KatalystRubric, RubricItemResult
 
 # Load environment variables from .env file
 load_dotenv()
@@ -29,15 +31,16 @@ class UserInputConfig(BaseModel):
 
 # -------- LLM Evaluation Result (structured) --------
 class LLMEvaluationResult(BaseModel):
-    passed: bool = Field(
-        ..., description="True if the agent's work meets all success criteria."
+    """
+    The complete, structured result of the LLM's evaluation. It holds the
+    overall pass/fail status and a detailed breakdown of each rubric item.
+    """
+
+    overall_passed: bool = Field(
+        ..., description="True only if all individual rubric criteria passed."
     )
-    reasoning: str = Field(
-        ...,
-        description="A step-by-step analysis of how the agent's output meets or fails each criterion.",
-    )
-    score: float = Field(
-        ..., ge=0.0, le=1.0, description="A quality score from 0.0 to 1.0."
+    reasoning_by_criterion: List[RubricItemResult] = Field(
+        ..., description="A point-by-point evaluation against the rubric."
     )
 
 
@@ -45,11 +48,8 @@ class LLMEvaluationResult(BaseModel):
 class KatalystTestCase(BaseModel):
     name: str = Field(..., description="Unique name for the test case")
     task: str = Field(..., description="The task to be executed by the agent")
-    llm_eval_instructions: str = Field(
-        ..., description="Instructions for LLM judgment (natural language)"
-    )
-    llm_rubric: Optional[List[str]] = Field(
-        None, description="Scoring rubric (list of criteria)"
+    llm_rubric: KatalystRubric = Field(
+        default_factory=KatalystRubric, description="Scoring rubric (list of criteria)"
     )
     llm_model: str = Field("gpt-4o", description="LLM model to use for evaluation")
     timeout: int = Field(60, description="Timeout in seconds")
@@ -87,28 +87,41 @@ class KatalystTestResult(BaseModel):
 def build_llm_eval_prompt(
     test_case: KatalystTestCase, result: KatalystTestResult
 ) -> str:
-    rubric = "\n".join(f"- {c}" for c in (test_case.llm_rubric or []))
+    # Convert the rubric object to a list of strings
+    rubric_items = test_case.llm_rubric.to_list()
+    # Format the rubric as a bulleted list for clarity in the prompt
+    rubric_for_prompt = (
+        "\n".join(f"- {c}" for c in rubric_items) if rubric_items else "N/A"
+    )
+
     files = (
         json.dumps(result.created_files, indent=2) if result.created_files else "N/A"
     )
     return f"""
-TASK:
+# AGENT'S TASK
 {test_case.task}
 
-OUTPUT:
+# AGENT'S OUTPUT:
 {result.actual_output}
 
-FILES CREATED:
+# FILES CREATED/MODIFIED BY AGENT:
 {files}
 
-EVALUATION RUBRIC:
-{rubric}
+# EVALUATION RUBRIC:
+{rubric_for_prompt}
 
-INSTRUCTIONS:
-{test_case.llm_eval_instructions}
-
-Respond ONLY with a valid JSON in this format:
-{{"passed": true/false, "score": float, "reasoning": "..."}}"""
+# REQUIRED JSON RESPONSE FORMAT
+{{
+  "overall_passed": boolean,
+  "reasoning_by_criterion": [
+    {{
+      "criterion": "The full text of the first rubric item...",
+      "passed": boolean,
+      "feedback": "Your specific reasoning for why this criterion passed or failed."
+    }}
+  ]
+}}
+"""
 
 
 # -------- Test Runner Core --------
@@ -179,29 +192,25 @@ class KatalystTestRunner:
         prompt = build_llm_eval_prompt(test_case, result)
         self.logger.debug(f"LLM evaluation prompt: {prompt}")
         try:
-            import openai
+            # Use instructor client for structured output
+            llm_client = get_llm_instructor()
 
-            completion = openai.chat.completions.create(
+            llm_result = llm_client.chat.completions.create(
                 model=test_case.llm_model,
+                response_model=LLMEvaluationResult,
                 messages=[
-                    {"role": "system", "content": "You are a code/project evaluator."},
+                    {
+                        "role": "system",
+                        "content": "You are a meticulous and strict code project evaluator. Your job is to assess an AI agent's work against a provided rubric.",
+                    },
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0,
-                # max_tokens=512,
             )
-            content = completion.choices[0].message.content.strip()
-            # Robust JSON extraction
-            start = content.find("{")
-            end = content.rfind("}") + 1
-            content_json = content[start:end]
-            parsed = json.loads(content_json)
-            llm_result = LLMEvaluationResult(**parsed)
+
             result.llm_evaluation = llm_result
-            if not llm_result.passed:
-                return [
-                    f"LLM Evaluation failed: {llm_result.reasoning} (score: {llm_result.score})"
-                ]
+            if not llm_result.overall_passed:
+                return [f"LLM Evaluation failed: {llm_result.reasoning_by_criterion}"]
             return []
         except Exception as exc:
             result.llm_evaluation = None
@@ -229,7 +238,9 @@ class KatalystTestRunner:
                 user_input_fn=self._simulate_user_input,
             )
             app = build_compiled_graph()
-            config = {}
+            config = {
+                "recursion_limit": int(os.getenv("KATALYST_RECURSION_LIMIT", 250)),
+            }
 
             # --- Run the agent ---
             final_state = app.invoke(state, config)
@@ -325,13 +336,11 @@ if __name__ == "__main__":
             name="create_math_project",
             task="Create a folder 'mytest' with add.py, multiply.py, divide.py (each with a function), and main.py that calls all three.",
             auto_approve=True,
-            llm_eval_instructions="Judge correctness, completeness, and absence of unnecessary files/scripts.",
-            llm_rubric=[
-                "All required scripts (add.py, multiply.py, divide.py, main.py) are present.",
-                "No unnecessary files/scripts are present.",
-                "Each script contains a function with the correct name and logic.",
-                "main.py imports and calls all three operation scripts.",
-            ],
+            llm_rubric=KatalystRubric(
+                all_required_files_created=True,
+                code_is_complete=True,
+                no_unnecessary_files_created=True,
+            ),
             # user_input_config is not required; defaults to always '1'
         )
     ]
