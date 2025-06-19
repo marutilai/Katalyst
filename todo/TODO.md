@@ -21,3 +21,6 @@
 - Use local reasoning model for planning such as Magistral
 - The planner should follow playbook more closely --> improve /init output quality
 - Think of an eval framework to access the quality of coding tasks Katalyst can handle.
+- The completed_tasks list and chat_history grow with every step --> Context window management in ReAct Agent
+- Make tool prompts shorter to respect context window size of LLMs
+- Use short prompts versus long prompts for react-agent depending on how clear the planner was.

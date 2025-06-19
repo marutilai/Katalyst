@@ -4,11 +4,15 @@ from typing import List, Dict, Optional
 from pathlib import Path
 import json
 import time
+from dotenv import load_dotenv
 
 from pydantic import BaseModel, Field
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.graph import build_compiled_graph
 from katalyst.katalyst_core.utils.logger import get_logger
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 # -------- User Input Simulation Modes --------
@@ -173,7 +177,7 @@ class KatalystTestRunner:
         self, test_case: KatalystTestCase, result: KatalystTestResult
     ) -> List[str]:
         prompt = build_llm_eval_prompt(test_case, result)
-        # self.logger.debug(f"LLM evaluation prompt: {prompt}")
+        self.logger.debug(f"LLM evaluation prompt: {prompt}")
         try:
             import openai
 
@@ -225,9 +229,7 @@ class KatalystTestRunner:
                 user_input_fn=self._simulate_user_input,
             )
             app = build_compiled_graph()
-            config = {
-                "recursion_limit": int(os.getenv("KATALYST_RECURSION_LIMIT", 250)),
-            }
+            config = {}
 
             # --- Run the agent ---
             final_state = app.invoke(state, config)
