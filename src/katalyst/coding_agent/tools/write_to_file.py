@@ -26,19 +26,25 @@ def format_write_to_file_response(
 
 
 @katalyst_tool(prompt_module="write_to_file", prompt_var="WRITE_TO_FILE_PROMPT")
-def write_to_file(path: str, content: str, auto_approve: bool = True) -> str:
+def write_to_file(
+    path: str, content: str, auto_approve: bool = True, user_input_fn=None
+) -> str:
     """
     Writes full content to a file, overwriting if it exists, creating it if it doesn't. Checks syntax before writing for Python files.
     Arguments:
       - path: str (file path to write)
       - content: str (the content to write)
       - auto_approve: bool (if False, ask for confirmation before writing)
+      - user_input_fn: function to use for user input (defaults to input)
     Returns a JSON string indicating success, error, or cancellation.
     """
     logger = get_logger()
     logger.info(
         f"Entered write_to_file with path={path}, content=<omitted>, auto_approve={auto_approve}"
     )
+
+    if user_input_fn is None:
+        user_input_fn = input
 
     if not path or not isinstance(path, str):
         logger.error("No valid 'path' provided to write_to_file.")
@@ -76,7 +82,11 @@ def write_to_file(path: str, content: str, auto_approve: bool = True) -> str:
 
     # Confirm with user unless auto_approve is True
     if not auto_approve:
-        confirm = input(f"Proceed with write to '{abs_path}'? (y/n): ").strip().lower()
+        confirm = (
+            user_input_fn(f"Proceed with write to '{abs_path}'? (y/n): ")
+            .strip()
+            .lower()
+        )
         if confirm != "y":
             logger.info("User declined to write file.")
             return format_write_to_file_response(

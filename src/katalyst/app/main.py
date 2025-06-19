@@ -63,7 +63,11 @@ def print_run_summary(final_state: dict):
     print("\nKatalyst Agent is now ready for a new task!")
 
 
-def repl():
+def repl(user_input_fn=input):
+    """
+    This is the main REPL loop for the Katalyst agent.
+    It handles user input (supports custom user_input_fn), command parsing, and graph execution.
+    """
     show_help()
     logger = get_logger()
     checkpointer = MemorySaver()
@@ -74,7 +78,7 @@ def repl():
         "recursion_limit": int(os.getenv("KATALYST_RECURSION_LIMIT", 250)),
     }
     while True:
-        user_input = input("> ").strip()
+        user_input = user_input_fn("> ").strip()
         if user_input.startswith("/"):
             if user_input == "/help":
                 show_help()
@@ -98,6 +102,7 @@ def repl():
             "auto_approve": os.getenv("KATALYST_AUTO_APPROVE", "false").lower()
             == "true",
             "project_root_cwd": os.getcwd(),
+            "user_input_fn": user_input_fn,
         }
         final_state = None
         try:

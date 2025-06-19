@@ -20,19 +20,23 @@ def format_response(question_to_ask_user: str, user_final_answer: str) -> str:
     prompt_module="request_user_input", prompt_var="REQUEST_USER_INPUT_PROMPT"
 )
 def request_user_input(
-    question_to_ask_user: str, suggested_responses: List[str] = None
+    question_to_ask_user: str, suggested_responses: List[str] = None, user_input_fn=None
 ) -> str:
     """
     Asks the user a question to gather more information, providing suggested answers.
     Parameters:
       - question_to_ask_user: str (the question to ask the user)
       - suggested_responses: list of suggestion strings
+      - user_input_fn: function to use for user input (defaults to input)
     Returns the user's answer as a JSON string (with 'question_to_ask_user' and 'user_final_answer' keys).
     """
     logger = get_logger()
     logger.debug(
         f"Entered request_user_input with question='{question_to_ask_user}', suggested_responses='{suggested_responses}'"
     )
+
+    if user_input_fn is None:
+        user_input_fn = input
 
     if not isinstance(question_to_ask_user, str) or not question_to_ask_user.strip():
         logger.error("No valid 'question_to_ask_user' provided to request_user_input.")
@@ -62,7 +66,7 @@ def request_user_input(
     for idx, suggestion_text in enumerate(suggestions_for_user, 1):
         print(f"  {idx}. {suggestion_text}")
 
-    user_choice_str = input(
+    user_choice_str = user_input_fn(
         "Your answer (enter number or type custom answer): "
     ).strip()
     actual_answer = ""
@@ -73,7 +77,7 @@ def request_user_input(
             if 1 <= choice_idx <= len(suggestions_for_user):
                 actual_answer = suggestions_for_user[choice_idx - 1]
                 if actual_answer == manual_answer_prompt:
-                    actual_answer = input(
+                    actual_answer = user_input_fn(
                         f"\nYour custom answer to '{question_to_ask_user}': "
                     ).strip()
             else:

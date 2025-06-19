@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional, Union
+from typing import List, Tuple, Optional, Union, Callable
 from pydantic import BaseModel, Field
 from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.messages import BaseMessage
@@ -15,6 +15,11 @@ class KatalystState(BaseModel):
     )
     project_root_cwd: str = Field(
         ..., description="The CWD from which Katalyst was launched."
+    )
+    user_input_fn: Optional[Callable[[str], str]] = Field(
+        default=None,
+        exclude=True,
+        description="Function to use for user input (not persisted).",
     )
 
     # ── long-horizon planning ─────────────────────────────────────────────

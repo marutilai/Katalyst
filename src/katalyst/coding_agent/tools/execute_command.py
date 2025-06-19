@@ -31,7 +31,11 @@ def format_execute_command_response(
 
 @katalyst_tool(prompt_module="execute_command", prompt_var="EXECUTE_COMMAND_PROMPT")
 def execute_command(
-    command: str, cwd: str = None, timeout: int = 30, auto_approve: bool = True
+    command: str,
+    cwd: str = None,
+    timeout: int = 30,
+    auto_approve: bool = True,
+    user_input_fn=None,
 ) -> str:
     """
     Executes a shell command in the terminal.
@@ -85,11 +89,15 @@ def execute_command(
 
     # Ask for user confirmation unless auto_approve is set
     if not auto_approve:
+        if user_input_fn is None:
+            user_input_fn = input
         confirm = (
-            input("Allow Katalyst to run the above command? (y/n): ").strip().lower()
+            user_input_fn("Allow Katalyst to run the above command? (y/n): ")
+            .strip()
+            .lower()
         )
         if confirm != "y":
-            feedback = input(
+            feedback = user_input_fn(
                 "Instruct Katalyst on what to do instead as you have rejected the command execution: "
             ).strip()
             logger.info("User denied permission to execute command.")

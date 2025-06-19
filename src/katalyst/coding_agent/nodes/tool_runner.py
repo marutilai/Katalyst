@@ -74,6 +74,11 @@ def tool_runner(state: KatalystState) -> KatalystState:
                     os.path.join(state.project_root_cwd, tool_input_resolved["path"])
                 )
 
+            # Pass user_input_fn if the tool accepts it
+            sig = inspect.signature(tool_fn)
+            if "user_input_fn" in sig.parameters:
+                tool_input_resolved["user_input_fn"] = state.user_input_fn or input
+
             # Check if the tool is an async function
             if inspect.iscoroutinefunction(tool_fn):
                 # If it's async, run it in an event loop

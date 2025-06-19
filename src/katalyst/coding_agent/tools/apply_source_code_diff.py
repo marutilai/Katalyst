@@ -24,7 +24,9 @@ def format_apply_source_code_diff_response(
 @katalyst_tool(
     prompt_module="apply_source_code_diff", prompt_var="APPLY_SOURCE_CODE_DIFF_PROMPT"
 )
-def apply_source_code_diff(path: str, diff: str, auto_approve: bool = True) -> str:
+def apply_source_code_diff(
+    path: str, diff: str, auto_approve: bool = True, user_input_fn=None
+) -> str:
     """
     Applies changes to a file using a specific search/replace diff format. Checks syntax before applying for Python files.
     Returns a JSON string with keys: 'path', 'success', and either 'info' or 'error'.
@@ -115,8 +117,12 @@ def apply_source_code_diff(path: str, diff: str, auto_approve: bool = True) -> s
 
     # Confirm with user unless auto_approve is True
     if not auto_approve:
+        if user_input_fn is None:
+            user_input_fn = input
         confirm = (
-            input(f"Proceed with applying diff to '{path}'? (y/n): ").strip().lower()
+            user_input_fn(f"Proceed with applying diff to '{path}'? (y/n): ")
+            .strip()
+            .lower()
         )
         if confirm != "y":
             logger.info("User declined to apply diff.")
