@@ -37,6 +37,9 @@ def request_user_input(
 
     if user_input_fn is None:
         user_input_fn = input
+        logger.debug("Using default input function")
+    else:
+        logger.debug(f"Using provided user_input_fn: {user_input_fn}")
 
     if not isinstance(question_to_ask_user, str) or not question_to_ask_user.strip():
         logger.error("No valid 'question_to_ask_user' provided to request_user_input.")
@@ -66,9 +69,11 @@ def request_user_input(
     for idx, suggestion_text in enumerate(suggestions_for_user, 1):
         print(f"  {idx}. {suggestion_text}")
 
+    logger.debug("About to call user_input_fn with prompt")
     user_choice_str = user_input_fn(
         "Your answer (enter number or type custom answer): "
     ).strip()
+    logger.debug(f"user_input_fn returned: '{user_choice_str}'")
     actual_answer = ""
 
     if user_choice_str.isdigit():

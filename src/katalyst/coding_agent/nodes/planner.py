@@ -128,6 +128,9 @@ def planner(state: KatalystState) -> KatalystState:
         - Avoid abstract goals like "analyze", "determine", "navigate".
         - Instead of: "Understand config file"
             Use: "Use 'read_file' to read 'config/settings.json' and summarize its key configuration parameters"
+        - For directory creation, use 'write_to_file' to create a file in the desired directory - it will automatically create any needed parent directories.
+        - Instead of: "Create directory 'src/utils'"
+            Use: "Use 'write_to_file' to create 'src/utils/__init__.py' with content '# Utils module'"
 
         2. Guiding Principles for Tool Selection
         - For high-level understanding of an entire codebase or directory, prefer 'generate_directory_overview' to get an efficient overview.

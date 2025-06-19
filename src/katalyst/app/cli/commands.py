@@ -72,8 +72,7 @@ def handle_init_command(graph, config):
 
     # Run the full Katalyst execution engine
     final_state = None
-    for event in graph.stream(init_input, config, stream_mode="values"):
-        final_state = event
+    final_state = graph.invoke(init_input, config)
 
     # The final step of the playbook should be a `write_to_file` call,
     # so we can check the 'response' from the replanner for the final summary.

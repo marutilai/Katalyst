@@ -80,21 +80,21 @@ def repl(user_input_fn=input):
     while True:
         user_input = user_input_fn("> ").strip()
         if user_input.startswith("/"):
-            if user_input == "/help":
-                show_help()
-            elif user_input == "/init":
-                handle_init_command(graph, config)
-            elif user_input == "/provider":
-                handle_provider_command()
-            elif user_input == "/model":
-                handle_model_command()
-            elif user_input == "/exit":
-                print("Goodbye!")
-                break
+        if user_input == "/help":
+            show_help()
+        elif user_input == "/init":
+            handle_init_command(graph, config)
+        elif user_input == "/provider":
+            handle_provider_command()
+        elif user_input == "/model":
+            handle_model_command()
+        elif user_input == "/exit":
+            print("Goodbye!")
+            break
             continue
         logger.info(
             "\n==================== 🚀🚀🚀  KATALYST RUN START  🚀🚀🚀 ===================="
-        )
+            )
         logger.info(f"[MAIN_REPL] Starting new task: '{user_input}'")
         # Only pass new input for this turn; let checkpointer handle memory
         current_input = {
@@ -104,10 +104,9 @@ def repl(user_input_fn=input):
             "project_root_cwd": os.getcwd(),
             "user_input_fn": user_input_fn,
         }
-        final_state = None
+            final_state = None
         try:
-            for event in graph.stream(current_input, config, stream_mode="values"):
-                final_state = event
+            final_state = graph.invoke(current_input, config)
         except GraphRecursionError:
             msg = (
                 f"[GUARDRAIL] Recursion limit ({config['recursion_limit']}) reached. "
@@ -123,7 +122,7 @@ def repl(user_input_fn=input):
             continue
         logger.info(
             "\n==================== 🎉🎉🎉  KATALYST RUN COMPLETE  🎉🎉🎉 ===================="
-        )
+            )
         if final_state:
             print_run_summary(final_state)
         else:
