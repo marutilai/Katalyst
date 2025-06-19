@@ -1,5 +1,9 @@
 import os
+import pytest
 from katalyst.coding_agent.tools.read_file import read_file
+from unittest.mock import patch, AsyncMock
+
+pytestmark = pytest.mark.integration  # Mark all tests in this file as integration tests
 
 
 def write_sample_file(filename, content):

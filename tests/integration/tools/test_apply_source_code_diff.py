@@ -1,6 +1,9 @@
 import os
 import json
+import pytest
 from katalyst.coding_agent.tools.apply_source_code_diff import apply_source_code_diff
+
+pytestmark = pytest.mark.integration
 
 
 def write_sample_file(filename, content):

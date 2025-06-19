@@ -1,5 +1,8 @@
+import pytest
 from pydantic import BaseModel, Field
 from typing import List, Optional
+
+pytestmark = pytest.mark.agent
 
 
 class RubricItemResult(BaseModel):

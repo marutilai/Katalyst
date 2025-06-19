@@ -2,6 +2,8 @@ import pytest
 from katalyst.coding_agent.tools.request_user_input import request_user_input
 import json
 
+pytestmark = pytest.mark.unit
+
 
 def test_request_user_input_valid(monkeypatch):
     # Simulate user selecting the first suggestion

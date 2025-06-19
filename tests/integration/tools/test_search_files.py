@@ -4,6 +4,8 @@ import pytest
 import json
 from katalyst.coding_agent.tools.search_files import regex_search_files
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.fixture(autouse=True)
 def sample_dir():

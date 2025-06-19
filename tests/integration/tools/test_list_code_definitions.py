@@ -3,6 +3,8 @@ import json
 import pytest
 from katalyst.coding_agent.tools.list_code_definitions import list_code_definition_names
 
+pytestmark = pytest.mark.integration
+
 
 def write_sample_file(filename, content):
     with open(filename, "w", encoding="utf-8") as f:

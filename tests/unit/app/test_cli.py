@@ -1,5 +1,14 @@
 import subprocess
 import shutil
+import pytest
+
+pytestmark = pytest.mark.unit
+
+"""
+ToDo: Add tests for the CLI
+
+- test the show_help function by capturing stdout and asserting its content, without involving any LLMs or the main graph.
+"""
 
 
 def test_cli_help():

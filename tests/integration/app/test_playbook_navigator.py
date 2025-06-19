@@ -4,6 +4,8 @@ import pytest
 
 from katalyst.app.playbook_navigator import PlaybookNavigator
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.fixture(scope="module")
 def navigator():

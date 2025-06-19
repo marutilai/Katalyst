@@ -4,6 +4,7 @@ from typing import List, Dict, Optional
 from pathlib import Path
 import json
 import time
+import pytest
 from dotenv import load_dotenv
 
 from pydantic import BaseModel, Field
@@ -11,7 +12,9 @@ from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.graph import build_compiled_graph
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.services.llms import get_llm_instructor
-from tests.functional.test_rubric import KatalystRubric, RubricItemResult
+from tests.agent_tests.test_rubric import KatalystRubric, RubricItemResult
+
+pytestmark = pytest.mark.agent
 
 # Load environment variables from .env file
 load_dotenv()

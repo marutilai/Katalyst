@@ -1,45 +1,84 @@
-from tests.functional.test_framework import KatalystTestCase, KatalystTestRunner
+import pytest
+from tests.agent_tests.test_framework import KatalystTestCase, KatalystTestRunner
+from tests.agent_tests.test_rubric import KatalystRubric
+
+pytestmark = pytest.mark.agent  # Mark all tests in this file as agent tests
 
 # Basic Tests
 basic_tests = [
     KatalystTestCase(
         name="read_readme_first_lines",
         task="read the first 5 lines of readme and tell me the first python command in that",
-        expected_output="python",  # Assuming the first Python command contains "python"
+        auto_approve=True,
+        llm_rubric=KatalystRubric(
+            code_is_logically_correct=True,
+            no_unnecessary_files_created=True,
+        ),
     ),
     KatalystTestCase(
         name="create_math_project",
-        task="create a project folder mytest and inside create 3 python scripts one for adding one for multiple one for dividing and call all of those from one main script",
-        expected_files={
-            "mytest/add.py": "def add",
-            "mytest/multiply.py": "def multiply",
-            "mytest/divide.py": "def divide",
-            "mytest/main.py": "import add\nimport multiply\nimport divide",
-        },
+        task="Create a folder 'mytest' with add.py, multiply.py, divide.py (each with a function), and main.py that calls all three.",
+        auto_approve=True,
+        llm_rubric=KatalystRubric(
+            all_required_files_created=True,
+            code_is_complete=True,
+            code_is_logically_correct=True,
+            no_unnecessary_files_created=True,
+            has_sufficient_comments_and_docstrings=True,
+        ),
     ),
     KatalystTestCase(
         name="color_preference",
         task="Ask me for my favorite color with suggestions 'red', 'green', 'blue'. Then tell me my choice using attempt_completion.",
-        expected_output="request_user_input",  # Should use request_user_input tool
         auto_approve=False,  # Requires user interaction
+        llm_rubric=KatalystRubric(
+            code_is_logically_correct=True,
+            no_unnecessary_files_created=True,
+            custom_checks=[
+                "The agent correctly used request_user_input and attempt_completion tools"
+            ],
+        ),
     ),
     KatalystTestCase(
         name="file_operations",
         task="List all files in the current directory. Then, ask me for a filename and content, and write that to the specified file. Only proceed if I confirm.",
-        expected_output="list_files",  # Should use list_files tool
         auto_approve=False,  # Requires user interaction
+        llm_rubric=KatalystRubric(
+            code_is_logically_correct=True,
+            no_unnecessary_files_created=True,
+            custom_checks=[
+                "The agent correctly used list_files tool",
+                "The agent properly handled user interaction for file creation",
+            ],
+        ),
     ),
     KatalystTestCase(
         name="todo_plan",
         task="Draft a plan for a simple to-do list application and save it as todo_plan.md. Ask me if I want to include user authentication in the plan.",
-        expected_files={"todo_plan.md": "To-Do List Application"},
         auto_approve=False,  # Requires user interaction
+        llm_rubric=KatalystRubric(
+            all_required_files_created=True,
+            code_is_logically_correct=True,
+            no_unnecessary_files_created=True,
+            custom_checks=[
+                "The agent created a well-structured markdown plan",
+                "The agent properly handled user input about authentication",
+            ],
+        ),
     ),
     KatalystTestCase(
         name="project_documentation",
         task="Understand the current project structure and ask me what I want to document first. Then, create a basic test_plan.md with a title 'Project Plan'",
-        expected_files={"test_plan.md": "Project Plan"},
         auto_approve=False,  # Requires user interaction
+        llm_rubric=KatalystRubric(
+            all_required_files_created=True,
+            code_is_logically_correct=True,
+            no_unnecessary_files_created=True,
+            custom_checks=[
+                "The agent analyzed the project structure correctly",
+                "The agent created a properly formatted markdown document",
+            ],
+        ),
     ),
 ]
 
@@ -48,13 +87,25 @@ search_read_tests = [
     KatalystTestCase(
         name="search_katalyst_in_md",
         task="Search for all occurrences of the word 'Katalyst' in any .md files in the current directory and its subdirectories. Then, read the first 5 lines of README.md.",
-        expected_output="Katalyst",  # Should find occurrences of Katalyst
+        auto_approve=True,
+        llm_rubric=KatalystRubric(
+            code_is_logically_correct=True,
+            no_unnecessary_files_created=True,
+            custom_checks=["The agent used appropriate search and read tools"],
+        ),
     ),
     KatalystTestCase(
         name="find_python_imports",
         task="Find all Python files (.py) in the katalyst/coding_agent/nodes directory that import the KatalystState. For each match, show me the line number and the matching line. Then, ask me if I want to see the full content of katalyst/coding_agent/nodes/invoke_llm.py.",
-        expected_output="KatalystState",
         auto_approve=False,  # Requires user interaction
+        llm_rubric=KatalystRubric(
+            code_is_logically_correct=True,
+            no_unnecessary_files_created=True,
+            custom_checks=[
+                "The agent used appropriate search tools to find imports",
+                "The agent properly handled the follow-up question about file content",
+            ],
+        ),
     ),
 ]
 
@@ -63,13 +114,27 @@ code_analysis_tests = [
     KatalystTestCase(
         name="list_write_file_definitions",
         task="List all function and class definitions in katalyst.coding_agent.tools/write_to_file.py. Then, read the content of the write_to_file function itself from that file.",
-        expected_output="def write_to_file",
+        auto_approve=True,
+        llm_rubric=KatalystRubric(
+            code_is_logically_correct=True,
+            no_unnecessary_files_created=True,
+            custom_checks=[
+                "The agent correctly used code analysis tools to list definitions"
+            ],
+        ),
     ),
     KatalystTestCase(
         name="analyze_utils_directory",
         task="Analyze the katalyst/coding_agent/utils directory. For each Python file, list its function definitions. Then ask me which function from xml_parser.py I'd like to understand better.",
-        expected_output="def",
         auto_approve=False,  # Requires user interaction
+        llm_rubric=KatalystRubric(
+            code_is_logically_correct=True,
+            no_unnecessary_files_created=True,
+            custom_checks=[
+                "The agent correctly analyzed directory contents",
+                "The agent properly handled the follow-up question about function choice",
+            ],
+        ),
     ),
 ]
 
@@ -94,8 +159,14 @@ command_tests = [
     KatalystTestCase(
         name="list_and_create_file",
         task="List all files in the current directory using a shell command. Then, create a new file named test_output.txt containing the text 'Hello from Katalyst' using the write_to_file tool.",
-        expected_files={"test_output.txt": "Hello from Katalyst"},
-    )
+        auto_approve=True,
+        llm_rubric=KatalystRubric(
+            all_required_files_created=True,
+            code_is_logically_correct=True,
+            no_unnecessary_files_created=True,
+            validation_command_was_run=True,
+        ),
+    ),
 ]
 
 # Complex Tests
@@ -125,9 +196,9 @@ def run_all_test_suites():
         + complex_tests
     )
 
-    runner = KatalystTestRunner(all_tests)
-    results = runner.run_all_tests()
-    runner.generate_report()
+    runner = KatalystTestRunner()  # defaults to always selecting '1'
+    results = runner.run_tests(all_tests)
+    runner.generate_report(results)
 
     return results
 

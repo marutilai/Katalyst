@@ -1,5 +1,8 @@
 import os
+import pytest
 from katalyst.coding_agent.tools.write_to_file import write_to_file
+
+pytestmark = pytest.mark.integration
 
 
 def test_write_to_file_success():
