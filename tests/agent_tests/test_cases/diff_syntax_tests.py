@@ -1,21 +1,59 @@
 import pytest
 from tests.agent_tests.test_framework import KatalystTestCase, KatalystTestRunner
 from tests.agent_tests.test_rubric import KatalystCodingRubric
+from tests.agent_tests.test_utils import run_test_with_report
 
 pytestmark = pytest.mark.agent
 
 runner = KatalystTestRunner()
 
 
+def test_apply_diff_to_file():
+    case = KatalystTestCase(
+        name="apply_diff_to_file",
+        task="Create a file called 'test_diff.txt' with the content 'Hello World'. Then, apply a diff to change 'Hello' to 'Goodbye' and 'World' to 'Universe'.",
+        auto_approve=True,
+        llm_rubric=KatalystCodingRubric(
+            all_required_files_created=True,
+            code_is_logically_correct=True,
+            no_unnecessary_files_created=True,
+            custom_checks=[
+                "The agent correctly applied the diff to modify the file content"
+            ],
+        ),
+    )
+    run_test_with_report(case, runner)
+
+
+def test_syntax_check_python():
+    case = KatalystTestCase(
+        name="syntax_check_python",
+        task="Create a Python file called 'syntax_test.py' with a function that has a syntax error (missing colon after def). Then, check the syntax of this file and report the error.",
+        auto_approve=True,
+        llm_rubric=KatalystCodingRubric(
+            all_required_files_created=True,
+            code_is_logically_correct=True,
+            no_unnecessary_files_created=True,
+            custom_checks=[
+                "The agent correctly identified and reported the syntax error"
+            ],
+        ),
+    )
+    run_test_with_report(case, runner)
+
+
 def test_change_logger_name():
     case = KatalystTestCase(
         name="change_logger_name",
-        task="Read the file katalyst/coding_agent/utils/logger.py. Then, propose a diff to change the _LOGGER_NAME from 'coding_agent' to 'katalyst_logger'. Apply this diff only after my confirmation. Ensure the syntax is still valid after the change.",
-        expected_output="diff",
-        auto_approve=False,  # Requires user interaction
+        task="Read the content of katalyst/katalyst_core/utils/logger.py and then apply a diff to change the logger name from 'katalyst' to 'katalyst_agent'.",
+        auto_approve=True,
+        llm_rubric=KatalystCodingRubric(
+            code_is_logically_correct=True,
+            no_unnecessary_files_created=True,
+            custom_checks=["The agent correctly read the file and applied the diff"],
+        ),
     )
-    result = runner.run_test(case)
-    assert result.success
+    run_test_with_report(case, runner)
 
 
 def test_add_agent_version():

@@ -1,6 +1,7 @@
 import pytest
 from tests.agent_tests.test_framework import KatalystTestCase, KatalystTestRunner
 from tests.agent_tests.test_rubric import KatalystCodingRubric
+from tests.agent_tests.test_utils import run_test_with_report
 
 pytestmark = pytest.mark.agent
 
@@ -18,8 +19,7 @@ def test_search_katalyst_in_md():
             custom_checks=["The agent used appropriate search and read tools"],
         ),
     )
-    result = runner.run_test(case)
-    assert result.success
+    run_test_with_report(case, runner)
 
 
 def test_find_python_imports():
@@ -36,5 +36,4 @@ def test_find_python_imports():
             ],
         ),
     )
-    result = runner.run_test(case)
-    assert result.success
+    run_test_with_report(case, runner)

@@ -38,6 +38,22 @@ pytest tests/agent_tests/test_cases/complex_tests.py
 pytest --cov=katalyst tests/
 ```
 
+## Test Reports
+
+Agent tests generate detailed JSON reports in the `test_reports/` directory (gitignored):
+
+- **Location**: `test_reports/test_report_<test_name>.json`
+- **Content**: LLM evaluations, rubric scoring, execution details, file changes
+- **Structure**: Summary stats, individual test results with detailed feedback
+- **Usage**: Reports are automatically generated and printed to console during test execution
+
+Each report includes:
+- Test case details and execution results
+- LLM evaluation with rubric scoring per criterion
+- Files created/modified by the agent
+- Error messages and execution time
+- Custom validation checks
+
 ## Adding Tests
 
 - **Unit**: `tests/unit/` - Mock dependencies, use `pytestmark = pytest.mark.unit`

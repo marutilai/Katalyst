@@ -163,3 +163,6 @@ KATALYST.md
 
 # Katalyst directory
 .katalyst/ 
+
+# Test reports
+test_reports/

@@ -1,8 +1,7 @@
 import pytest
-import json
-from pathlib import Path
 from tests.agent_tests.test_framework import KatalystTestCase, KatalystTestRunner
 from tests.agent_tests.test_rubric import KatalystCodingRubric
+from tests.agent_tests.test_utils import run_test_with_report
 
 pytestmark = pytest.mark.agent
 
@@ -19,31 +18,7 @@ def test_read_readme_first_lines():
             no_unnecessary_files_created=True,
         ),
     )
-    result = runner.run_test(case)
-
-    # Generate detailed report for this test
-    report_file = f"test_report_{case.name}.json"
-    runner.generate_report([result], report_file)
-
-    # Assert success and check that report was generated
-    assert result.success, f"Test failed: {result.error_messages}"
-    assert Path(report_file).exists(), f"Report file {report_file} was not generated"
-
-    # Load and verify report structure
-    with open(report_file, "r") as f:
-        report = json.load(f)
-
-    assert report["summary"]["total"] == 1
-    assert report["summary"]["passed"] == 1 if result.success else 0
-    assert len(report["results"]) == 1
-    assert report["results"][0]["name"] == case.name
-    assert report["results"][0]["success"] == result.success
-
-    # Check that LLM evaluation is present if test passed
-    if result.success and result.llm_evaluation:
-        assert report["results"][0]["llm_evaluation"] is not None
-        assert "overall_passed" in report["results"][0]["llm_evaluation"]
-        assert "reasoning_by_criterion" in report["results"][0]["llm_evaluation"]
+    run_test_with_report(case, runner)
 
 
 def test_create_math_project():
@@ -59,31 +34,7 @@ def test_create_math_project():
             has_sufficient_comments_and_docstrings=True,
         ),
     )
-    result = runner.run_test(case)
-
-    # Generate detailed report for this test
-    report_file = f"test_report_{case.name}.json"
-    runner.generate_report([result], report_file)
-
-    # Assert success and check that report was generated
-    assert result.success, f"Test failed: {result.error_messages}"
-    assert Path(report_file).exists(), f"Report file {report_file} was not generated"
-
-    # Load and verify report structure
-    with open(report_file, "r") as f:
-        report = json.load(f)
-
-    assert report["summary"]["total"] == 1
-    assert report["summary"]["passed"] == 1 if result.success else 0
-    assert len(report["results"]) == 1
-    assert report["results"][0]["name"] == case.name
-    assert report["results"][0]["success"] == result.success
-
-    # Check that LLM evaluation is present if test passed
-    if result.success and result.llm_evaluation:
-        assert report["results"][0]["llm_evaluation"] is not None
-        assert "overall_passed" in report["results"][0]["llm_evaluation"]
-        assert "reasoning_by_criterion" in report["results"][0]["llm_evaluation"]
+    run_test_with_report(case, runner)
 
 
 def test_color_preference():
@@ -99,31 +50,7 @@ def test_color_preference():
             ],
         ),
     )
-    result = runner.run_test(case)
-
-    # Generate detailed report for this test
-    report_file = f"test_report_{case.name}.json"
-    runner.generate_report([result], report_file)
-
-    # Assert success and check that report was generated
-    assert result.success, f"Test failed: {result.error_messages}"
-    assert Path(report_file).exists(), f"Report file {report_file} was not generated"
-
-    # Load and verify report structure
-    with open(report_file, "r") as f:
-        report = json.load(f)
-
-    assert report["summary"]["total"] == 1
-    assert report["summary"]["passed"] == 1 if result.success else 0
-    assert len(report["results"]) == 1
-    assert report["results"][0]["name"] == case.name
-    assert report["results"][0]["success"] == result.success
-
-    # Check that LLM evaluation is present if test passed
-    if result.success and result.llm_evaluation:
-        assert report["results"][0]["llm_evaluation"] is not None
-        assert "overall_passed" in report["results"][0]["llm_evaluation"]
-        assert "reasoning_by_criterion" in report["results"][0]["llm_evaluation"]
+    run_test_with_report(case, runner)
 
 
 def test_file_operations():
@@ -140,31 +67,7 @@ def test_file_operations():
             ],
         ),
     )
-    result = runner.run_test(case)
-
-    # Generate detailed report for this test
-    report_file = f"test_report_{case.name}.json"
-    runner.generate_report([result], report_file)
-
-    # Assert success and check that report was generated
-    assert result.success, f"Test failed: {result.error_messages}"
-    assert Path(report_file).exists(), f"Report file {report_file} was not generated"
-
-    # Load and verify report structure
-    with open(report_file, "r") as f:
-        report = json.load(f)
-
-    assert report["summary"]["total"] == 1
-    assert report["summary"]["passed"] == 1 if result.success else 0
-    assert len(report["results"]) == 1
-    assert report["results"][0]["name"] == case.name
-    assert report["results"][0]["success"] == result.success
-
-    # Check that LLM evaluation is present if test passed
-    if result.success and result.llm_evaluation:
-        assert report["results"][0]["llm_evaluation"] is not None
-        assert "overall_passed" in report["results"][0]["llm_evaluation"]
-        assert "reasoning_by_criterion" in report["results"][0]["llm_evaluation"]
+    run_test_with_report(case, runner)
 
 
 def test_todo_plan():
@@ -182,31 +85,7 @@ def test_todo_plan():
             ],
         ),
     )
-    result = runner.run_test(case)
-
-    # Generate detailed report for this test
-    report_file = f"test_report_{case.name}.json"
-    runner.generate_report([result], report_file)
-
-    # Assert success and check that report was generated
-    assert result.success, f"Test failed: {result.error_messages}"
-    assert Path(report_file).exists(), f"Report file {report_file} was not generated"
-
-    # Load and verify report structure
-    with open(report_file, "r") as f:
-        report = json.load(f)
-
-    assert report["summary"]["total"] == 1
-    assert report["summary"]["passed"] == 1 if result.success else 0
-    assert len(report["results"]) == 1
-    assert report["results"][0]["name"] == case.name
-    assert report["results"][0]["success"] == result.success
-
-    # Check that LLM evaluation is present if test passed
-    if result.success and result.llm_evaluation:
-        assert report["results"][0]["llm_evaluation"] is not None
-        assert "overall_passed" in report["results"][0]["llm_evaluation"]
-        assert "reasoning_by_criterion" in report["results"][0]["llm_evaluation"]
+    run_test_with_report(case, runner)
 
 
 def test_project_documentation():
@@ -224,28 +103,4 @@ def test_project_documentation():
             ],
         ),
     )
-    result = runner.run_test(case)
-
-    # Generate detailed report for this test
-    report_file = f"test_report_{case.name}.json"
-    runner.generate_report([result], report_file)
-
-    # Assert success and check that report was generated
-    assert result.success, f"Test failed: {result.error_messages}"
-    assert Path(report_file).exists(), f"Report file {report_file} was not generated"
-
-    # Load and verify report structure
-    with open(report_file, "r") as f:
-        report = json.load(f)
-
-    assert report["summary"]["total"] == 1
-    assert report["summary"]["passed"] == 1 if result.success else 0
-    assert len(report["results"]) == 1
-    assert report["results"][0]["name"] == case.name
-    assert report["results"][0]["success"] == result.success
-
-    # Check that LLM evaluation is present if test passed
-    if result.success and result.llm_evaluation:
-        assert report["results"][0]["llm_evaluation"] is not None
-        assert "overall_passed" in report["results"][0]["llm_evaluation"]
-        assert "reasoning_by_criterion" in report["results"][0]["llm_evaluation"]
+    run_test_with_report(case, runner)
