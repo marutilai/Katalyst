@@ -1,64 +1,40 @@
 # Katalyst Tests
 
-This directory contains all tests for the Katalyst project, organized by type:
+## Structure
 
-## Directory Structure
-
-- `unit/` - Unit tests for individual components
-- `functional/` - Functional tests for the Katalyst agent
+- `unit/` - Fast unit tests with mocked dependencies
+- `integration/` - Tests with real file system and external services  
+- `agent_tests/` - End-to-end agent workflow tests
 
 ## Running Tests
 
-### Unit Tests
 ```bash
-# Run all unit tests
+# All tests
+pytest tests/
+
+# By category
+pytest -m unit tests/
+pytest -m integration tests/
+pytest -m agent tests/
+
+# By directory
 pytest tests/unit/
+pytest tests/integration/
+pytest tests/agent_tests/
 
-# Run specific unit test file
-pytest tests/unit/test_specific_file.py
+# With coverage
+pytest --cov=katalyst tests/
 ```
 
-### Functional Tests
-```bash
-# Run all functional tests
-python -m tests.functional.run_tests
-
-# Run specific test suite
-python -m tests.functional.run_tests --suite basic
-python -m tests.functional.run_tests --suite search
-python -m tests.functional.run_tests --suite code
-python -m tests.functional.run_tests --suite diff
-python -m tests.functional.run_tests --suite command
-python -m tests.functional.run_tests --suite complex
-
-# Auto-approve user interactions (for automated testing)
-python -m tests.functional.run_tests --auto-approve
-
-# Specify custom report file
-python -m tests.functional.run_tests --report custom_report.json
-```
-
-## Test Coverage
-
-To generate and view test coverage reports:
+## Agent Test Suites
 
 ```bash
-# Run tests with coverage
-pytest --cov=katalyst_agent tests/
-
-# Generate HTML report
-pytest --cov=katalyst_agent --cov-report=html tests/
-
-# Generate terminal report
-pytest --cov=katalyst_agent --cov-report=term-missing tests/
+python -m tests.agent_tests.test_suite --suite basic
+python -m tests.agent_tests.test_suite --auto-approve
 ```
 
-The HTML report will be generated in the `htmlcov/` directory. Open `htmlcov/index.html` in your browser to view detailed coverage information.
+## Adding Tests
 
-Coverage reports show:
-- Overall coverage percentage
-- Coverage by module
-- Line-by-line coverage details
-- Missing lines (with --cov-report=term-missing)
-
-// ... existing code ...
+- **Unit**: `tests/unit/` - Mock dependencies, use `pytestmark = pytest.mark.unit`
+- **Integration**: `tests/integration/` - Real files/commands, use `pytestmark = pytest.mark.integration`  
+- **Agent**: `tests/agent_tests/` - Full workflows, use `pytestmark = pytest.mark.agent`
