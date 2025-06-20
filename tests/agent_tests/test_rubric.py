@@ -18,7 +18,7 @@ class RubricItemResult(BaseModel):
     )
 
 
-class KatalystRubric(BaseModel):
+class KatalystCodingRubric(BaseModel):
     """A standardized set of evaluation criteria for test cases."""
 
     # --- Correctness & Completeness ---

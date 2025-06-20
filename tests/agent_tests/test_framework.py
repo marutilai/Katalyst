@@ -12,7 +12,7 @@ from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.graph import build_compiled_graph
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.services.llms import get_llm_instructor
-from tests.agent_tests.test_rubric import KatalystRubric, RubricItemResult
+from tests.agent_tests.test_rubric import KatalystCodingRubric, RubricItemResult
 
 pytestmark = pytest.mark.agent
 
@@ -51,8 +51,9 @@ class LLMEvaluationResult(BaseModel):
 class KatalystTestCase(BaseModel):
     name: str = Field(..., description="Unique name for the test case")
     task: str = Field(..., description="The task to be executed by the agent")
-    llm_rubric: KatalystRubric = Field(
-        default_factory=KatalystRubric, description="Scoring rubric (list of criteria)"
+    llm_rubric: KatalystCodingRubric = Field(
+        default_factory=KatalystCodingRubric,
+        description="Scoring rubric (list of criteria)",
     )
     llm_model: str = Field("gpt-4o", description="LLM model to use for evaluation")
     timeout: int = Field(60, description="Timeout in seconds")
@@ -339,7 +340,7 @@ if __name__ == "__main__":
             name="create_math_project",
             task="Create a folder 'mytest' with add.py, multiply.py, divide.py (each with a function), and main.py that calls all three.",
             auto_approve=True,
-            llm_rubric=KatalystRubric(
+            llm_rubric=KatalystCodingRubric(
                 all_required_files_created=True,
                 code_is_complete=True,
                 no_unnecessary_files_created=True,
@@ -354,17 +355,18 @@ if __name__ == "__main__":
 
 # # Actual pytest test functions
 # def test_test_case_creation():
-#     """Test that KatalystTestCase can be created with required fields."""
+#     """Test that we can create a test case with default rubric."""
 #     test_case = KatalystTestCase(
-#         name="test1",
-#         task="Test task",
-#         expected_output="Expected output",
-#         user_inputs=["yes", "no"],
+#         name="test_case",
+#         task="test task",
+#         llm_rubric=KatalystCodingRubric(
+#             code_is_logically_correct=True,
+#             no_unnecessary_files_created=True,
+#         ),
 #     )
-#     assert test_case.name == "test1"
-#     assert test_case.task == "Test task"
-#     assert test_case.expected_output == "Expected output"
-#     assert test_case.user_inputs == ["yes", "no"]
+#     assert test_case.name == "test_case"
+#     assert test_case.task == "test task"
+#     assert test_case.llm_rubric.code_is_logically_correct is True
 
 
 # def test_test_result_creation():
