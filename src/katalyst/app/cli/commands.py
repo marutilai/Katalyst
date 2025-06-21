@@ -3,9 +3,6 @@ from rich.console import Console
 from rich.prompt import Prompt
 from pathlib import Path
 from katalyst.app.playbook_navigator import PlaybookNavigator
-from katalyst.katalyst_core.state import KatalystState
-from katalyst.coding_agent.nodes.planner import planner
-from katalyst.app.katalyst_runner import run_katalyst_task
 
 console = Console()
 

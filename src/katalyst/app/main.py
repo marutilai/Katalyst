@@ -79,7 +79,7 @@ def repl(user_input_fn=input):
     }
     while True:
         user_input = user_input_fn("> ").strip()
-        if user_input.startswith("/"):
+
         if user_input == "/help":
             show_help()
         elif user_input == "/init":
