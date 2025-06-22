@@ -1,6 +1,9 @@
 import os
 from katalyst.katalyst_core.state import KatalystState
-from katalyst.katalyst_core.services.llms import get_llm_instructor
+from katalyst.katalyst_core.services.llms import (
+    get_llm_instructor,
+    get_llm_model_for_component,
+)
 from langchain_core.messages import AIMessage
 from katalyst.katalyst_core.utils.models import SubtaskList, PlaybookEvaluation
 from katalyst.katalyst_core.utils.logger import get_logger
@@ -34,6 +37,7 @@ def planner(state: KatalystState) -> KatalystState:
     logger.debug(f"[PLANNER] Starting planner node...")
 
     llm = get_llm_instructor()
+    planner_model = get_llm_model_for_component("planner")
     tool_descriptions = extract_tool_descriptions()
     tool_list_str = "\n".join(f"- {name}: {desc}" for name, desc in tool_descriptions)
 
@@ -74,7 +78,7 @@ def planner(state: KatalystState) -> KatalystState:
                 messages=[{"role": "system", "content": evaluation_prompt}],
                 response_model=PlaybookEvaluation,
                 temperature=0.1,
-                model=os.getenv("KATALYST_LITELLM_MODEL", "gpt-4.1"),
+                model=planner_model,
             )
             logger.debug(f"[PLANNER] Playbook evaluation: {evaluation}")
 
@@ -191,7 +195,7 @@ def planner(state: KatalystState) -> KatalystState:
             messages=[{"role": "system", "content": prompt}],
             response_model=SubtaskList,
             temperature=0.3,
-            model=os.getenv("KATALYST_LITELLM_MODEL", "gpt-4.1"),
+            model=planner_model,
         )
         logger.debug(f"[PLANNER] Raw LLM response: {response}")
         subtasks = response.subtasks

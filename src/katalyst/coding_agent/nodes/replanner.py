@@ -3,6 +3,7 @@ from katalyst.katalyst_core.services.llms import (
     get_llm_instructor,
     get_llm_fallbacks,
     get_llm_timeout,
+    get_llm_model_for_component,
 )
 from katalyst.katalyst_core.utils.models import (
     ReplannerOutput,
@@ -42,6 +43,7 @@ def replanner(state: KatalystState) -> KatalystState:
         return state
 
     llm = get_llm_instructor()
+    replanner_model = get_llm_model_for_component("replanner")
     completed_tasks_str = (
         "\n".join(
             f"- '{task_desc}': {summary}"
@@ -120,15 +122,13 @@ def replanner(state: KatalystState) -> KatalystState:
             max_retries=2,
             # LiteLLM's native retries for API call failures
             num_retries=2,
-            model=os.getenv("KATALYST_LITELLM_MODEL", "gpt-4.1"),
+            model=replanner_model,
             fallbacks=fallbacks if fallbacks else None,
             timeout=timeout,
         )
         # Check if the model used is the same as the one configured or a fallback was used
         actual_model = getattr(llm_response_model, "model", None)
-        if actual_model and actual_model != os.getenv(
-            "KATALYST_LITELLM_MODEL", "gpt-4.1"
-        ):
+        if actual_model and actual_model != replanner_model:
             logger.info(f"[LLM] Fallback model used: {actual_model}")
 
         logger.debug(

@@ -1,6 +1,9 @@
 import os
 from katalyst.katalyst_core.state import KatalystState
-from katalyst.katalyst_core.services.llms import get_llm_instructor
+from katalyst.katalyst_core.services.llms import (
+    get_llm_instructor,
+    get_llm_model_for_component,
+)
 from langchain_core.messages import AIMessage, ToolMessage
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.models import AgentReactOutput
@@ -174,11 +177,12 @@ def agent_react(state: KatalystState) -> KatalystState:
     #   - final_answer: string (optional)
     #   - replan_requested: bool (optional)
     llm = get_llm_instructor()
+    agent_react_model = get_llm_model_for_component("agent_react")
     response = llm.chat.completions.create(
         messages=llm_messages,
         response_model=AgentReactOutput,
         temperature=0.1,
-        model=os.getenv("KATALYST_LITELLM_MODEL", "gpt-4.1"),
+        model=agent_react_model,
     )
     logger.debug(f"[AGENT_REACT] Parsed output: {response.dict()}")
 
