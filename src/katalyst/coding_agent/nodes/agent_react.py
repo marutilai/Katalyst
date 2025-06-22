@@ -79,11 +79,11 @@ def agent_react(state: KatalystState) -> KatalystState:
         - Do NOT assume you can 'navigate' or 'list files' by just stating it in a 'final_answer'. You must use a tool if the subtask implies interacting with the file system.
 
         # SCRATCHPAD & REDUNDANCY RULES
-        - Always use the scratchpad (previous actions and observations) to inform your reasoning and avoid repeating any tool calls or actions that have already been performed for the current sub-task.
-        - Never ask the user for information that is already available in the scratchpad or previous tool outputs.
-        - Do not repeat tool calls with the same arguments if the result is already present in the scratchpad.
-        - If the required information is already available from previous steps, use it directly in your reasoning and proceed to the next logical step or provide a final answer.
-
+        - Always use the scratchpad (previous actions and observations) to inform your reasoning.
+        - **If information is present in the scratchpad (e.g., file content from a read_file action), you MUST use that exact information. Do NOT fall back on your general knowledge or hallucinate new content.**
+        - Avoid repeating any tool calls that have already been performed for the current sub-task.
+        - Do not ask the user for information that is already available in the scratchpad.
+        
         # FINAL ANSWER GUIDELINES
         When providing a final_answer after using tools:
         1. Be concise and clear about what was accomplished
