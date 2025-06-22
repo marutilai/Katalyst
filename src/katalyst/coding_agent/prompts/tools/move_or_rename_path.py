@@ -3,7 +3,10 @@ from textwrap import dedent
 MOVE_OR_RENAME_PATH_PROMPT = dedent("""
 # move_or_rename_path Tool
 
-Description: Moves or renames a file or directory.
+Description: Moves or renames a file or directory. It automatically
+sanitizes filenames (e.g., replaces spaces with underscores) and preserves
+file extensions unless a new one is provided.
+
 - To rename, `destination_path` is the new name.
 - To move, `destination_path` is the target directory.
 

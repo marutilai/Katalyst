@@ -32,19 +32,19 @@ def format_move_or_rename_path_response(
 )
 def move_or_rename_path(source_path: str, destination_path: str) -> str:
     """
-    Renames or moves a file or directory from a source path to a destination path.
+    Renames or moves a file or directory. This tool automatically sanitizes
+    filenames (e.g., replaces spaces with underscores) and preserves file
+    extensions unless a new extension is explicitly provided.
 
-    - To rename a file or directory, provide the new name in the destination_path.
-      Example: move_or_rename_path('old_name.txt', 'new_name.txt')
-    - To move a file or directory, provide the new directory path in the destination_path.
-      Example: move_or_rename_path('file.txt', 'new_dir/')
+    - To rename, provide the new name in `destination_path`.
+    - To move, provide the target directory in `destination_path`.
 
     Args:
         source_path (str): The path of the file or directory to move/rename.
         destination_path (str): The destination path or new name.
 
     Returns:
-        str: A JSON string with keys: 'source_path', 'destination_path', 'success', and either 'info' or 'error'.
+        str: A JSON string with operation details.
     """
     logger = get_logger()
     logger.debug(
@@ -67,33 +67,65 @@ def move_or_rename_path(source_path: str, destination_path: str) -> str:
             error=f"Source path does not exist: {source_path}",
         )
 
-    if os.path.exists(destination_path):
-        # If the destination is a directory, this is a valid move operation.
-        # shutil.move handles this case. Otherwise, it's a conflict.
-        if not os.path.isdir(destination_path):
-            return format_move_or_rename_path_response(
-                source_path,
-                destination_path,
-                False,
-                error=f"Destination path already exists and is not a directory: {destination_path}",
-            )
+    # Determine final destination path with sanitization and extension preservation
+    final_destination_path = destination_path
+    source_filename = os.path.basename(source_path)
 
-    try:
-        shutil.move(source_path, destination_path)
-        logger.info(f"Successfully moved '{source_path}' to '{destination_path}'")
-        return format_move_or_rename_path_response(
-            source_path,
-            destination_path,
-            True,
-            info=f"Successfully moved '{source_path}' to '{destination_path}'",
-        )
-    except Exception as e:
-        logger.error(
-            f"Error moving '{source_path}' to '{destination_path}': {e}", exc_info=True
-        )
+    if os.path.isdir(destination_path):
+        # Moving into a directory: sanitize the source filename
+        sanitized_filename = source_filename.replace(" ", "_")
+        final_destination_path = os.path.join(destination_path, sanitized_filename)
+    else:
+        # Renaming a file or directory
+        dest_dir, dest_filename = os.path.split(destination_path)
+        sanitized_filename = dest_filename.replace(" ", "_")
+
+        # Preserve extension if the source is a file and destination has no extension
+        if os.path.isfile(source_path):
+            _, source_ext = os.path.splitext(source_filename)
+            if source_ext and not os.path.splitext(sanitized_filename)[1]:
+                sanitized_filename += source_ext
+
+        final_destination_path = os.path.join(dest_dir, sanitized_filename)
+
+    if (
+        os.path.exists(final_destination_path)
+        and final_destination_path != destination_path
+    ):
+        # If the sanitized path exists and is different from the original intent, abort.
+        # This prevents overwriting a file unexpectedly due to sanitization.
         return format_move_or_rename_path_response(
             source_path,
             destination_path,
             False,
-            error=f"Could not move '{source_path}' to '{destination_path}': {e}",
+            error=f"Sanitized destination path '{final_destination_path}' already exists.",
+        )
+
+    if os.path.exists(destination_path) and not os.path.isdir(destination_path):
+        return format_move_or_rename_path_response(
+            source_path,
+            destination_path,
+            False,
+            error=f"Destination path already exists and is not a directory: {destination_path}",
+        )
+
+    try:
+        shutil.move(source_path, final_destination_path)
+        logger.info(f"Successfully moved '{source_path}' to '{final_destination_path}'")
+        return format_move_or_rename_path_response(
+            source_path,
+            final_destination_path,
+            True,
+            info=f"Successfully moved '{source_path}' to '{final_destination_path}'",
+        )
+    except Exception as e:
+        logger.error(
+            f"Error moving '{source_path}' to '{final_destination_path}': {e}",
+            exc_info=True,
+        )
+        return format_move_or_rename_path_response(
+            source_path,
+            final_destination_path,
+            False,
+            error=f"Could not move '{source_path}' to '{final_destination_path}': {e}",
         )
