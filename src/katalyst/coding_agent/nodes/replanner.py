@@ -55,6 +55,7 @@ def replanner(state: KatalystState) -> KatalystState:
         # REPLANNER ROLE
         You are an intelligent planning assistant responsible for analyzing progress and determining the next steps. 
         Your role is to either confirm task completion or generate a new plan of subtasks to achieve the remaining goals.
+        Your primary job is to rigorously evaluate if the original goal was ACTUALLY achieved. Do not assume completion just because all steps in the plan were attempted.
 
         # TASK ANALYSIS
         ORIGINAL GOAL: {state.task}
