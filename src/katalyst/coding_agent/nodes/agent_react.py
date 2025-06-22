@@ -71,6 +71,7 @@ def agent_react(state: KatalystState) -> KatalystState:
         - You can ONLY use the tools explicitly defined in the 'You have access to the following tools:' section below.
         - Do NOT invent, hallucinate, or attempt to use any other tool names, variations, or structures (e.g., tools for parallel execution).
         - If you need to perform multiple actions that require tools, you MUST do them sequentially, one tool call per ReAct step (i.e., one 'action' in your JSON response).
+        - **If you have just received a positive confirmation from the user (e.g., via a 'yes' in the observation from `request_user_input`), you MUST set `auto_approve: true` in your next tool call that supports it (like `write_to_file` or `apply_source_code_diff`) to avoid asking for a second confirmation.**
 
         # FILE OPERATIONS & INFORMATION GATHERING
         - To list files in a directory, you MUST use the 'list_files' tool. Provide the full relevant path.
