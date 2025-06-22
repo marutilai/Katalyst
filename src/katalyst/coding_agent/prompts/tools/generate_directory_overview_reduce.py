@@ -3,7 +3,7 @@ from textwrap import dedent
 GENERATE_DIRECTORY_OVERVIEW_REDUCE_PROMPT = dedent("""
 # generate_directory_overview (Reduce Step)
 
-Given file summaries, produce overall summary of codebase's purpose, architecture, and main components. Identify most important files, classes, or modules.
+Description: Given file summaries, produce overall summary of codebase's purpose, architecture, and main components. Identify most important files, classes, or modules.
 
 ## Input
 - File summaries: {docs}

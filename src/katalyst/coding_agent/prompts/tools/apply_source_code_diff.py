@@ -3,7 +3,7 @@ from textwrap import dedent
 APPLY_SOURCE_CODE_DIFF_PROMPT = dedent('''
 # apply_source_code_diff Tool
 
-Apply precise code changes using search/replace diff format. Use read_file first to get exact content and line numbers. Can batch multiple changes in one request.
+Description: Apply precise code changes using search/replace diff format. Use read_file first to get exact content and line numbers. Can batch multiple changes in one request.
 
 ## Parameters:
 - path: (string, required) File path to modify

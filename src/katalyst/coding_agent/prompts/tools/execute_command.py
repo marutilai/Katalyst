@@ -5,7 +5,7 @@ from textwrap import dedent
 EXECUTE_COMMAND_PROMPT = dedent("""
 # execute_command Tool
 
-Execute CLI commands on the user's system. Provide clear, safe commands. Use relative paths and non-interactive commands. Use `cwd` for working directory, `timeout` for long-running commands.
+Description: Execute CLI commands on the user's system. Provide clear, safe commands. Use relative paths and non-interactive commands. Use `cwd` for working directory, `timeout` for long-running commands.
 
 ## Parameters:
 - command: (string, required) CLI command to execute

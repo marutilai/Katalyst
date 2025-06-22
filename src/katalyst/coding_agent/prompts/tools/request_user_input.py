@@ -3,7 +3,7 @@ from textwrap import dedent
 REQUEST_USER_INPUT_PROMPT = dedent("""
 # request_user_input Tool
 
-Use this tool WHENEVER you need ANY information, clarification, confirmation, choice, filename, content, or other input FROM THE HUMAN USER. Do NOT output questions as 'final_answer'.
+Description: Use this tool WHENEVER you need ANY information, clarification, confirmation, choice, filename, content, or other input FROM THE HUMAN USER. Do NOT output questions as 'final_answer'.
 
 ## Parameters:
 - question_to_ask_user: (string, required) Clear, specific question

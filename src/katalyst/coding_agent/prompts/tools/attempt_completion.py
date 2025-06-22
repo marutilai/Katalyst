@@ -5,7 +5,7 @@ from textwrap import dedent
 ATTEMPT_COMPLETION_PROMPT = dedent("""
 # attempt_completion Tool
 
-Present the final result of the task to the user. Only use after confirming all previous tool uses were successful. Message should be conclusive, not asking for further interaction.
+Description: Present the final result of the task to the user. Only use after confirming all previous tool uses were successful. Message should be conclusive, not asking for further interaction.
 
 ## Parameters:
 - result: (string, required) Final message summarizing successful task completion

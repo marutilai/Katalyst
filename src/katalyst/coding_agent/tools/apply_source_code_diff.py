@@ -55,35 +55,52 @@ def apply_source_code_diff(
         lines = f.readlines()
 
     # Parse all diff blocks (support multi-block)
-    diff_blocks = re.findall(r"<<<<<<< SEARCH(.*?)>>>>>>> REPLACE", diff, re.DOTALL)
-    if not diff_blocks:
+    diff_blobs = re.findall(r"<<<<<<< SEARCH(.*?)>>>>>>> REPLACE", diff, re.DOTALL)
+    if not diff_blobs:
         return format_apply_source_code_diff_response(
             path,
             False,
             error="No valid diff blocks found. Please use the correct format.",
         )
 
-    new_lines = lines[:]
-    offset = 0  # Track line number changes due to previous replacements
-    for block in diff_blocks:
-        # Extract start_line
-        m = re.search(
-            r":start_line:(\d+)[\r\n]+-------([\s\S]*?)=======([\s\S]*)", block
+    # Parse each diff blob to extract metadata and content into a structured list.
+    # This makes it easier to sort and process them reliably.
+    parsed_blocks = []
+    for blob in diff_blobs:
+        match = re.search(
+            r":start_line:(\d+)[\r\n]+-------([\s\S]*?)=======([\s\S]*)", blob
         )
-        if not m:
+        if not match:
             return format_apply_source_code_diff_response(
                 path,
                 False,
                 error="Malformed diff block. Each block must have :start_line, -------, and =======.",
             )
-        start_line = int(m.group(1))
-        search_content = m.group(2).strip("\n")
-        replace_content = m.group(3).strip("\n")
-        # Compute 0-based indices
-        s_idx = start_line - 1 + offset
+        parsed_blocks.append(
+            {
+                "start_line": int(match.group(1)),
+                "search_content": match.group(2).strip("\n"),
+                "replace_content": match.group(3).strip("\n"),
+            }
+        )
+
+    # Sort blocks in reverse order of start_line.
+    # By applying changes from the bottom of the file upwards, we ensure that
+    # line numbers for subsequent (earlier) blocks remain correct without needing
+    # to track index offsets.
+    parsed_blocks.sort(key=lambda b: b["start_line"], reverse=True)
+
+    new_lines = lines[:]
+    for block in parsed_blocks:
+        start_line = block["start_line"]
+        search_content = block["search_content"]
+        replace_content = block["replace_content"]
+
+        s_idx = start_line - 1  # Compute 0-based index
         search_lines = [l.rstrip("\r\n") for l in search_content.splitlines()]
         replace_lines = [l.rstrip("\r\n") for l in replace_content.splitlines()]
-        # Check if the search block matches
+
+        # Check if the search block matches the content at the specified line
         if new_lines[s_idx : s_idx + len(search_lines)] != [
             l + "\n" for l in search_lines
         ]:
@@ -92,10 +109,9 @@ def apply_source_code_diff(
                 False,
                 error=f"Search block does not match file at line {start_line}. Please use read_file to get the exact content and line numbers.",
             )
+
         # Apply the replacement
         new_lines[s_idx : s_idx + len(search_lines)] = [l + "\n" for l in replace_lines]
-        # Update offset for subsequent blocks
-        offset += len(replace_lines) - len(search_lines)
 
     # Preview the diff for the user
     print(

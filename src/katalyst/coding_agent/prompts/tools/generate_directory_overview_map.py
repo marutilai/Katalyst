@@ -3,7 +3,7 @@ from textwrap import dedent
 GENERATE_DIRECTORY_OVERVIEW_MAP_PROMPT = dedent("""
 # generate_directory_overview (Map Step)
 
-Summarize the purpose, main logic, and key components of a single code file. Identify important classes and functions.
+Description: Summarize the purpose, main logic, and key components of a single code file. Identify important classes and functions.
 
 ## Input
 - File content: {context}

@@ -3,7 +3,7 @@ from textwrap import dedent
 LIST_CODE_DEFINITION_NAMES_PROMPT = dedent("""
 # list_code_definition_names Tool
 
-List code definitions (classes, functions, methods) from a source file or all top-level files in a directory.
+Description: List code definitions (classes, functions, methods) from a source file or all top-level files in a directory.
 
 ## Parameters:
 - path: (string, required) File or directory path to analyze

@@ -4,7 +4,7 @@ from textwrap import dedent
 LIST_FILES_PROMPT = dedent("""
 # list_files Tool
 
-List files and directories in a given directory. Set `recursive` to true for recursive listing, false for top-level only.
+Description: List files and directories in a given directory. Set `recursive` to true for recursive listing, false for top-level only.
 
 ## Parameters:
 - path: (string, required) Directory path to list

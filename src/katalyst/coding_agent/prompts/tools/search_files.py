@@ -3,7 +3,7 @@ from textwrap import dedent
 SEARCH_FILES_PROMPT = dedent("""
 # regex_search_files Tool
 
-Search for regex patterns across files in a directory. Provides context-rich results with file names and line numbers.
+Description: Search for regex patterns across files in a directory. Provides context-rich results with file names and line numbers.
 
 ## Parameters:
 - path: (string, required) Directory to search (recursive)

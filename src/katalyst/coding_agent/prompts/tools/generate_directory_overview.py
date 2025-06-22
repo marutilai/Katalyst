@@ -4,7 +4,7 @@ from textwrap import dedent
 GENERATE_DIRECTORY_OVERVIEW_PROMPT = dedent("""
 # generate_directory_overview Tool
 
-Provides high-level overview and documentation of a codebase by scanning a directory, summarizing each source file, and creating an overall summary. Most efficient for understanding multiple files at once.
+Description: Provides high-level overview and documentation of a codebase by scanning a directory, summarizing each source file, and creating an overall summary. Most efficient for understanding multiple files at once.
 
 ## When to Use:
 - Understand or document entire project, module, or large directory

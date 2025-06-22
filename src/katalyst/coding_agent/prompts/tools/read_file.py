@@ -3,7 +3,7 @@ from textwrap import dedent
 READ_FILE_TOOL_PROMPT = dedent("""
 # read_file Tool
 
-Read the contents of a specific file. Use for focused tasks like understanding file logic, preparing edits, or debugging. Read entire file unless it's extremely large AND you only need a small section.
+Description: Read the contents of a specific file. Use for focused tasks like understanding file logic, preparing edits, or debugging. Read entire file unless it's extremely large AND you only need a small section.
 
 ## Parameters:
 - path: (string, required) File path to read
