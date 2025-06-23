@@ -203,6 +203,7 @@ def planner(state: KatalystState) -> KatalystState:
 
         # Update state
         state.task_queue = subtasks
+        state.original_plan = subtasks  # Save the original plan
         state.task_idx = 0
         state.outer_cycles = 0
         state.completed_tasks = []

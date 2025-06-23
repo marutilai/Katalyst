@@ -10,6 +10,7 @@ from katalyst.katalyst_core.utils.models import (
 )
 from langchain_core.messages import AIMessage
 from katalyst.katalyst_core.utils.logger import get_logger
+from katalyst.katalyst_core.utils.tools import extract_tool_descriptions
 from katalyst.katalyst_core.utils.error_handling import (
     ErrorType,
     create_error_message,
@@ -21,112 +22,131 @@ import os
 
 def replanner(state: KatalystState) -> KatalystState:
     """
-    1) If a final response is already set (e.g., by a guardrail in advance_pointer), do nothing.
-    2) Otherwise, call an LLM to analyze progress and either:
-       a) Determine the overall goal is complete, then set state.response with a summary.
-       b) Generate a new plan of subtasks if the goal is not yet achieved.
-    3) Update state accordingly (task_queue, task_idx, response, chat_history).
+    Critiques the original plan based on execution history, determines if the
+    overall goal is complete, and if not, generates a new, corrected plan.
+
+    This node is the critical checkpoint in the agent's outer loop. It serves
+    two purposes:
+    1.  **Completion Judgement**: It first makes a holistic assessment to see if
+        the user's overall goal has been met by analyzing the completed tasks.
+    2.  **Corrective Replanning**: If the goal is not met, it analyzes why the
+        previous plan failed or stalled and generates a new, more intelligent
+        plan to get the agent back on track.
     """
     logger = get_logger()
-    logger.debug(
-        f"[REPLANNER] Starting replanner node. Current task_idx: {state.task_idx}, task_queue length: {len(state.task_queue)}"
-    )
+    logger.debug(f"[REPLANNER] Starting replanner node...")
 
-    # If a response is already set (e.g., by max_outer_cycles in advance_pointer),
-    # it means the process should terminate. Don't replan.
     if state.response:
-        logger.debug(
-            f"[REPLANNER] Final response already set in state: '{state.response}'. No replanning needed. Routing to END."
-        )
-        # Ensure task_queue is empty so route_after_replanner goes to END
+        logger.debug(f"[REPLANNER] Final response already set. Skipping replanning.")
         state.task_queue = []
         return state
 
+    # 1. Gather all context for the replanning prompt
+    # =================================================
     llm = get_llm_instructor()
     replanner_model = get_llm_model_for_component("replanner")
+    tool_descriptions = extract_tool_descriptions()
+    tool_list_str = "\n".join(f"- {name}: {desc}" for name, desc in tool_descriptions)
+
+    original_plan_str = (
+        "\n".join(f"{i+1}. {s}" for i, s in enumerate(state.original_plan))
+        if state.original_plan
+        else "No original plan was provided."
+    )
+
     completed_tasks_str = (
-        "\n".join(
-            f"- '{task_desc}': {summary}"
-            for task_desc, summary in state.completed_tasks
-        )
+        "\n".join(f"- '{task}': {summary}" for task, summary in state.completed_tasks)
         if state.completed_tasks
         else "No sub-tasks have been completed yet."
     )
 
+    failed_task_trace_str = (
+        "\n".join(
+            f"Action: {action.tool}({action.tool_input})\nObservation: {obs}"
+            for action, obs in state.action_trace
+        )
+        if state.action_trace
+        else "No actions were taken for the current task."
+    )
+
+    current_task_str = (
+        state.task_queue[state.task_idx]
+        if state.task_idx < len(state.task_queue)
+        else "No current task."
+    )
+
+    # 2. Construct the new, dual-purpose prompt
+    # =================================================
     prompt = f"""
-        # REPLANNER ROLE
-        You are an intelligent planning assistant responsible for analyzing progress and determining the next steps. 
-        Your role is to either confirm task completion or generate a new plan of subtasks to achieve the remaining goals.
-        Your primary job is to rigorously evaluate if the original goal was ACTUALLY achieved. Do not assume completion just because all steps in the plan were attempted.
+# ROLE & CONTEXT
+You are a 'Replanner' for an AI agent. You have two critical responsibilities:
+1.  **Completion Judgement:** First, you must rigorously determine if the user's Original Goal has been fully and satisfactorily achieved based on the evidence.
+2.  **Corrective Replanning:** If, and ONLY IF, the goal is NOT complete, you must analyze the execution history, learn from mistakes, and create a new, improved plan.
 
-        # TASK ANALYSIS
-        ORIGINAL GOAL: {state.task}
+# ANALYSIS SECTION
+Carefully review the following information to make your decision.
 
-        COMPLETED SUBTASKS & THEIR OUTCOMES (most recent first):
-        {completed_tasks_str}
+## 1. The Original User Goal
+This is the ultimate objective.
+"{state.task}"
 
-        # DECISION GUIDELINES
-        1. Carefully review the ORIGINAL GOAL and COMPLETED SUBTASKS.
-        2. Determine if the ORIGINAL GOAL has been fully achieved by considering:
-           - All required information has been gathered
-           - All necessary files have been created/modified
-           - All user interactions have been completed
-           - All validation steps have been performed
-        3. If the goal is complete, return is_complete: true and an empty subtasks list: {{"subtasks": []}}
-        4. If the goal is NOT complete, return is_complete: false and a new subtasks list.
-           - Focuses on remaining tasks only
-           - Avoids repeating completed tasks
-           - Addresses any failed or incomplete tasks
-           - Maintains logical task ordering
+## 2. The Original Plan
+This was the initial strategy.
+{original_plan_str}
 
-        # SUBTASK GENERATION RULES
-        When creating new subtasks:
-        1. Each subtask must be a single, actionable step
-        2. Use clear, tool-specific language (e.g., 'Use read_file to...')
-        3. Include necessary parameters in the description
-        4. Order tasks logically (e.g., read before write)
-        5. Handle dependencies appropriately
+## 3. Successfully Completed Tasks
+These tasks are DONE.
+{completed_tasks_str}
 
-        # ERROR RECOVERY
-        If previous tasks failed or were incomplete:
-        1. Analyze why the previous attempt failed
-        2. Propose a different approach
-        3. Add validation steps to confirm success
-        4. Consider asking for user guidance if needed
+## 4. The Current Task & Execution Trace
+This is the task that was being executed, which may have failed or completed the plan.
+- **Current Task:** "{current_task_str}"
+- **Execution Trace:**
+{failed_task_trace_str}
 
-        # OUTPUT FORMAT
-        Return a JSON object with two keys: 'is_complete' (boolean) and 'subtasks' (list of strings).
-        Example: {{"is_complete": true, "subtasks": []}} or {{"is_complete": false, "subtasks": ["task1", "task2"]}}
+# AVAILABLE TOOLS
+Your new plan must be grounded in the available tools.
+{tool_list_str}
 
-        # COMPLETION CHECKLIST
-        Before returning is_complete: true, verify:
-        1. All required information is available
-        2. All necessary files exist with correct content
-        3. All user interactions are complete
-        4. No pending tasks remain
-        5. No errors need to be addressed
+# INSTRUCTIONS
 
-        CURRENT SITUATION: The previous plan is exhausted or a replanning event was triggered. 
-        Analyze the progress and provide your JSON response.
-    """
+## STEP 1: MAKE A COMPLETION VERDICT
+Based on all the information in the ANALYSIS SECTION, is the Original User Goal complete?
+- To be complete, all required files must be created/modified, all information gathered, and all user requests satisfied.
+- Do NOT assume completion just because all tasks in the original plan were attempted. The *outcome* is what matters.
+- **If the goal is complete**, set `is_complete: true` in your JSON output. The `subtasks` list should be empty.
+- **If the goal is NOT complete**, set `is_complete: false` and proceed to STEP 2.
+
+## STEP 2: CREATE A CORRECTIVE REPLAN (ONLY if goal is not complete)
+If you determined the goal is not complete, create a new plan to finish the work.
+- **Learn from Mistakes:** Analyze the execution trace. If a tool failed, why? Was it a syntax error? A wrong path? Your new plan must address this.
+- **Acknowledge Success:** Do not re-do tasks that were already completed successfully.
+- **Be Specific & Actionable:** Each step must be a clear, executable action using the available tools.
+- Your new plan should be a list of strings in the `subtasks` field of your JSON output.
+
+# OUTPUT FORMAT
+You MUST return a JSON object with two keys: `is_complete` (boolean) and `subtasks` (a list of strings for the new plan).
+- **On success:** {{"is_complete": true, "subtasks": []}}
+- **On failure/incomplete:** {{"is_complete": false, "subtasks": ["Use `read_file` to check 'config.json'.", "Use `request_user_input` to ask for the correct API key." ]}}
+"""
     logger.debug(f"[REPLANNER] Prompt to LLM:\n{prompt}")
 
+    # 3. Execute LLM call and update state
+    # =================================================
     try:
         fallbacks = get_llm_fallbacks()
         timeout = get_llm_timeout()
         llm_response_model = llm.chat.completions.create(
             messages=[{"role": "system", "content": prompt}],
-            response_model=ReplannerOutput,  # Expects {"is_complete": bool, "subtasks": [...]}
+            response_model=ReplannerOutput,
             temperature=0.1,
-            # Instructor's retries for Pydantic validation (if LLM output doesn't fit model)
             max_retries=2,
-            # LiteLLM's native retries for API call failures
             num_retries=2,
             model=replanner_model,
             fallbacks=fallbacks if fallbacks else None,
             timeout=timeout,
         )
-        # Check if the model used is the same as the one configured or a fallback was used
+
         actual_model = getattr(llm_response_model, "model", None)
         if actual_model and actual_model != replanner_model:
             logger.info(f"[LLM] Fallback model used: {actual_model}")
@@ -143,12 +163,11 @@ def replanner(state: KatalystState) -> KatalystState:
 
         if is_complete or not new_subtasks:
             logger.info(
-                "[REPLANNER] LLM indicated original goal is complete (is_complete=True) or no new subtasks are needed."
+                "[REPLANNER] LLM indicated original goal is complete or no new subtasks are needed."
             )
-            state.task_queue = []  # Ensure task queue is empty for routing to END
-            state.task_idx = 0  # Reset index
+            state.task_queue = []
+            state.task_idx = 0
 
-            # Construct a final response message based on completed tasks
             if state.completed_tasks:
                 final_summary_of_work = (
                     "Katalyst has completed the following sub-tasks based on the plan:\n"
@@ -159,40 +178,31 @@ def replanner(state: KatalystState) -> KatalystState:
                 )
                 state.response = final_summary_of_work
             else:
-                # This case should be rare if a planner ran, but handle it.
-                state.response = "The task was concluded without any specific sub-tasks being completed according to the plan."
+                state.response = "The task was concluded without any specific sub-tasks being completed."
 
             state.chat_history.append(
                 AIMessage(
                     content=f"[REPLANNER] Goal achieved. Final response: {state.response}"
                 )
             )
-            logger.debug(
-                f"[REPLANNER] Goal achieved. Setting final response. Task queue empty."
-            )
 
         else:  # LLM provided new subtasks
             logger.info(
                 f"[REPLANNER] Generated new plan with {len(new_subtasks)} subtasks."
             )
+            # A new plan has been formulated; reset the relevant parts of the state.
             state.task_queue = new_subtasks
-            state.task_idx = 0  # Reset task index for the new plan
-            state.response = (
-                None  # Clear any previous overall response, as we have a new plan
-            )
-            state.error_message = None  # Clear any errors that led to replanning
-            state.inner_cycles = 0  # Reset inner cycles for the new plan's first task
-            state.action_trace = []  # Clear action trace for the new plan's first task
-            # Outer cycles are managed by advance_pointer when a plan is exhausted
+            state.task_idx = 0  # Start from the beginning of the new plan.
+            state.response = None  # Clear any previous final response.
+            state.error_message = None  # Clear the error that triggered the replan.
+            state.inner_cycles = 0  # Reset the inner loop counter for the new task.
+            state.action_trace = []  # Clear the action trace for the new task.
 
             state.chat_history.append(
                 AIMessage(
                     content=f"[REPLANNER] Generated new plan:\n"
                     + "\n".join(f"{i+1}. {s}" for i, s in enumerate(new_subtasks))
                 )
-            )
-            logger.debug(
-                f"[REPLANNER] New plan set. Task queue size: {len(state.task_queue)}, Task index: {state.task_idx}"
             )
 
     except Exception as e:
@@ -203,7 +213,5 @@ def replanner(state: KatalystState) -> KatalystState:
         state.error_message = error_msg
         state.response = "Failed to generate new plan. Please try again."
 
-    logger.debug(
-        f"[REPLANNER] End of replanner node. state.response: '{state.response}', task_queue: {state.task_queue}"
-    )
+    logger.debug(f"[REPLANNER] End of replanner node.")
     return state

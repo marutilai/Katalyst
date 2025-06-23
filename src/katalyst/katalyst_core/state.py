@@ -29,6 +29,9 @@ class KatalystState(BaseModel):
     task_idx: int = Field(
         0, description="Index of the task currently being executed (0-based)."
     )
+    original_plan: Optional[List[str]] = Field(
+        default=None, description="The initial plan created by the planner."
+    )
 
     # ── ReAct dialogue (inner loop) ───────────────────────────────────────
     chat_history: List[BaseMessage] = Field(
