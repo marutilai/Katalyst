@@ -1,11 +1,17 @@
-# Prompt for execute_command tool
-
 from textwrap import dedent
 
 EXECUTE_COMMAND_PROMPT = dedent("""
 # execute_command Tool
 
-Description: Execute CLI commands on the user's system. Provide clear, safe commands. Use relative paths and non-interactive commands. Use `cwd` for working directory, `timeout` for long-running commands.
+Description: Execute CLI commands on the user's system. Provide clear, safe commands. Use relative paths and non-interactive commands.
+
+## When to Use:
+- Running build commands (npm install, pip install, make)
+- Executing tests (pytest, npm test)
+- Running linters or formatters
+- Git operations (status, log, diff)
+- System information queries (pwd, env, which)
+- File operations when other tools aren't suitable
 
 ## Parameters:
 - command: (string, required) CLI command to execute
@@ -14,10 +20,10 @@ Description: Execute CLI commands on the user's system. Provide clear, safe comm
 
 ## Example:
 {
-  "thought": "I need to list files in the current directory.",
+  "thought": "I need to install project dependencies.",
   "action": "execute_command",
   "action_input": {
-    "command": "ls -la",
+    "command": "npm install",
     "cwd": "."
   }
 }

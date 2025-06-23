@@ -5,6 +5,14 @@ REQUEST_USER_INPUT_PROMPT = dedent("""
 
 Description: Use this tool WHENEVER you need ANY information, clarification, confirmation, choice, filename, content, or other input FROM THE HUMAN USER. Do NOT output questions as 'final_answer'.
 
+## When to Use:
+- Getting user preferences or choices
+- Requesting file/directory names
+- Asking for confirmation before major changes
+- Clarifying ambiguous requirements
+- Getting API keys, URLs, or configuration values
+- When task description is unclear
+
 ## Parameters:
 - question_to_ask_user: (string, required) Clear, specific question
 - suggested_responses: (list of strings, required) 2-4 actionable, complete suggestions

@@ -104,7 +104,7 @@ def repl(user_input_fn=input):
             "project_root_cwd": os.getcwd(),
             "user_input_fn": user_input_fn,
         }
-            final_state = None
+        final_state = None
         try:
             final_state = graph.invoke(current_input, config)
         except GraphRecursionError:

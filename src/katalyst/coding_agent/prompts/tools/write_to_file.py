@@ -5,9 +5,17 @@ WRITE_TO_FILE_PROMPT = dedent("""
 
 Description: Write full content to a file. Overwrites existing files or creates new ones (including directories). Provide complete content—no truncation.
 
+## When to Use:
+- Creating new files or replacing file contents entirely
+- Setting up project structure (creates parent directories automatically)
+- Writing configuration files, scripts, or documentation
+- Saving generated output or results
+- Creating empty marker files like __init__.py
+
 ## Parameters:
 - path: (string, required) File path to write
 - content: (string, required) Full content to write
+- auto_approve: (boolean, optional) Skip user confirmation if true
 
 ## Example:
 {

@@ -34,7 +34,7 @@ def planner(state: KatalystState) -> KatalystState:
     * Returns: The updated KatalystState.
     """
     logger = get_logger()
-    logger.debug(f"[PLANNER] Starting planner node...")
+    logger.debug("[PLANNER] Starting planner node...")
 
     # Use simplified API
     llm = get_llm_client("planner", async_mode=False, use_instructor=True)
@@ -116,77 +116,73 @@ def planner(state: KatalystState) -> KatalystState:
         playbook_section = ""
 
     prompt = f"""
-        # ROLE
-        You are a planning assistant for a ReAct-style AI agent. Your job is to break down a high-level user GOAL into a logically ordered list of atomic, executable sub-tasks. Each sub-task will be performed by an agent that can call tools, but cannot perform abstract reasoning or inference beyond what the tools enable.
+# ROLE
+You are a planning assistant for a ReAct-style AI agent. Your job is to break down a high-level user GOAL into a logically ordered list of atomic, executable sub-tasks.
 
-        # AGENT CAPABILITIES
-        The agent's primary capability is to use the tools provided below. Your plan should be entirely based on using these tools to achieve the goal.
-        The agent has access to the following tools:
-        {tool_list_str}
+# AGENT CAPABILITIES
+The agent's primary capability is to use the tools provided below. Your plan should be entirely based on using these tools to achieve the goal.
 
-        # SUBTASK GUIDELINES
-        {playbook_section}
+## Available Tools:
+{tool_list_str}
 
-        1. Actionable and Specific
-        - Every sub-task must describe a clear, concrete action.
-        - Avoid abstract goals like "analyze", "determine", "navigate".
-        - Instead of: "Understand config file"
-            Use: "Use 'read_file' to read 'config/settings.json' and summarize its key configuration parameters"
-        - For directory creation, use 'write_to_file' to create a file in the desired directory - it will automatically create any needed parent directories.
-        - Instead of: "Create directory 'src/utils'"
-            Use: "Use 'write_to_file' to create 'src/utils/__init__.py' with content '# Utils module'"
+{playbook_section}
 
-        2. Guiding Principles for Tool Selection
-        - For high-level understanding of an entire codebase or directory, prefer 'generate_directory_overview' to get an efficient overview.
-        - Only call 'generate_directory_overview' once per top-level directory (e.g., 'src/', 'app/'). It will recursively include all nested subdirectories and files, so there is no need to call it again for subdirectories within the same parent directory.
-        - For focused work on a single, known file (reading to debug, edit, or get specific details), prefer the more direct 'read_file' tool.
-        - Use 'list_code_definition_names' to get a quick map of functions/classes before diving deep with 'read_file'.
-        - For getting a list of files, use the `list_files` tool.
+# SUBTASK GUIDELINES
 
-        3. Parameter-Specific
-        - Include all required parameters inline (e.g., filenames, paths, content).
-        - Instead of: "Create a file"
-            Use: "Use 'write_to_file' to create 'README.md' with the content 'Initial setup'"
+## 1. Actionable & Specific
+Every sub-task must describe a clear, concrete action.
+- ❌ Avoid: "Understand config file"
+- ✅ Use: "Use 'read_file' to read 'config/settings.json' and summarize key configuration parameters"
 
-        4. Explicit User Interaction
-        - If input is needed from the user, use 'request_user_input' and specify the prompt.
-        - Example: "Use 'request_user_input' to ask the user for the desired output folder, defaulting to 'output/'"
+## 2. Directory Creation
+For directory creation, use 'write_to_file' to create a file in the desired directory - it will automatically create any needed parent directories.
+- ❌ Avoid: "Create directory 'src/utils'"
+- ✅ Use: "Use 'write_to_file' to create 'src/utils/__init__.py' with content '# Utils module'"
 
-        5. Single-Step Granularity
-        - Sub-tasks should be atomic and non-composite.
-        - Avoid bundling multiple steps into one.
-        - Instead of: "Set up project structure"
-            Use:
-            - "Use 'write_to_file' to create empty file 'src/main.py'"
+## 3. Tool Selection Guidelines
+- For codebase overview: Use 'generate_directory_overview' on top-level directories (e.g., 'src/', 'app/')
+- For specific file work: Use 'read_file' for focused tasks
+- For structure mapping: Use 'list_code_definition_names' before deep diving
+- For file listing: Use 'list_files' with recursive flag as needed
+- Call 'generate_directory_overview' ONCE per top-level directory (it recursively analyzes all subdirectories)
 
-        6. Logical Ordering
-        - Ensure dependencies are respected.
-        - Create directories or files before trying to read or write into them.
-        - Read files before asking for analysis or summarization.
+## 4. Parameter-Specific
+Include all required parameters inline (e.g., filenames, paths, content).
+- ❌ Avoid: "Create a file"
+- ✅ Use: "Use 'write_to_file' to create 'README.md' with content 'Initial setup'"
 
-        7. Complete but Minimal
-        - Cover all necessary steps implied by the goal.
-        - Do not include extra steps unless explicitly required or implied.
+## 5. User Interaction
+If input is needed from the user, use 'request_user_input' and specify the prompt.
+- Example: "Use 'request_user_input' to ask the user for desired output folder"
 
-        8. Avoid Abstract or Narrative Tasks
-        - Avoid subtasks like "navigate to", "explore", or "think about".
-        - Use tools like 'list_files' to perform directory inspection.
+## 6. Single-Step Granularity
+Sub-tasks should be atomic and non-composite.
+- ❌ Avoid: "Set up project structure"
+- ✅ Use: "Use 'write_to_file' to create 'src/main.py'"
 
-        # HIGH-LEVEL USER GOAL
-        {state.task}
+## 7. Logical Ordering
+- Ensure dependencies are respected
+- Create directories before writing files in them
+- Read files before analyzing their content
 
-        # OUTPUT FORMAT
-        Based on the GOAL, the AVAILABLE TOOLS, the AGENT CAPABILITIES, and the SUBTASK GUIDELINES{', and the PLAYBOOK GUIDELINES' if playbook_guidelines else ''}, provide your response as a JSON object with a single key "subtasks". The value should be a list of strings, where each string is a sub-task description.
+## 8. Complete but Minimal
+- Cover all necessary steps implied by the goal
+- Do not include extra steps unless explicitly required
 
-        Example JSON output:
-        {{
-            "subtasks": [
-                "Use the `list_files` tool to list contents of the current directory.",
-                "Use the `read_file` tool to read 'README.md' and summarize its key features and requirements.",
-                "Use the `request_user_input` tool to ask the user which file they want to analyze next."
-            ]
-        }}
-    """
+# HIGH-LEVEL USER GOAL
+{state.task}
+
+# OUTPUT FORMAT
+Based on the GOAL, AVAILABLE TOOLS, and GUIDELINES{', and PLAYBOOK GUIDELINES' if playbook_guidelines else ''}, provide a JSON object with key "subtasks" containing a list of task descriptions.
+
+Example:
+{{
+    "subtasks": [
+        "Use the `list_files` tool to list contents of the current directory.",
+        "Use the `read_file` tool to read 'README.md' and summarize key features.",
+        "Use the `request_user_input` tool to ask the user which file to analyze next."
+    ]
+}}"""
     logger.debug(f"[PLANNER] Prompt to LLM:\n{prompt}")
 
     try:
@@ -226,5 +222,5 @@ def planner(state: KatalystState) -> KatalystState:
         state.error_message = error_msg
         state.response = "Failed to generate initial plan. Please try again."
 
-    logger.debug(f"[PLANNER] End of planner node.")
+    logger.debug("[PLANNER] End of planner node.")
     return state

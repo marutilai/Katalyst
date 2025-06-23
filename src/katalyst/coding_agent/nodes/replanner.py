@@ -32,10 +32,10 @@ def replanner(state: KatalystState) -> KatalystState:
         plan to get the agent back on track.
     """
     logger = get_logger()
-    logger.debug(f"[REPLANNER] Starting replanner node...")
+    logger.debug("[REPLANNER] Starting replanner node...")
 
     if state.response:
-        logger.debug(f"[REPLANNER] Final response already set. Skipping replanning.")
+        logger.debug("[REPLANNER] Final response already set. Skipping replanning.")
         state.task_queue = []
         return state
 
@@ -210,5 +210,5 @@ You MUST return a JSON object with two keys: `is_complete` (boolean) and `subtas
         state.error_message = error_msg
         state.response = "Failed to generate new plan. Please try again."
 
-    logger.debug(f"[REPLANNER] End of replanner node.")
+    logger.debug("[REPLANNER] End of replanner node.")
     return state
