@@ -102,5 +102,5 @@ def request_user_input(
         logger.error("User did not provide a valid answer.")
         return format_response(question_to_ask_user, "[USER_NO_ANSWER_PROVIDED]")
 
-    logger.info(f"User responded with: {actual_answer}")
+    logger.debug(f"User responded with: {actual_answer}")
     return format_response(question_to_ask_user, actual_answer)

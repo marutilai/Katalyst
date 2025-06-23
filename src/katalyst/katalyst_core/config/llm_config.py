@@ -6,7 +6,7 @@ with sensible defaults and easy provider switching.
 """
 
 import os
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 from katalyst.katalyst_core.utils.logger import get_logger
 
 logger = get_logger()

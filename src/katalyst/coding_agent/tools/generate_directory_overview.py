@@ -108,7 +108,7 @@ async def generate_directory_overview(
     # Use simplified API
     llm = get_llm_client("generate_directory_overview", async_mode=True, use_instructor=True)
     llm_params = get_llm_params("generate_directory_overview")
-    logger.info(f"[generate_directory_overview] Analyzing directory: {dir_path}")
+    logger.debug(f"[generate_directory_overview] Analyzing directory: {dir_path}")
 
     # Validate path is a directory
     if not os.path.exists(dir_path):
@@ -123,7 +123,7 @@ async def generate_directory_overview(
     ]
     # Deduplicate files while preserving order
     files = list(dict.fromkeys(files))
-    logger.info(f"[generate_directory_overview] Files to summarize: {files}")
+    logger.debug(f"[generate_directory_overview] Files to summarize: {files}")
     if not files:
         return {"error": f"No files to summarize in directory: {dir_path}"}
 

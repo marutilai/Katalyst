@@ -154,7 +154,7 @@ You MUST return a JSON object with two keys: `is_complete` (boolean) and `subtas
 
         is_complete = llm_response_model.is_complete
         new_subtasks = llm_response_model.subtasks
-        logger.info(
+        logger.debug(
             f"[REPLANNER] LLM replanner output: is_complete={is_complete}, subtasks={new_subtasks}"
         )
 

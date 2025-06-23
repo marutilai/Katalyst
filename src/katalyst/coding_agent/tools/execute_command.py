@@ -123,7 +123,7 @@ def execute_command(
         stdout = result.stdout.strip() if result.stdout else None
         stderr = result.stderr.strip() if result.stderr else None
         if result.returncode == 0:
-            logger.info("Exiting execute_command successfully.")
+            logger.debug("Exiting execute_command successfully.")
             return format_execute_command_response(
                 True, command, absolute_cwd, stdout=stdout, stderr=stderr
             )
