@@ -29,12 +29,11 @@ async def test_error_on_empty_directory(tmp_path):
 
 
 @pytest.mark.asyncio
-# We patch the 'app.ainvoke' method within the tool's module.
+# We patch the StateGraph class to mock the compiled app
 @patch(
-    "katalyst.coding_agent.tools.generate_directory_overview.app.ainvoke",
-    new_callable=AsyncMock,
+    "katalyst.coding_agent.tools.generate_directory_overview.StateGraph"
 )
-async def test_respects_gitignore(mock_ainvoke, tmp_path):
+async def test_respects_gitignore(mock_state_graph, tmp_path):
     """
     Unit test: Verifies that gitignored files are filtered out before being passed to the internal graph.
     """
@@ -42,21 +41,29 @@ async def test_respects_gitignore(mock_ainvoke, tmp_path):
     (tmp_path / "main.py").write_text("print('hello')")
     (tmp_path / "ignored.log").write_text("secret")
     (tmp_path / ".gitignore").write_text("*.log")
+    
+    # Also create a subdirectory with a file to ensure we have files
+    subdir = tmp_path / "src"
+    subdir.mkdir()
+    (subdir / "test.py").write_text("# test file")
 
-    # Set a dummy return value for the mocked graph invocation to prevent errors
-    mock_ainvoke.return_value = {"summaries": [], "final_summary": {}}
+    # Set up the mock graph
+    mock_app = AsyncMock()
+    mock_app.ainvoke.return_value = {"summaries": [], "final_summary": {}}
+    mock_graph_instance = mock_state_graph.return_value
+    mock_graph_instance.compile.return_value = mock_app
 
     # Act: Run the tool. This will call our mock_ainvoke instead of the real graph.
     await generate_directory_overview(str(tmp_path))
 
     # Assert: Check that the mock was called, and inspect the arguments it received.
     assert (
-        mock_ainvoke.called
+        mock_app.ainvoke.called
     ), "The internal graph's ainvoke method should have been called."
 
     # Get the arguments passed to the mock. `call_args` is a tuple of (args, kwargs).
     # The first argument (index 0) is the `initial_state` dictionary.
-    call_args, call_kwargs = mock_ainvoke.call_args
+    call_args, call_kwargs = mock_app.ainvoke.call_args
     invoked_state = call_args[0]
 
     # The crucial assertion: check the 'contents' list that was prepared for the graph.

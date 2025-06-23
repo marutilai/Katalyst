@@ -149,15 +149,14 @@ class PlaybookNavigator:
         query_tokens = bm25s.tokenize([query], stopwords="en")
         results, scores = self.bm25.retrieve(query_tokens, k=k)
         found = []
-        print(f"DEBUG - Number of results: {len(results[0])}")
-        for result in results[0]:
-            meta = self.playbooks_metadata[result["id"]]
-            print(f"DEBUG - Playbook title: {meta.title}")
-            print(f"DEBUG - Playbook description: {meta.description}")
+        for idx in results[0]:
+            # Handle both integer indices and dict results
+            if isinstance(idx, dict) and "id" in idx:
+                idx = idx["id"]
+            meta = self.playbooks_metadata[idx]
             if agent_type and meta.agent_type != agent_type:
                 continue
             found.append(meta)
-        print(f"DEBUG - Total playbooks found: {len(found)}")
         return found
 
     def get_playbook_by_id(self, playbook_id: str) -> Optional[Playbook]:

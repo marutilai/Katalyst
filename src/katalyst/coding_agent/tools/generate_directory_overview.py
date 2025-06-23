@@ -118,9 +118,6 @@ async def generate_directory_overview(
 
     # Gather files to summarize
     files = list_files_recursively(dir_path, respect_gitignore=respect_gitignore)
-    files = [
-        f for f in files if not should_ignore_path(f, os.getcwd(), respect_gitignore)
-    ]
     # Deduplicate files while preserving order
     files = list(dict.fromkeys(files))
     logger.debug(f"[generate_directory_overview] Files to summarize: {files}")
