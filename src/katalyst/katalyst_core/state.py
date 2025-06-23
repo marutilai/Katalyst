@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional, Union, Callable
+from typing import List, Tuple, Optional, Union, Callable, Dict
 from pydantic import BaseModel, Field
 from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.messages import BaseMessage
@@ -93,6 +93,13 @@ class KatalystState(BaseModel):
     # ── playbook / plan context ─────────────────────────────────────────────
     playbook_guidelines: Optional[str] = Field(
         None, description="Playbook or plan guidelines for the current run."
+    )
+
+    # ── content reference system ───────────────────────────────────────────
+    content_store: Dict[str, str] = Field(
+        default_factory=dict,
+        description="Temporary storage for file contents with reference IDs. "
+                    "Used to prevent content hallucination when passing through LLM."
     )
 
     class Config:

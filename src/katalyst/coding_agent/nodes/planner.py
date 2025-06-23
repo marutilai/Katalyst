@@ -35,6 +35,7 @@ def planner(state: KatalystState) -> KatalystState:
     """
     logger = get_logger()
     logger.debug("[PLANNER] Starting planner node...")
+    logger.debug(f"[PLANNER][CONTENT_REF] Initial content_store state: {len(state.content_store)} references")
 
     # Use simplified API
     llm = get_llm_client("planner", async_mode=False, use_instructor=True)

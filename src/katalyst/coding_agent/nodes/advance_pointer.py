@@ -66,6 +66,13 @@ def advance_pointer(state: KatalystState) -> KatalystState:
     state.action_trace.clear()
     state.agent_outcome = None
     state.error_message = None
+    
+    # Log content_store status when advancing
+    if state.content_store:
+        logger.debug(
+            f"[ADVANCE_POINTER][CONTENT_REF] Content store has {len(state.content_store)} references: "
+            f"{list(state.content_store.keys())}"
+        )
 
     # 3) If plan is exhausted, check outer-loop guard
     if state.task_idx >= len(state.task_queue):

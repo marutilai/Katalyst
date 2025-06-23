@@ -12,6 +12,9 @@ from katalyst.katalyst_core.utils.error_handling import (
 )
 from langgraph.errors import GraphRecursionError
 import os
+import json
+import hashlib
+from katalyst.coding_agent.tools.write_to_file import format_write_to_file_response
 
 REGISTERED_TOOL_FUNCTIONS_MAP = get_tool_functions_map()
 
@@ -78,6 +81,52 @@ def tool_runner(state: KatalystState) -> KatalystState:
             sig = inspect.signature(tool_fn)
             if "user_input_fn" in sig.parameters:
                 tool_input_resolved["user_input_fn"] = state.user_input_fn or input
+            
+            # Handle content_ref resolution for write_to_file
+            if tool_name == "write_to_file":
+                if "content_ref" in tool_input_resolved:
+                    # Log that LLM chose to use content_ref
+                    logger.info(f"[TOOL_RUNNER][CONTENT_REF] LLM chose to use content reference for write_to_file")
+                else:
+                    # Log that LLM provided content directly
+                    content_len = len(tool_input_resolved.get("content", ""))
+                    logger.info(f"[TOOL_RUNNER][CONTENT_REF] LLM provided content directly ({content_len} chars) for write_to_file")
+            
+            if tool_name == "write_to_file" and "content_ref" in tool_input_resolved:
+                content_ref = tool_input_resolved.get("content_ref")
+                logger.info(f"[TOOL_RUNNER][CONTENT_REF] write_to_file requested with content_ref: '{content_ref}'")
+                
+                if content_ref and content_ref in state.content_store:
+                    # Replace content_ref with actual content
+                    resolved_content = state.content_store[content_ref]
+                    
+                    # Check if content was also provided (content_ref takes precedence)
+                    if "content" in tool_input_resolved:
+                        original_len = len(tool_input_resolved.get("content", ""))
+                        logger.warning(f"[TOOL_RUNNER][CONTENT_REF] Both content ({original_len} chars) and content_ref provided. Using content_ref (precedence).")
+                    
+                    tool_input_resolved["content"] = resolved_content
+                    # Remove content_ref from input since we've resolved it
+                    del tool_input_resolved["content_ref"]
+                    
+                    logger.info(f"[TOOL_RUNNER][CONTENT_REF] Successfully resolved content_ref '{content_ref}' to {len(resolved_content)} chars")
+                    logger.debug(f"[TOOL_RUNNER][CONTENT_REF] Resolved content has {resolved_content.count(chr(10)) + 1} lines")
+                    logger.debug(f"[TOOL_RUNNER][CONTENT_REF] Writing to path: {tool_input_resolved.get('path', 'unknown')}")
+                elif content_ref:
+                    # Invalid reference
+                    logger.error(f"[TOOL_RUNNER][CONTENT_REF] Invalid content reference: '{content_ref}' not found in store")
+                    logger.debug(f"[TOOL_RUNNER][CONTENT_REF] Available references: {list(state.content_store.keys())}")
+                    
+                    observation = format_write_to_file_response(
+                        False,
+                        tool_input_resolved.get("path", ""),
+                        error=f"Invalid content reference: {content_ref}"
+                    )
+                    state.action_trace.append((agent_action, str(observation)))
+                    state.agent_outcome = None
+                    return state
+                else:
+                    logger.warning(f"[TOOL_RUNNER][CONTENT_REF] write_to_file has empty content_ref")
 
             # Check if the tool is an async function
             if inspect.iscoroutinefunction(tool_fn):
@@ -87,8 +136,32 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 # Otherwise, call it directly
                 observation = tool_fn(**tool_input_resolved)
 
+            # Handle content reference system for read_file tool
+            if tool_name == "read_file" and isinstance(observation, str):
+                try:
+                    obs_data = json.loads(observation)
+                    if "content" in obs_data and obs_data["content"]:
+                        # Generate content reference ID
+                        content = obs_data["content"]
+                        content_hash = hashlib.md5(content.encode()).hexdigest()[:8]
+                        file_path = obs_data.get("path", "unknown")
+                        ref_id = f"ref:{os.path.basename(file_path)}:{content_hash}"
+                        
+                        # Store in content_store
+                        state.content_store[ref_id] = content
+                        
+                        # Add reference to observation
+                        obs_data["content_ref"] = ref_id
+                        observation = json.dumps(obs_data, indent=2)
+                        
+                        logger.info(f"[TOOL_RUNNER][CONTENT_REF] Created content reference '{ref_id}' for file '{file_path}'")
+                        logger.debug(f"[TOOL_RUNNER][CONTENT_REF] Content length: {len(content)} chars, lines: {content.count(chr(10)) + 1}")
+                        logger.debug(f"[TOOL_RUNNER][CONTENT_REF] Total references in store: {len(state.content_store)}")
+                except (json.JSONDecodeError, KeyError) as e:
+                    logger.warning(f"[TOOL_RUNNER][CONTENT_REF] Could not process read_file observation: {e}")
+            
             # The observation for generate_directory_overview is a dict, convert to JSON string
-            if isinstance(observation, dict):
+            elif isinstance(observation, dict):
                 import json
 
                 observation = json.dumps(observation, indent=2)

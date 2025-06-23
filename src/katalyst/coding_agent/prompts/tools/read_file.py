@@ -27,10 +27,15 @@ Description: Read the contents of a specific file. Read entire file unless it's 
 }
 
 ## Output Format:
-JSON with keys: 'path', 'start_line', 'end_line', 'content', 'info' (optional), 'error' (optional)
+JSON with keys: 'path', 'start_line', 'end_line', 'content', 'content_ref' (optional), 'info' (optional), 'error' (optional)
+
+### Content Reference System:
+- When you read a file, the output includes a "content_ref" field
+- This reference can be used with write_to_file to ensure exact content preservation
+- Use content_ref when copying or duplicating files to avoid content corruption by the LLM.
 
 Example outputs:
-- Success: {"path": "/path/to/file.py", "start_line": 1, "end_line": 50, "content": "import os\\n..."}
+- Success: {"path": "/path/to/file.py", "start_line": 1, "end_line": 50, "content": "import os\\n...", "content_ref": "ref:file.py:a1b2c3d4"}
 - Error: {"error": "File not found: missing.py"}
 - Empty: {"path": "/path/to/empty.txt", "start_line": 1, "end_line": 1, "info": "File is empty", "content": ""}
 """)

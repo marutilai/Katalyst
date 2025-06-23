@@ -3,6 +3,7 @@ from katalyst.katalyst_core.utils.tools import katalyst_tool
 import os
 from katalyst.katalyst_core.utils.file_utils import load_gitignore_patterns
 import json
+import hashlib
 
 
 @katalyst_tool(prompt_module="read_file", prompt_var="READ_FILE_TOOL_PROMPT")
