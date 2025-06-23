@@ -40,7 +40,6 @@ def agent_react(state: KatalystState) -> KatalystState:
     * Returns: The updated KatalystState.
     """
     logger = get_logger()
-    logger.debug("[AGENT_REACT] Starting agent_react node...")
 
     # 1) Inner-loop guard: prevent infinite loops in the ReAct cycle
     state.inner_cycles += 1
@@ -169,7 +168,6 @@ When providing final_answer after using tools:
         {"role": "system", "content": system_message_content},
         {"role": "user", "content": user_message_content},
     ]
-    logger.debug(f"[AGENT_REACT] LLM messages (skipped system message): {llm_messages}")
 
     # 4) Call the LLM for a structured ReAct response
     # --------------------------------------------------------------------------
@@ -187,7 +185,6 @@ When providing final_answer after using tools:
         response_model=AgentReactOutput,
         **llm_params,
     )
-    logger.debug(f"[AGENT_REACT] Parsed output: {response.dict()}")
 
     # 5) Log the LLM's thought and action to chat_history for traceability
     state.chat_history.append(AIMessage(content=f"Thought: {response.thought}"))
@@ -207,9 +204,7 @@ When providing final_answer after using tools:
             log=f"Thought: {response.thought}\nAction: {response.action}\nAction Input: {str(args_dict)}",
         )
         state.error_message = None
-        logger.debug(
-            f"[AGENT_REACT] Action requested: {response.action} with input {args_dict}"
-        )
+        logger.info(f"[AGENT_REACT] Agent selected action: {response.action}")
 
     # 7) If "final_answer" key is present, wrap in AgentFinish and update state
     elif response.final_answer:
@@ -240,5 +235,4 @@ When providing final_answer after using tools:
                 "[AGENT_REACT] No valid action or final answer in LLM output. Retry."
             )
 
-    logger.debug("[AGENT_REACT] End of agent_react node.")
     return state

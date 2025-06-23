@@ -39,9 +39,6 @@ def write_to_file(
     Returns a JSON string indicating success, error, or cancellation.
     """
     logger = get_logger()
-    logger.debug(
-        f"Entered write_to_file with path={path}, content=<omitted>, auto_approve={auto_approve}"
-    )
 
     if user_input_fn is None:
         user_input_fn = input
@@ -99,13 +96,11 @@ def write_to_file(
         with open(abs_path, "w", encoding="utf-8") as f:
             f.write(content)
         logger.info(f"Successfully wrote to file: {abs_path}")
-        logger.debug("Exiting write_to_file")
         return format_write_to_file_response(
             True, abs_path, info=f"Successfully wrote to file: {abs_path}"
         )
     except Exception as e:
         logger.error(f"Error writing to file {abs_path}: {e}")
-        logger.debug("Exiting write_to_file")
         return format_write_to_file_response(
             False, abs_path, error=f"Could not write to file {abs_path}: {e}"
         )

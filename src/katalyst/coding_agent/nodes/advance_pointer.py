@@ -32,7 +32,6 @@ def advance_pointer(state: KatalystState) -> KatalystState:
     * Returns: The updated KatalystState.
     """
     logger = get_logger()
-    logger.debug("[ADVANCE_POINTER] Starting advance_pointer node...")
 
     # 1) Log completion: get the subtask and summary from agent_outcome
     if isinstance(state.agent_outcome, AgentFinish):
@@ -67,19 +66,9 @@ def advance_pointer(state: KatalystState) -> KatalystState:
     state.agent_outcome = None
     state.error_message = None
     
-    # Log content_store status when advancing
-    if state.content_store:
-        logger.debug(
-            f"[ADVANCE_POINTER][CONTENT_REF] Content store has {len(state.content_store)} references: "
-            f"{list(state.content_store.keys())}"
-        )
-
     # 3) If plan is exhausted, check outer-loop guard
     if state.task_idx >= len(state.task_queue):
         state.outer_cycles += 1
-        logger.debug(
-            f"[ADVANCE_POINTER] Plan exhausted. Incremented outer_cycles to {state.outer_cycles}."
-        )
         if state.outer_cycles > state.max_outer_cycles:
             error_msg = create_error_message(
                 ErrorType.LLM_ERROR,
@@ -89,5 +78,4 @@ def advance_pointer(state: KatalystState) -> KatalystState:
             state.response = error_msg
             logger.warning(f"[ADVANCE_POINTER][GUARDRAIL] {error_msg}")
 
-    logger.debug("[ADVANCE_POINTER] End of advance_pointer node.")
     return state

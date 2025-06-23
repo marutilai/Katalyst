@@ -35,7 +35,6 @@ def tool_runner(state: KatalystState) -> KatalystState:
     * Returns: The updated KatalystState.
     """
     logger = get_logger()
-    logger.debug("[TOOL_RUNNER] Starting tool_runner node...")
 
     # Only run if agent_outcome is an AgentAction (otherwise skip)
     agent_action = state.agent_outcome
@@ -48,7 +47,9 @@ def tool_runner(state: KatalystState) -> KatalystState:
     # Extract tool name and input arguments from the AgentAction
     tool_name = agent_action.tool
     tool_input = agent_action.tool_input or {}
-    logger.debug(f"[TOOL_RUNNER] Executing tool: {tool_name} with input: {tool_input}")
+    
+    # Log tool execution (important for debugging)
+    logger.info(f"[TOOL_RUNNER] Executing tool: {tool_name}")
 
     # Look up the tool function in the registry
     tool_fn = REGISTERED_TOOL_FUNCTIONS_MAP.get(tool_name)
@@ -86,7 +87,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
             if tool_name == "write_to_file":
                 if "content_ref" in tool_input_resolved:
                     # Log that LLM chose to use content_ref
-                    logger.info(f"[TOOL_RUNNER][CONTENT_REF] LLM chose to use content reference for write_to_file")
+                    logger.info("[TOOL_RUNNER][CONTENT_REF] LLM chose to use content reference for write_to_file")
                 else:
                     # Log that LLM provided content directly
                     content_len = len(tool_input_resolved.get("content", ""))
@@ -115,12 +116,9 @@ def tool_runner(state: KatalystState) -> KatalystState:
                     del tool_input_resolved["content_ref"]
                     
                     logger.info(f"[TOOL_RUNNER][CONTENT_REF] Successfully resolved content_ref '{content_ref}' to {len(resolved_content)} chars")
-                    logger.debug(f"[TOOL_RUNNER][CONTENT_REF] Resolved content has {resolved_content.count(chr(10)) + 1} lines")
-                    logger.debug(f"[TOOL_RUNNER][CONTENT_REF] Writing to path: {tool_input_resolved.get('path', 'unknown')}")
                 elif content_ref:
                     # Invalid reference - try to auto-correct by matching file path
                     logger.error(f"[TOOL_RUNNER][CONTENT_REF] Invalid content reference: '{content_ref}' not found in store")
-                    logger.debug(f"[TOOL_RUNNER][CONTENT_REF] Available references: {list(state.content_store.keys())}")
                     
                     # Try to find a reference for the same file
                     corrected_ref = None
@@ -186,8 +184,6 @@ def tool_runner(state: KatalystState) -> KatalystState:
                         observation = json.dumps(obs_data, indent=2)
                         
                         logger.info(f"[TOOL_RUNNER][CONTENT_REF] Created content reference '{ref_id}' for file '{file_path}'")
-                        logger.debug(f"[TOOL_RUNNER][CONTENT_REF] Content length: {len(content)} chars, lines: {content.count(chr(10)) + 1}")
-                        logger.debug(f"[TOOL_RUNNER][CONTENT_REF] Total references in store: {len(state.content_store)}")
                 except (json.JSONDecodeError, KeyError) as e:
                     logger.warning(f"[TOOL_RUNNER][CONTENT_REF] Could not process read_file observation: {e}")
             
@@ -195,9 +191,6 @@ def tool_runner(state: KatalystState) -> KatalystState:
             elif isinstance(observation, dict):
                 observation = json.dumps(observation, indent=2)
 
-            logger.debug(
-                f"[TOOL_RUNNER] Tool '{tool_name}' returned observation: {observation}"
-            )
         except GraphRecursionError as e:
             # Handle graph recursion error by triggering replanning
             error_msg = create_error_message(
@@ -225,5 +218,4 @@ def tool_runner(state: KatalystState) -> KatalystState:
     # Clear agent_outcome after processing
     state.agent_outcome = None
 
-    logger.debug("[TOOL_RUNNER] End of tool_runner node.")
     return state

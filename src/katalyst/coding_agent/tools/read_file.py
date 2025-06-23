@@ -20,9 +20,6 @@ def read_file(
     Returns a JSON object with keys: 'path', 'start_line', 'end_line', 'content', and optionally 'error' or 'info'.
     """
     logger = get_logger()
-    logger.debug(
-        f"Entered read_file with path={path}, start_line={start_line}, end_line={end_line}, mode={mode}, auto_approve={auto_approve}, respect_gitignore={respect_gitignore}"
-    )
 
     # Validate path argument
     if not path or not isinstance(path, str):
@@ -77,8 +74,6 @@ def read_file(
         print(f"{idx:4d} | {line.rstrip()}")
     print("-" * 80)
 
-    logger.debug(f"Read {len(selected_lines)} lines from file: {abs_path}")
-    logger.debug("Exiting read_file")
 
     # If no lines were selected, return an info message
     if not selected_lines:
