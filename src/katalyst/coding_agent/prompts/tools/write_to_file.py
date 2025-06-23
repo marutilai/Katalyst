@@ -21,8 +21,10 @@ Description: Write full content to a file. Overwrites existing files or creates 
 ## IMPORTANT: Content Reference System
 When you read a file using read_file, it returns a "content_ref" field. You should use this reference
 instead of copying the content directly to avoid hallucination or corruption by the LLM:
-- If you have a content_ref from read_file, use it instead of content
+- If you have a content_ref from read_file, ALWAYS use it instead of content parameter
+- Use the EXACT content_ref value from the observation - do NOT create or modify reference IDs
 - This ensures exact content preservation when copying or duplicating files
+- Check your previous observations for the exact content_ref before using write_to_file
 
 ## Examples:
 
@@ -38,11 +40,11 @@ instead of copying the content directly to avoid hallucination or corruption by 
 
 ### Example 2: Using content reference (preferred for file copies)
 {
-  "thought": "I read README.md and got content_ref 'ref:README.md:a1b2c3d4'. I'll use this reference to create an exact copy.",
+  "thought": "I read README.md and the observation included a content_ref. I'll use this exact reference to create a copy.",
   "action": "write_to_file",
   "action_input": {
     "path": "README_copy.md",
-    "content_ref": "ref:README.md:a1b2c3d4"
+    "content_ref": "{exact_content_ref_from_read_file_observation}"
   }
 }
 

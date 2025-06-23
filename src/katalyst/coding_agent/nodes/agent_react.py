@@ -91,6 +91,7 @@ Respond in JSON with:
 - Use EXACT information from scratchpad - do NOT hallucinate or use general knowledge
 - Avoid repeating tool calls already performed for current sub-task
 - Don't ask for information already available in scratchpad
+- When using content_ref with write_to_file, copy the EXACT value from read_file observations
 
 # FINAL ANSWER GUIDELINES
 When providing final_answer after using tools:

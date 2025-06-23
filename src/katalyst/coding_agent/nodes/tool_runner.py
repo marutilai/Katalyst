@@ -98,7 +98,12 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 
                 if content_ref and content_ref in state.content_store:
                     # Replace content_ref with actual content
-                    resolved_content = state.content_store[content_ref]
+                    stored_data = state.content_store[content_ref]
+                    # Handle both old format (string) and new format (tuple)
+                    if isinstance(stored_data, tuple):
+                        _, resolved_content = stored_data
+                    else:
+                        resolved_content = stored_data
                     
                     # Check if content was also provided (content_ref takes precedence)
                     if "content" in tool_input_resolved:
@@ -113,20 +118,46 @@ def tool_runner(state: KatalystState) -> KatalystState:
                     logger.debug(f"[TOOL_RUNNER][CONTENT_REF] Resolved content has {resolved_content.count(chr(10)) + 1} lines")
                     logger.debug(f"[TOOL_RUNNER][CONTENT_REF] Writing to path: {tool_input_resolved.get('path', 'unknown')}")
                 elif content_ref:
-                    # Invalid reference
+                    # Invalid reference - try to auto-correct by matching file path
                     logger.error(f"[TOOL_RUNNER][CONTENT_REF] Invalid content reference: '{content_ref}' not found in store")
                     logger.debug(f"[TOOL_RUNNER][CONTENT_REF] Available references: {list(state.content_store.keys())}")
                     
-                    observation = format_write_to_file_response(
-                        False,
-                        tool_input_resolved.get("path", ""),
-                        error=f"Invalid content reference: {content_ref}"
-                    )
-                    state.action_trace.append((agent_action, str(observation)))
-                    state.agent_outcome = None
-                    return state
+                    # Try to find a reference for the same file
+                    corrected_ref = None
+                    if ":" in content_ref:
+                        # Extract file name from the invalid ref
+                        parts = content_ref.split(":")
+                        if len(parts) >= 2:
+                            target_filename = parts[1]
+                            for ref, (file_path, _) in state.content_store.items():
+                                if os.path.basename(file_path) == target_filename:
+                                    corrected_ref = ref
+                                    logger.info(f"[TOOL_RUNNER][CONTENT_REF] Auto-correcting ref from '{content_ref}' to '{corrected_ref}' for file '{target_filename}'")
+                                    break
+                    
+                    if corrected_ref:
+                        # Use the corrected reference
+                        stored_data = state.content_store[corrected_ref]
+                        # Handle both old format (string) and new format (tuple)
+                        if isinstance(stored_data, tuple):
+                            _, resolved_content = stored_data
+                        else:
+                            resolved_content = stored_data
+                        tool_input_resolved["content"] = resolved_content
+                        del tool_input_resolved["content_ref"]
+                        logger.info(f"[TOOL_RUNNER][CONTENT_REF] Successfully resolved auto-corrected ref '{corrected_ref}' to {len(resolved_content)} chars")
+                    else:
+                        # No correction possible
+                        observation = format_write_to_file_response(
+                            False,
+                            tool_input_resolved.get("path", ""),
+                            error=f"Invalid content reference: {content_ref}"
+                        )
+                        state.action_trace.append((agent_action, str(observation)))
+                        state.agent_outcome = None
+                        return state
                 else:
-                    logger.warning(f"[TOOL_RUNNER][CONTENT_REF] write_to_file has empty content_ref")
+                    logger.warning("[TOOL_RUNNER][CONTENT_REF] write_to_file has empty content_ref")
 
             # Check if the tool is an async function
             if inspect.iscoroutinefunction(tool_fn):
@@ -147,8 +178,8 @@ def tool_runner(state: KatalystState) -> KatalystState:
                         file_path = obs_data.get("path", "unknown")
                         ref_id = f"ref:{os.path.basename(file_path)}:{content_hash}"
                         
-                        # Store in content_store
-                        state.content_store[ref_id] = content
+                        # Store in content_store with file path
+                        state.content_store[ref_id] = (file_path, content)
                         
                         # Add reference to observation
                         obs_data["content_ref"] = ref_id
@@ -162,8 +193,6 @@ def tool_runner(state: KatalystState) -> KatalystState:
             
             # The observation for generate_directory_overview is a dict, convert to JSON string
             elif isinstance(observation, dict):
-                import json
-
                 observation = json.dumps(observation, indent=2)
 
             logger.debug(
