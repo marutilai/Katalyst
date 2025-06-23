@@ -5,7 +5,10 @@ from katalyst.katalyst_core.utils.file_utils import (
     list_files_recursively,
     should_ignore_path,
 )
-from katalyst.katalyst_core.services.llms import get_llm_instructor_async
+from katalyst.katalyst_core.services.llms import (
+    get_llm_instructor_async,
+    get_llm_model_for_component,
+)
 from katalyst.katalyst_core.utils.logger import get_logger
 from langgraph.graph import StateGraph, START, END
 from langgraph.constants import Send
@@ -103,7 +106,7 @@ async def generate_directory_overview(
         }
     """
     llm = get_llm_instructor_async()
-    model = os.getenv("KATALYST_LITELLM_MODEL", "gpt-4.1")
+    model = get_llm_model_for_component("generate_directory_overview")
     logger.info(f"[generate_directory_overview] Analyzing directory: {dir_path}")
 
     # Validate path is a directory
