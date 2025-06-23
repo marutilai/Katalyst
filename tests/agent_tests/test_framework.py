@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.graph import build_compiled_graph
 from katalyst.katalyst_core.utils.logger import get_logger
-from katalyst.katalyst_core.services.llms import get_llm_instructor
+from katalyst.katalyst_core.services.llms import get_llm_client
 from tests.agent_tests.test_rubric import KatalystCodingRubric, RubricItemResult
 
 pytestmark = pytest.mark.agent
@@ -196,8 +196,8 @@ class KatalystTestRunner:
         prompt = build_llm_eval_prompt(test_case, result)
         self.logger.debug(f"LLM evaluation prompt: {prompt}")
         try:
-            # Use instructor client for structured output
-            llm_client = get_llm_instructor()
+            # Use new API for structured output
+            llm_client = get_llm_client("test_evaluator", async_mode=False, use_instructor=True)
 
             llm_result = llm_client.chat.completions.create(
                 model=test_case.llm_model,

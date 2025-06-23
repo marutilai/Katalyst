@@ -6,8 +6,8 @@ from katalyst.katalyst_core.utils.file_utils import (
     should_ignore_path,
 )
 from katalyst.katalyst_core.services.llms import (
-    get_llm_instructor_async,
-    get_llm_model_for_component,
+    get_llm_client,
+    get_llm_params,
 )
 from katalyst.katalyst_core.utils.logger import get_logger
 from langgraph.graph import StateGraph, START, END
@@ -105,8 +105,9 @@ async def generate_directory_overview(
             "key_functions": ["main", "parse_args"]
         }
     """
-    llm = get_llm_instructor_async()
-    model = get_llm_model_for_component("generate_directory_overview")
+    # Use simplified API
+    llm = get_llm_client("generate_directory_overview", async_mode=True, use_instructor=True)
+    llm_params = get_llm_params("generate_directory_overview")
     logger.info(f"[generate_directory_overview] Analyzing directory: {dir_path}")
 
     # Validate path is a directory
@@ -150,10 +151,11 @@ async def generate_directory_overview(
             f"[generate_directory_overview] Map prompt for {file_path}:\n{prompt[:5000]}"
         )
         response = await llm.chat.completions.create(
-            model=model,
+            model=llm_params["model"],
             messages=[{"role": "system", "content": prompt}],
             response_model=FileSummaryModel,
             temperature=0.2,
+            timeout=llm_params["timeout"],
         )
         # Ensure file_path is correctly set from the input, not the LLM's potential hallucination
         summary_data = response.model_dump()
@@ -178,10 +180,11 @@ async def generate_directory_overview(
         prompt = GENERATE_DIRECTORY_OVERVIEW_REDUCE_PROMPT.replace("{docs}", docs)
         logger.debug(f"[generate_directory_overview] Reduce prompt:\n{prompt[:5000]}")
         response = await llm.chat.completions.create(
-            model=model,
+            model=llm_params["model"],
             messages=[{"role": "system", "content": prompt}],
             response_model=ReduceSummaryModel,
             temperature=0.2,
+            timeout=llm_params["timeout"],
         )
         return {"final_summary": response.model_dump()}
 

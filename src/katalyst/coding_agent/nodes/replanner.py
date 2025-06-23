@@ -1,9 +1,7 @@
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.services.llms import (
-    get_llm_instructor,
-    get_llm_fallbacks,
-    get_llm_timeout,
-    get_llm_model_for_component,
+    get_llm_client,
+    get_llm_params,
 )
 from katalyst.katalyst_core.utils.models import (
     ReplannerOutput,
@@ -43,8 +41,9 @@ def replanner(state: KatalystState) -> KatalystState:
 
     # 1. Gather all context for the replanning prompt
     # =================================================
-    llm = get_llm_instructor()
-    replanner_model = get_llm_model_for_component("replanner")
+    # Use simplified API
+    llm = get_llm_client("replanner", async_mode=False, use_instructor=True)
+    llm_params = get_llm_params("replanner")
     tool_descriptions = extract_tool_descriptions()
     tool_list_str = "\n".join(f"- {name}: {desc}" for name, desc in tool_descriptions)
 
@@ -134,21 +133,19 @@ You MUST return a JSON object with two keys: `is_complete` (boolean) and `subtas
     # 3. Execute LLM call and update state
     # =================================================
     try:
-        fallbacks = get_llm_fallbacks()
-        timeout = get_llm_timeout()
         llm_response_model = llm.chat.completions.create(
             messages=[{"role": "system", "content": prompt}],
             response_model=ReplannerOutput,
             temperature=0.1,
             max_retries=2,
             num_retries=2,
-            model=replanner_model,
-            fallbacks=fallbacks if fallbacks else None,
-            timeout=timeout,
+            model=llm_params["model"],
+            fallbacks=llm_params["fallbacks"] if llm_params["fallbacks"] else None,
+            timeout=llm_params["timeout"],
         )
 
         actual_model = getattr(llm_response_model, "model", None)
-        if actual_model and actual_model != replanner_model:
+        if actual_model and actual_model != llm_params["model"]:
             logger.info(f"[LLM] Fallback model used: {actual_model}")
 
         logger.debug(

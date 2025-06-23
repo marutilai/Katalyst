@@ -1,56 +1,57 @@
+"""
+LLM Service Module
+
+Provides simplified API for LLM client access with component-specific configuration.
+"""
+
 from litellm import completion, acompletion
 import instructor
-import os
+from katalyst.katalyst_core.config import get_llm_config
 
 
-def get_llm_model_for_component(component_name: str) -> str:
+# New simplified API functions (recommended)
+def get_llm_client(component: str, async_mode: bool = False, use_instructor: bool = True):
     """
-    Selects an LLM model based on the component's purpose.
-
-    - 'planner' or 'replanner': Uses KATALYST_REASONING_MODEL for high-level planning.
-    - 'agent_react' (or default): Uses KATALYST_EXECUTION_MODEL for execution.
+    Get a configured LLM client for a specific component.
+    
+    This is the recommended API that handles both client and model selection.
+    
+    Args:
+        component: Component name (e.g., 'planner', 'agent_react')
+        async_mode: Whether to return async client
+        use_instructor: Whether to wrap with instructor
+        
+    Returns:
+        Configured LLM client
     """
-    component_name = component_name.lower()
-    if component_name == "planner" or component_name == "replanner":
-        return os.getenv("KATALYST_REASONING_MODEL", "gpt-4.1")
-
-    # Default model for 'agent_react' and any other components
-    return os.getenv("KATALYST_EXECUTION_MODEL", "gpt-4.1-mini")
-
-
-def get_llm():
-    """Synchronous LiteLLM completion."""
-    return completion
-
-
-def get_llm_async():
-    """Asynchronous LiteLLM completion."""
-    return acompletion
+    if async_mode:
+        client = acompletion
+        if use_instructor:
+            client = instructor.from_litellm(acompletion)
+    else:
+        client = completion
+        if use_instructor:
+            client = instructor.from_litellm(completion)
+    
+    return client
 
 
-def get_llm_instructor():
-    """Synchronous Instructor-patched LiteLLM client."""
-    return instructor.from_litellm(completion)
-
-
-def get_llm_instructor_async():
-    """Asynchronous Instructor-patched LiteLLM client."""
-    return instructor.from_litellm(acompletion)
-
-
-def get_llm_fallbacks():
+def get_llm_params(component: str) -> dict:
     """
-    Returns a list of fallback LLM models from the KATALYST_LLM_MODEL_FALLBACK env variable.
+    Get LLM parameters for a specific component.
+    
+    Args:
+        component: Component name
+        
+    Returns:
+        Dictionary with model, timeout, fallbacks, and other parameters
     """
-    fallbacks = os.getenv("KATALYST_LLM_MODEL_FALLBACK", "")
-    return [m.strip() for m in fallbacks.split(",") if m.strip()]
+    config = get_llm_config()
+    return {
+        "model": config.get_model_for_component(component),
+        "timeout": config.get_timeout(),
+        "temperature": 0.1,  # Default temperature
+        "fallbacks": config.get_fallback_models(),
+    }
 
 
-def get_llm_timeout():
-    """
-    Returns the LLM timeout in seconds from the KATALYST_LITELLM_TIMEOUT env variable (default 45).
-    """
-    try:
-        return int(os.getenv("KATALYST_LITELLM_TIMEOUT", "45"))
-    except Exception:
-        return 45

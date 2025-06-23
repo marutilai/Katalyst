@@ -1,8 +1,8 @@
 import os
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.services.llms import (
-    get_llm_instructor,
-    get_llm_model_for_component,
+    get_llm_client,
+    get_llm_params,
 )
 from langchain_core.messages import AIMessage
 from katalyst.katalyst_core.utils.models import SubtaskList, PlaybookEvaluation
@@ -36,8 +36,9 @@ def planner(state: KatalystState) -> KatalystState:
     logger = get_logger()
     logger.debug(f"[PLANNER] Starting planner node...")
 
-    llm = get_llm_instructor()
-    planner_model = get_llm_model_for_component("planner")
+    # Use simplified API
+    llm = get_llm_client("planner", async_mode=False, use_instructor=True)
+    llm_params = get_llm_params("planner")
     tool_descriptions = extract_tool_descriptions()
     tool_list_str = "\n".join(f"- {name}: {desc}" for name, desc in tool_descriptions)
 
@@ -77,8 +78,7 @@ def planner(state: KatalystState) -> KatalystState:
             evaluation = llm.chat.completions.create(
                 messages=[{"role": "system", "content": evaluation_prompt}],
                 response_model=PlaybookEvaluation,
-                temperature=0.1,
-                model=planner_model,
+                **llm_params,
             )
             logger.debug(f"[PLANNER] Playbook evaluation: {evaluation}")
 
@@ -195,7 +195,8 @@ def planner(state: KatalystState) -> KatalystState:
             messages=[{"role": "system", "content": prompt}],
             response_model=SubtaskList,
             temperature=0.3,
-            model=planner_model,
+            model=llm_params["model"],
+            timeout=llm_params["timeout"],
         )
         logger.debug(f"[PLANNER] Raw LLM response: {response}")
         subtasks = response.subtasks
