@@ -14,9 +14,9 @@ logger = get_logger()
 # Provider profiles with default models for different use cases
 PROVIDER_PROFILES = {
     "openai": {
-        "reasoning": "gpt-4-turbo-preview",  # High-reasoning tasks (planner, replanner)
-        "execution": "gpt-4o-mini",  # Fast execution tasks (agent_react, tools)
-        "fallback": "gpt-3.5-turbo",  # Fallback model
+        "reasoning": "gpt-4.1",  # High-reasoning tasks (planner, replanner)
+        "execution": "gpt-4.1-mini",  # Fast execution tasks (agent_react, tools)
+        "fallback": "gpt-4o",  # Fallback model
         "default_timeout": 45,
     },
     "anthropic": {
