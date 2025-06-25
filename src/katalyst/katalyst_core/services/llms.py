@@ -47,11 +47,18 @@ def get_llm_params(component: str) -> dict:
         Dictionary with model, timeout, fallbacks, and other parameters
     """
     config = get_llm_config()
-    return {
+    params = {
         "model": config.get_model_for_component(component),
         "timeout": config.get_timeout(),
         "temperature": 0.1,  # Default temperature
         "fallbacks": config.get_fallback_models(),
     }
+    
+    # Add api_base if available (for Ollama and other local providers)
+    api_base = config.get_api_base()
+    if api_base:
+        params["api_base"] = api_base
+    
+    return params
 
 

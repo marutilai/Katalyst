@@ -12,7 +12,7 @@ def show_help():
 Available commands:
 /help      Show this help message
 /init      Create a KATALYST.md file with instructions
-/provider  Set LLM provider (openai/anthropic)
+/provider  Set LLM provider (openai/anthropic/ollama)
 /model     Set LLM model (gpt4.1 for OpenAI, sonnet4/opus4 for Anthropic)
 /exit      Exit the agent
 (Type your coding task or command below)
@@ -84,12 +84,23 @@ def handle_provider_command():
     console.print("\n[bold]Available providers:[/bold]")
     console.print("1. openai")
     console.print("2. anthropic")
+    console.print("3. ollama (local models)")
 
-    choice = Prompt.ask("Select provider", choices=["1", "2"], default="1")
+    choice = Prompt.ask("Select provider", choices=["1", "2", "3"], default="1")
 
-    provider = "openai" if choice == "1" else "anthropic"
+    if choice == "1":
+        provider = "openai"
+    elif choice == "2":
+        provider = "anthropic"
+    else:
+        provider = "ollama"
+    
     os.environ["KATALYST_LITELLM_PROVIDER"] = provider
     console.print(f"[green]Provider set to: {provider}[/green]")
+    
+    if provider == "ollama":
+        console.print("[yellow]Make sure Ollama is running locally (ollama serve)[/yellow]")
+    
     console.print(f"[yellow]Now choose a model for {provider} using /model[/yellow]")
 
 
@@ -104,11 +115,26 @@ def handle_model_command():
         console.print("2. gpt-4.1-mini")
         choice = Prompt.ask("Select model", choices=["1", "2"], default="1")
         model = "gpt4.1" if choice == "1" else "gpt-4.1-mini"
-    else:  # anthropic
+    elif provider == "anthropic":
         console.print("\n[bold]Available Anthropic models:[/bold]")
         console.print("1. sonnet4")
         console.print("2. opus4")
         choice = Prompt.ask("Select model", choices=["1", "2"], default="1")
         model = "sonnet4" if choice == "1" else "opus4"
+    else:  # ollama
+        console.print("\n[bold]Available Ollama models:[/bold]")
+        console.print("1. qwen2.5-coder:7b (Best for coding)")
+        console.print("2. phi4 (Fast execution)")
+        console.print("3. codestral (22B model)")
+        console.print("4. devstral (24B agentic model)")
+        choice = Prompt.ask("Select model", choices=["1", "2", "3", "4"], default="1")
+        if choice == "1":
+            model = "ollama/qwen2.5-coder:7b"
+        elif choice == "2":
+            model = "ollama/phi4"
+        elif choice == "3":
+            model = "ollama/codestral"
+        else:
+            model = "ollama/devstral"
     os.environ["KATALYST_LITELLM_MODEL"] = model
     console.print(f"[green]Model set to: {model}[/green]")
