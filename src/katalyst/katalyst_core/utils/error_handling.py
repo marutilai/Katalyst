@@ -17,6 +17,8 @@ class ErrorType(Enum):
                        Triggers high-level replanning flow.
     - GRAPH_RECURSION: Indicates a recursion error in the graph execution.
                       Triggers replanning to handle the error gracefully.
+    - CONTENT_OMISSION: Content validation failure in write operations.
+                       Indicates LLM truncated or omitted content when line count mismatch detected.
     - UNKNOWN: Fallback for unclassified errors.
     """
 
@@ -25,6 +27,7 @@ class ErrorType(Enum):
     LLM_ERROR = "LLM_ERROR"
     REPLAN_REQUESTED = "REPLAN_REQUESTED"
     GRAPH_RECURSION = "GRAPH_RECURSION"
+    CONTENT_OMISSION = "CONTENT_OMISSION"
     UNKNOWN = "UNKNOWN"
 
 
@@ -64,6 +67,7 @@ def classify_error(error_message: str) -> Tuple[ErrorType, str]:
         "[LLM_ERROR]": ErrorType.LLM_ERROR,
         "[REPLAN_REQUESTED]": ErrorType.REPLAN_REQUESTED,
         "[GRAPH_RECURSION]": ErrorType.GRAPH_RECURSION,
+        "[CONTENT_OMISSION]": ErrorType.CONTENT_OMISSION,
     }
 
     for tag, error_type in error_types.items():
@@ -113,5 +117,10 @@ def format_error_for_llm(error_type: ErrorType, error_details: str) -> str:
         return (
             f"Graph recursion detected: {error_details}\n"
             "The current execution path has entered a loop. Please request replanning to try a different approach."
+        )
+    elif error_type == ErrorType.CONTENT_OMISSION:
+        return (
+            f"Content omission detected: {error_details}\n"
+            "The provided content appears to be truncated. Please provide the complete file content with accurate line count."
         )
     return f"Unknown error occurred: {error_details}"
