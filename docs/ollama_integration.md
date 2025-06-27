@@ -178,7 +178,7 @@ SYSTEM You are an expert Python developer focused on clean, efficient code.
 
 You can run different models for different components:
 
-```python
+```bash
 # In your environment
 export KATALYST_LITELLM_PROVIDER=ollama
 export KATALYST_REASONING_MODEL=ollama/devstral
