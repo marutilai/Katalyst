@@ -75,11 +75,15 @@ class OllamaBenchmark:
         self.api_base = api_base
         self.results = {}
         
-    def get_memory_usage(self) -> float:
-        """Get current memory usage in MB (placeholder without psutil)."""
-        # Return a placeholder value since psutil is not available
-        # In a real benchmark, you could use resource module or other methods
-        return 0.0
+    def get_memory_usage(self) -> Optional[float]:
+        """Get current memory usage in MB using psutil if available."""
+        try:
+            import psutil
+            process = psutil.Process(os.getpid())
+            return process.memory_info().rss / (1024 * 1024)  # in MB
+        except ImportError:
+            logger.warning("psutil not installed, memory usage will not be reported.")
+            return None
         
     def measure_quality(self, response: str, expected_keywords: List[str]) -> float:
         """Simple quality metric based on keyword presence."""
