@@ -3,22 +3,21 @@ from textwrap import dedent
 WRITE_TO_FILE_PROMPT = dedent("""
 # write_to_file Tool
 
-Description: Write full content to a file. Overwrites existing files or creates new ones with directories.
+Description: Write full content to a file. Overwrites existing files completely or creates new files (including directories). Provide complete content—no truncation.
 
 ## When to Use:
-- Creating new configuration files
-- Writing generated code or templates
-- Saving analysis results or reports
-- Creating documentation files
-- Duplicating files to new locations
-- Initializing project structure files
+- Creating new files or replacing file contents entirely
+- Setting up project structure (creates parent directories automatically)
+- Writing configuration files, scripts, or documentation
+- Saving generated output or results
+- Creating empty marker files like __init__.py
 
 ## Parameters:
 - path: (string, required) File path to write
-- content: (string, required) Full file content - NO truncation
-- line_count: (integer, REQUIRED with content) Count ALL lines including empty ones. A trailing newline counts as an additional line.
+- content: (string, required) Full file content - Partial updates or placeholders like '// rest of code unchanged' are STRICTLY FORBIDDEN.
+- line_count: (integer, REQUIRED with content) Number of lines in the file. Count ALL lines including empty ones. A trailing newline counts as an additional line.
 - content_ref: (string, optional) Use this from read_file instead of content for exact copies
-- auto_approve: (boolean, optional) Skip user confirmation
+- auto_approve: (boolean, optional) Skip user confirmation if True
 
 ## CRITICAL Rules:
 1. When using content: ALWAYS provide line_count (prevents truncation errors)
@@ -36,5 +35,6 @@ Description: Write full content to a file. Overwrites existing files or creates 
   }
 }
 
-## Output: JSON with success, path, and optional error/info/cancelled
+## Output Format:
+JSON with keys: 'success' (boolean), 'path', 'info' (optional), 'error' (optional), 'cancelled' (optional)
 """)
