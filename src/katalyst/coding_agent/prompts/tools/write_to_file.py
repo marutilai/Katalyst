@@ -16,7 +16,7 @@ Description: Write full content to a file. Overwrites existing files or creates 
 ## Parameters:
 - path: (string, required) File path to write
 - content: (string, required) Full file content - NO truncation
-- line_count: (integer, REQUIRED with content) Count ALL lines including empty ones
+- line_count: (integer, REQUIRED with content) Count ALL lines including empty ones. A trailing newline counts as an additional line.
 - content_ref: (string, optional) Use this from read_file instead of content for exact copies
 - auto_approve: (boolean, optional) Skip user confirmation
 
