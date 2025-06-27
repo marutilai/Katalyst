@@ -128,13 +128,12 @@ def handle_model_command():
         console.print("3. codestral (22B model)")
         console.print("4. devstral (24B agentic model)")
         choice = Prompt.ask("Select model", choices=["1", "2", "3", "4"], default="1")
-        if choice == "1":
-            model = "ollama/qwen2.5-coder:7b"
-        elif choice == "2":
-            model = "ollama/phi4"
-        elif choice == "3":
-            model = "ollama/codestral"
-        else:
-            model = "ollama/devstral"
+        model_map = {
+            "1": "ollama/qwen2.5-coder:7b",
+            "2": "ollama/phi4",
+            "3": "ollama/codestral",
+            "4": "ollama/devstral",
+        }
+        model = model_map[choice]
     os.environ["KATALYST_LITELLM_MODEL"] = model
     console.print(f"[green]Model set to: {model}[/green]")
