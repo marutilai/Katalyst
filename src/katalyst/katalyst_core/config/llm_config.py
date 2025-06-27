@@ -37,6 +37,13 @@ PROVIDER_PROFILES = {
         "fallback": "llama3-8b-8192",  # Fallback model
         "default_timeout": 30,
     },
+    "ollama": {
+        "reasoning": "ollama/qwen2.5-coder:7b",  # Best performer for coding tasks
+        "execution": "ollama/phi4",  # Fast execution model
+        "fallback": "ollama/codestral",  # Fallback to larger model
+        "default_timeout": 60,  # Local inference might need more time
+        "api_base": "http://localhost:11434",  # Default Ollama endpoint
+    },
 }
 
 # Component to model type mapping
@@ -142,10 +149,21 @@ class LLMConfig:
             return [self._custom_models["fallback"]]
         profile = PROVIDER_PROFILES[self._profile]
         return [profile.get("fallback", profile["execution"])]
+    
+    def get_api_base(self) -> Optional[str]:
+        """Get the API base URL if configured for the provider."""
+        # Check environment variable override first
+        api_base = os.getenv("KATALYST_LLM_API_BASE")
+        if api_base:
+            return api_base
+        
+        # Check profile configuration
+        profile = PROVIDER_PROFILES.get(self._profile, {})
+        return profile.get("api_base")
 
     def get_config_summary(self) -> Dict[str, any]:
         """Get a summary of the current configuration."""
-        return {
+        summary = {
             "provider": self._provider,
             "profile": self._profile,
             "timeout": self.get_timeout(),
@@ -156,6 +174,13 @@ class LLMConfig:
             },
             "custom_overrides": self._custom_models,
         }
+        
+        # Add api_base if available
+        api_base = self.get_api_base()
+        if api_base:
+            summary["api_base"] = api_base
+            
+        return summary
 
 
 # Global instance

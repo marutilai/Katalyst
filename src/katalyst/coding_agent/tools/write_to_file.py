@@ -2,6 +2,7 @@ from typing import Dict
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.syntax_checker import check_syntax
 from katalyst.katalyst_core.utils.tools import katalyst_tool
+from katalyst.katalyst_core.utils.error_handling import ErrorType, create_error_message
 import os
 import sys
 import tempfile
@@ -27,15 +28,22 @@ def format_write_to_file_response(
 
 @katalyst_tool(prompt_module="write_to_file", prompt_var="WRITE_TO_FILE_PROMPT")
 def write_to_file(
-    path: str, content: str, auto_approve: bool = True, user_input_fn=None
+    path: str, content: str, line_count: int = None, auto_approve: bool = True, user_input_fn=None
 ) -> str:
     """
-    Writes full content to a file, overwriting if it exists, creating it if it doesn't. Checks syntax before writing for Python files.
+    Writes full content to a file, overwriting if it exists, creating it if it doesn't. 
+    Checks syntax before writing for Python files.
+    
     Arguments:
       - path: str (file path to write)
       - content: str (the content to write)
+      - line_count: int (expected number of lines in content - helps detect truncation)
+                   This parameter serves as a safety mechanism to prevent LLMs from
+                   accidentally truncating file content. When provided, the actual line
+                   count is validated against the expected count with a small tolerance.
       - auto_approve: bool (if False, ask for confirmation before writing)
       - user_input_fn: function to use for user input (defaults to input)
+      
     Returns a JSON string indicating success, error, or cancellation.
     """
     logger = get_logger()
@@ -53,6 +61,35 @@ def write_to_file(
         return format_write_to_file_response(
             False, path, error="No valid 'content' provided."
         )
+
+    # Validate line_count if provided
+    # Why this check exists:
+    # LLMs sometimes truncate long file content due to context limits or generation issues.
+    # This is especially problematic when copying/modifying existing files where missing
+    # lines could break functionality. By requiring the LLM to count and declare the
+    # expected number of lines, we can detect when content has been accidentally omitted.
+    # This acts as a safety net to ensure file integrity.
+    if line_count is not None:
+        actual_line_count = len(content.split('\n'))
+        
+        # Allow a small tolerance because:
+        # 1. LLMs might have minor counting errors (off-by-one, etc.)
+        # 2. Different systems may handle final newlines differently
+        # 3. We want to catch major truncations, not minor discrepancies
+        # Tolerance = max(5 lines, 5% of expected count) to handle both small and large files
+        tolerance = max(5, int(line_count * 0.05))
+
+        if abs(actual_line_count - line_count) > tolerance:
+            # Create a standardized error that helps the LLM understand what went wrong
+            # and prompts it to provide the complete content
+            error_msg = create_error_message(
+                ErrorType.CONTENT_OMISSION,
+                f"LLM predicted {line_count} lines, but provided {actual_line_count} lines. "
+                "This indicates the content was likely truncated.",
+                "WRITE_TO_FILE"
+            )
+            logger.error(error_msg)
+            return format_write_to_file_response(False, path, error=error_msg)
 
     # Use absolute path for writing
     abs_path = os.path.abspath(path)

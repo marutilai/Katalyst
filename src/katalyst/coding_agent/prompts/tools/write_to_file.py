@@ -3,56 +3,38 @@ from textwrap import dedent
 WRITE_TO_FILE_PROMPT = dedent("""
 # write_to_file Tool
 
-Description: Write full content to a file. Overwrites existing files or creates new ones (including directories). Provide complete content—no truncation.
+Description: Write full content to a file. Overwrites existing files or creates new ones with directories.
 
 ## When to Use:
-- Creating new files or replacing file contents entirely
-- Setting up project structure (creates parent directories automatically)
-- Writing configuration files, scripts, or documentation
-- Saving generated output or results
-- Creating empty marker files like __init__.py
+- Creating new configuration files
+- Writing generated code or templates
+- Saving analysis results or reports
+- Creating documentation files
+- Duplicating files to new locations
+- Initializing project structure files
 
 ## Parameters:
 - path: (string, required) File path to write
-- content: (string, required) Full content to write
-- content_ref: (string, optional) Reference to content from read_file (use instead of content)
-- auto_approve: (boolean, optional) Skip user confirmation if true
+- content: (string, required) Full file content - NO truncation
+- line_count: (integer, REQUIRED with content) Count ALL lines including empty ones. A trailing newline counts as an additional line.
+- content_ref: (string, optional) Use this from read_file instead of content for exact copies
+- auto_approve: (boolean, optional) Skip user confirmation
 
-## IMPORTANT: Content Reference System
-When you read a file using read_file, it returns a "content_ref" field. You should use this reference
-instead of copying the content directly to avoid hallucination or corruption by the LLM:
-- If you have a content_ref from read_file, ALWAYS use it instead of content parameter
-- Use the EXACT content_ref value from the observation - do NOT create or modify reference IDs
-- This ensures exact content preservation when copying or duplicating files
-- Check your previous observations for the exact content_ref before using write_to_file
+## CRITICAL Rules:
+1. When using content: ALWAYS provide line_count (prevents truncation errors)
+2. For file copies: Use content_ref from read_file, NOT content
+3. Use EXACT content_ref value - don't modify it
 
-## Examples:
-
-### Example 1: Creating new content
+## Example:
 {
-  "thought": "I want to create a new config file.",
+  "thought": "Create config with 3 lines",
   "action": "write_to_file",
   "action_input": {
     "path": "config.json",
-    "content": "{\\n  \"apiEndpoint\": \"https://api.example.com\"\\n}"
+    "content": "{\\n  \"api\": \"key\"\\n}",
+    "line_count": 3
   }
 }
 
-### Example 2: Using content reference (preferred for file copies)
-{
-  "thought": "I read README.md and the observation included a content_ref. I'll use this exact reference to create a copy.",
-  "action": "write_to_file",
-  "action_input": {
-    "path": "README_copy.md",
-    "content_ref": "{exact_content_ref_from_read_file_observation}"
-  }
-}
-
-## Output Format:
-JSON with keys: 'success' (boolean), 'path', 'info' (optional), 'error' (optional), 'cancelled' (optional)
-
-Example outputs:
-- Success: {"success": true, "path": "/path/to/file.json", "info": "Successfully wrote to file"}
-- Declined: {"success": false, "path": "/path/to/file.json", "cancelled": true, "info": "User declined"}
-- Error: {"success": false, "path": "/path/to/file.py", "error": "Syntax error in content"}
+## Output: JSON with success, path, and optional error/info/cancelled
 """)
