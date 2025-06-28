@@ -3,7 +3,7 @@ import re
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.tools import katalyst_tool
 from katalyst.katalyst_core.utils.syntax_checker import check_syntax
-import tempfile
+from katalyst.katalyst_core.utils.fuzzy_match import find_fuzzy_match_in_lines
 import json
 
 
@@ -25,15 +25,19 @@ def format_apply_source_code_diff_response(
     prompt_module="apply_source_code_diff", prompt_var="APPLY_SOURCE_CODE_DIFF_PROMPT"
 )
 def apply_source_code_diff(
-    path: str, diff: str, auto_approve: bool = True, user_input_fn=None
+    path: str, diff: str, auto_approve: bool = True, user_input_fn=None,
+    fuzzy_buffer_size: int = 20, fuzzy_threshold: int = 95
 ) -> str:
     """
     Applies changes to a file using a specific search/replace diff format. Checks syntax before applying for Python files.
+    Supports fuzzy matching when exact match fails.
     Returns a JSON string with keys: 'path', 'success', and either 'info' or 'error'.
     Parameters:
       - path: str (file to modify)
       - diff: str (search/replace block(s))
       - auto_approve: bool (skip confirmation prompt if True)
+      - fuzzy_buffer_size: int (number of lines to search around start_line for fuzzy match)
+      - fuzzy_threshold: int (minimum similarity score for fuzzy match, 0-100)
     """
     logger = get_logger()
     logger.debug(
@@ -101,17 +105,44 @@ def apply_source_code_diff(
         replace_lines = [l.rstrip("\r\n") for l in replace_content.splitlines()]
 
         # Check if the search block matches the content at the specified line
+        exact_match = True
         if new_lines[s_idx : s_idx + len(search_lines)] != [
             l + "\n" for l in search_lines
         ]:
-            return format_apply_source_code_diff_response(
-                path,
-                False,
-                error=f"Search block does not match file at line {start_line}. Please use read_file to get the exact content and line numbers.",
+            exact_match = False
+            
+            # Try fuzzy matching
+            logger.info(
+                f"Exact match failed at line {start_line}. Attempting fuzzy match..."
+            )
+            fuzzy_result = find_fuzzy_match_in_lines(
+                new_lines, search_lines, start_line, fuzzy_buffer_size, fuzzy_threshold
+            )
+            
+            if fuzzy_result is None:
+                return format_apply_source_code_diff_response(
+                    path,
+                    False,
+                    error=f"Search block does not match file at line {start_line} (exact match failed). "
+                          f"Fuzzy search within +/- {fuzzy_buffer_size} lines also failed "
+                          f"(no match with >= {fuzzy_threshold}% similarity). "
+                          f"Please use read_file to get the exact content and line numbers.",
+                )
+            
+            # Update the index to the fuzzy match location
+            s_idx, similarity = fuzzy_result
+            logger.info(
+                f"Fuzzy match found at line {s_idx + 1} with {similarity:.1f}% similarity"
             )
 
         # Apply the replacement
         new_lines[s_idx : s_idx + len(search_lines)] = [l + "\n" for l in replace_lines]
+        
+        # Log whether this was an exact or fuzzy match
+        if exact_match:
+            logger.debug(f"Applied exact match replacement at line {s_idx + 1}")
+        else:
+            logger.debug(f"Applied fuzzy match replacement at line {s_idx + 1}")
 
     # Preview the diff for the user
     print(

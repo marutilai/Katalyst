@@ -19,11 +19,11 @@ Description: Use this tool WHENEVER you need ANY information, clarification, con
 
 ## Example:
 {
-  "thought": "I need a filename from the user. I'll ask with common Python script names as suggestions.",
+  "thought": "I need a filename from the user for the new file.",
   "action": "request_user_input",
   "action_input": {
-    "question_to_ask_user": "What filename for the new Python script?",
-    "suggested_responses": ["main.py", "app.py", "utils.py", "script.py"]
+    "question_to_ask_user": "What should I name this file?",
+    "suggested_responses": ["file1.py", "file2.py", "module.py", "handler.py"]
   }
 }
 

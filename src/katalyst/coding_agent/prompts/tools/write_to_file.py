@@ -13,7 +13,7 @@ Description: Write full content to a file. Overwrites existing files completely 
 - Creating empty marker files like __init__.py
 
 ## Parameters:
-- path: (string, required) File path to write
+- path: (string, required) File path to write (use absolute path from project root, e.g., 'project_folder/subfolder/file.ext')
 - content: (string, required) Full file content - Partial updates or placeholders like '// rest of code unchanged' are STRICTLY FORBIDDEN.
 - line_count: (integer, REQUIRED with content) Number of lines in the file. Count ALL lines including empty ones. A trailing newline counts as an additional line.
 - content_ref: (string, optional) Use this from read_file instead of content for exact copies

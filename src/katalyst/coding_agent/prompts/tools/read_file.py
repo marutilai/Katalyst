@@ -13,16 +13,16 @@ Description: Read the contents of a specific file. Read entire file unless it's 
 - Analyzing specific implementation details
 
 ## Parameters:
-- path: (string, required) File path to read
+- path: (string, required) File path to read (use absolute path from project root, e.g., 'project_folder/subfolder/file.ext')
 - start_line: (integer, optional) Starting line number (1-based)
 - end_line: (integer, optional) Ending line number (1-based)
 
 ## Example:
 {
-  "thought": "I need to read src/utils.py to understand its functionality.",
+  "thought": "I need to read this file to understand its functionality.",
   "action": "read_file",
   "action_input": {
-    "path": "src/utils.py"
+    "path": "project_folder/module/file.py"
   }
 }
 

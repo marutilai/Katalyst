@@ -20,6 +20,7 @@ dependencies = [
     "litellm>=1.72.1",
     "bm25s (>=0.2.13,<0.3.0)",
     "pytest-asyncio (>=1.0.0,<2.0.0)",
+    "thefuzz>=0.22.1",
 ]
 
 [project.scripts]
@@ -48,6 +49,7 @@ pytest = "^8.3.5"
 instructor = "^1.8.3"
 pytest-cov = "^6.1.1"
 litellm = "^1.72.1"
+thefuzz = "^0.22.1"
 
 [tool.setuptools.packages.find]
 where = ["src"]

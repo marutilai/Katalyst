@@ -8,7 +8,7 @@ import json
 
 
 @katalyst_tool(prompt_module="search_files", prompt_var="SEARCH_FILES_PROMPT")
-def regex_search_files(
+def regex_search_inside_files(
     path: str, regex: str, file_pattern: str = None, auto_approve: bool = True
 ) -> str:
     """
@@ -18,7 +18,7 @@ def regex_search_files(
     """
     logger = get_logger()
     logger.debug(
-        f"Entered regex_search_files with path: {path}, regex: {regex}, file_pattern: {file_pattern}, auto_approve: {auto_approve}"
+        f"Entered regex_search_inside_files with path: {path}, regex: {regex}, file_pattern: {file_pattern}, auto_approve: {auto_approve}"
     )
 
     # Check for required arguments
@@ -91,5 +91,5 @@ def regex_search_files(
         result_json["info"] = (
             f"Results truncated at {SEARCH_FILES_MAX_RESULTS} matches."
         )
-    logger.debug("Exiting regex_search_files")
+    logger.debug("Exiting regex_search_inside_files")
     return json.dumps(result_json)

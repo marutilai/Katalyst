@@ -17,9 +17,9 @@ JSON object with keys:
 
 ## Example
 {
-  "file_path": "src/app/main.py",
-  "summary": "Main entry point and REPL loop for the application.",
-  "key_classes": [],
-  "key_functions": ["main", "repl"]
+  "file_path": "project_folder/module/filename.py",
+  "summary": "Brief description of what this file does and its main purpose.",
+  "key_classes": ["ExampleClass", "AnotherClass"],
+  "key_functions": ["process_data", "validate_input"]
 }
 """)

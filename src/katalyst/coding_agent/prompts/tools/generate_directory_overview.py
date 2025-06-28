@@ -17,17 +17,17 @@ Description: Provides high-level overview and documentation of a codebase by sca
 - respect_gitignore: (boolean, optional) Respect .gitignore patterns. Defaults to true.
 
 ## Important Notes:
-- Call on top-level directory (e.g., 'src/', 'app/') for comprehensive overview
+- Call on top-level directory (e.g., 'project/', 'module/') for comprehensive overview
 - Call ONCE per major directory - it recursively analyzes all nested content
 - Tool handles file reading internally - just provide directory path
 - Automatically respects .gitignore patterns
 
 ## Example:
 {
-  "thought": "I need to understand the entire src/ directory structure.",
+  "thought": "I need to understand the entire project directory structure.",
   "action": "generate_directory_overview",
   "action_input": {
-    "dir_path": "src/"
+    "dir_path": "project/"
   }
 }
 
