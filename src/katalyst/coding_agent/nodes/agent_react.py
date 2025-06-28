@@ -120,6 +120,8 @@ create subtasks for each rather than trying to do all in one task.
 - Use EXACT information from scratchpad - do NOT hallucinate
 - Avoid repeating tool calls already performed
 - Build on previous discoveries to make informed decisions
+- If searches yield no results after 2-3 attempts, accept that the content doesn't exist
+- Don't keep searching for the same patterns - move on to creating what you need
 
 # TASK COMPLETION
 - Only provide 'final_answer' when the current task goal is FULLY achieved

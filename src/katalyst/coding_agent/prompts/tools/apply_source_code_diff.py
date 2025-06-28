@@ -17,7 +17,7 @@ Description: Apply precise code changes using search/replace diff format. Use re
 - diff: (string, required) Search/replace blocks defining changes
 - auto_approve: (boolean, optional) Skip user confirmation if true
 
-## Diff Format (REQUIRED FORMAT - MUST INCLUDE :start_line:):
+## Diff Format (ALL 3 PARTS REQUIRED):
 <<<<<<< SEARCH
 :start_line:<line number>
 -------
@@ -26,7 +26,8 @@ Description: Apply precise code changes using search/replace diff format. Use re
 [new content to replace with]
 >>>>>>> REPLACE
 
-CRITICAL: You MUST include ":start_line:<number>" after SEARCH marker!
+⚠️ CRITICAL: The "-------" separator after :start_line is MANDATORY
+Without it, the diff will fail.
 
 ## Example:
 {
