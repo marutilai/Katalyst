@@ -3,7 +3,7 @@ from textwrap import dedent
 APPLY_SOURCE_CODE_DIFF_PROMPT = dedent('''
 # apply_source_code_diff Tool
 
-Description: Apply precise code changes using search/replace diff format. Use read_file first to get exact content and line numbers. Can batch multiple changes in one request.
+Description: Apply precise code changes using search/replace diff format with fuzzy matching support. Use read_file first to get exact content and line numbers. Can batch multiple changes in one request.
 
 ## When to Use:
 - Making precise edits to existing code
@@ -16,6 +16,8 @@ Description: Apply precise code changes using search/replace diff format. Use re
 - path: (string, required) File path to modify
 - diff: (string, required) Search/replace blocks defining changes
 - auto_approve: (boolean, optional) Skip user confirmation if true
+- fuzzy_buffer_size: (integer, optional) Lines to search around start_line for fuzzy match (default: 20)
+- fuzzy_threshold: (integer, optional) Minimum similarity score 0-100 for fuzzy match (default: 95)
 
 ## Diff Format (ALL 3 PARTS REQUIRED):
 <<<<<<< SEARCH
@@ -28,6 +30,8 @@ Description: Apply precise code changes using search/replace diff format. Use re
 
 ⚠️ CRITICAL: The "-------" separator after :start_line is MANDATORY
 Without it, the diff will fail.
+
+✨ Fuzzy matching: If exact match fails, searches ±20 lines with 95% similarity threshold
 
 ## Example:
 {
