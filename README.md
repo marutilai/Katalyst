@@ -39,6 +39,12 @@ The `search_files` tool requires [ripgrep](https://github.com/BurntSushi/ripgrep
 
 - Intelligent Task Planning: Automatically breaks down complex tasks into manageable sub-tasks and executes them sequentially with built-in error recovery and replanning capabilities.
 
+- Human-in-the-Loop Verification: Interactive plan approval system that allows users to:
+  - Review generated plans before execution
+  - Provide feedback for better plans
+  - Automatically approve plans with `--auto-approve` flag
+  - Iterate on plans until they meet requirements
+
 - Rich Tool Integration: Comprehensive set of built-in tools for:
   - File operations (reading, writing, searching)
   - Code analysis and syntax checking

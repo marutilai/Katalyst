@@ -78,6 +78,10 @@ class KatalystState(BaseModel):
     response: Optional[str] = Field(
         None, description="Final deliverable once the outer loop terminates."
     )
+    plan_feedback: Optional[str] = Field(
+        None,
+        description="User feedback about the generated plan to be incorporated in replanning.",
+    )
 
     # ── loop guardrails ───────────────────────────────────────────────────
     inner_cycles: int = Field(

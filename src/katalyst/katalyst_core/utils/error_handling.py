@@ -122,10 +122,28 @@ def format_error_for_llm(error_type: ErrorType, error_details: str) -> str:
             "The current execution path has entered a loop. Please request replanning to try a different approach."
         )
     elif error_type == ErrorType.CONTENT_OMISSION:
-        return (
-            f"Content omission detected: {error_details}\n"
-            "The provided content appears to be truncated. Please provide the complete file content with accurate line count."
-        )
+        # Extract line count info to provide specific guidance
+        import re
+        match = re.search(r"predicted (\d+) lines.*provided (\d+) lines", error_details)
+        if match:
+            predicted = int(match.group(1))
+            actual = int(match.group(2))
+            difference = predicted - actual
+            
+            return (
+                f"Content omission detected: {error_details}\n\n"
+                f"You were off by {abs(difference)} lines. Count more carefully:\n"
+                "• Count EVERY line including empty ones\n"
+                "• Each \\n creates a new line (even at EOF)\n"
+                "• Double-check: did you skip empty lines or truncate content?\n"
+                "Please provide the COMPLETE content with accurate line count."
+            )
+        else:
+            return (
+                f"Content omission detected: {error_details}\n"
+                "Count ALL lines including empty ones. Each \\n = new line.\n"
+                "Please provide the COMPLETE content with accurate line count."
+            )
     elif error_type == ErrorType.TOOL_REPETITION:
         return (
             f"Repetitive tool call detected: {error_details}\n"
