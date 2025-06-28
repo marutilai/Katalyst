@@ -51,6 +51,19 @@ def tool_runner(state: KatalystState) -> KatalystState:
     # Log tool execution (important for debugging)
     logger.info(f"[TOOL_RUNNER] Executing tool: {tool_name}")
 
+    # Check for known hallucinated tools first
+    if tool_name in ["multi_tool_use.parallel", "functions.AgentReactOutput"]:
+        observation = create_error_message(
+            ErrorType.TOOL_ERROR,
+            f"Invalid tool '{tool_name}'. This appears to be a hallucinated tool name. Use only the tools explicitly listed in the available tools section.",
+            "TOOL_RUNNER",
+        )
+        logger.warning(f"[TOOL_RUNNER] Blocked hallucinated tool: {tool_name}")
+        state.error_message = observation
+        state.action_trace.append((agent_action, str(observation)))
+        state.agent_outcome = None
+        return state
+    
     # Look up the tool function in the registry
     tool_fn = REGISTERED_TOOL_FUNCTIONS_MAP.get(tool_name)
     if not tool_fn:

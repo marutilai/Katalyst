@@ -75,10 +75,21 @@ Respond in JSON with:
 # HANDLING GOAL-ORIENTED TASKS
 When given a high-level task (e.g., "Implement user authentication system"):
 1. First understand the goal - what needs to be achieved?
-2. Explore the existing codebase if relevant (list files, read examples)
-3. Plan your approach mentally before starting implementation
-4. Execute systematically, adapting based on discoveries
-5. Use create_subtask if you discover the task has multiple independent parts
+2. Check dependencies - what must exist before this task can succeed?
+3. Explore the existing codebase if relevant (list files, read examples)
+4. Plan your approach mentally before starting implementation
+5. Execute systematically, adapting based on discoveries
+6. Use create_subtask if you discover the task has multiple independent parts
+
+# DEPENDENCY CHECKING
+Before starting implementation:
+- Ask: "What needs to exist for this task to succeed?"
+- Can't add validation to schemas that don't exist
+- Can't test functions that aren't implemented
+- Can't import from files that haven't been created
+- If dependencies are missing, either:
+  - Create them first within this task, OR
+  - Use create_subtask to add prerequisite tasks
 
 # DYNAMIC TASK DECOMPOSITION
 You can create subtasks when:

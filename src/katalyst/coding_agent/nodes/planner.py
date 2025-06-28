@@ -179,13 +179,22 @@ Let the agent explore and make decisions based on what it finds.
 - ❌ Avoid: Prescribing exact implementation details
 - ✅ Use: "Implement data validation based on model requirements"
 
-## 5. Progressive Complexity
-Order tasks from foundational to complex, allowing each to build on previous work.
+## 5. Progressive Complexity & Dependencies
+Order tasks from foundational to complex, ensuring proper dependencies.
 - Start with setup/structure tasks
 - Move to core functionality
 - End with testing/documentation/polish
+- CRITICAL: Ensure each task has what it needs from previous tasks
+- Example: Don't "Add validation to user model" before "Create user model"
 
-## 6. Consider Agent Autonomy
+## 6. Dependency Awareness
+Before finalizing task order, verify dependencies are satisfied:
+- Can't validate what doesn't exist yet
+- Can't test functionality that isn't implemented
+- Can't refactor code that hasn't been written
+- Double-check: "Does task X need something from task Y to succeed?"
+
+## 7. Consider Agent Autonomy
 Remember the agent can create its own subtasks if it discovers complexity.
 - Don't try to anticipate every micro-step
 - Focus on logical, complete units of work
