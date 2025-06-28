@@ -116,6 +116,17 @@ def planner(state: KatalystState) -> KatalystState:
     else:
         playbook_section = ""
 
+    # Add user feedback section if available
+    feedback_section = ""
+    if state.plan_feedback:
+        feedback_section = f"""
+# USER FEEDBACK FROM PREVIOUS PLAN
+The user reviewed your previous plan and provided this feedback:
+"{state.plan_feedback}"
+
+IMPORTANT: You must incorporate this feedback into your new plan. Address the user's specific concerns.
+"""
+
     prompt = f"""
 # ROLE
 You are a planning assistant for an adaptive AI coding agent. Your job is to break down a high-level user GOAL into meaningful, goal-oriented tasks.
@@ -135,7 +146,7 @@ The agent is intelligent and can:
 - Task decomposition for complex work
 
 {playbook_section}
-
+{feedback_section}
 # PATH GUIDELINES
 - Always use paths relative to project root (where 'katalyst' command was run)
 - Include full paths from project root: 'folder/subfolder/file.py'
@@ -246,6 +257,7 @@ Remember: Focus on WHAT to achieve, not HOW to achieve it. The agent will figure
         state.completed_tasks = []
         state.response = None
         state.error_message = None
+        state.plan_feedback = None  # Clear feedback after using it
 
         # Log the plan to chat_history
         plan_message = f"Generated plan:\n" + "\n".join(

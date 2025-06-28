@@ -93,9 +93,10 @@ class TestHumanPlanVerification:
         with patch('builtins.print'):
             result = human_plan_verification(state)
         
-        # Should clear task queue and set error message
+        # Should clear task queue and set feedback
         assert result.task_queue == []
-        assert result.error_message == "[REPLAN_REQUESTED] User feedback: Please include tests in the plan"
+        assert result.plan_feedback == "Please include tests in the plan"
+        assert result.error_message == "[REPLAN_REQUESTED]"
         assert len(result.chat_history) == 1
         assert "rejected with feedback" in result.chat_history[0].content
         assert "Please include tests" in result.chat_history[0].content
@@ -120,9 +121,10 @@ class TestHumanPlanVerification:
         # Should prompt for feedback after 'no'
         assert mock_input.call_count == 2
         
-        # Should clear task queue and set error message
+        # Should clear task queue and set feedback
         assert result.task_queue == []
-        assert result.error_message == "[REPLAN_REQUESTED] User feedback: Add error handling steps"
+        assert result.plan_feedback == "Add error handling steps"
+        assert result.error_message == "[REPLAN_REQUESTED]"
         assert "Add error handling steps" in result.chat_history[0].content
     
     def test_empty_task_queue(self):
