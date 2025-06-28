@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from katalyst.katalyst_core.state import KatalystState
+from katalyst.katalyst_core.utils.error_handling import ErrorType
 from katalyst.coding_agent.nodes.human_plan_verification import human_plan_verification
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -96,7 +97,7 @@ class TestHumanPlanVerification:
         # Should clear task queue and set feedback
         assert result.task_queue == []
         assert result.plan_feedback == "Please include tests in the plan"
-        assert "[REPLAN_REQUESTED]" in result.error_message
+        assert f"[{ErrorType.REPLAN_REQUESTED.value}]" in result.error_message
         assert len(result.chat_history) == 1
         assert "rejected with feedback" in result.chat_history[0].content
         assert "Please include tests" in result.chat_history[0].content
@@ -124,7 +125,7 @@ class TestHumanPlanVerification:
         # Should clear task queue and set feedback
         assert result.task_queue == []
         assert result.plan_feedback == "Add error handling steps"
-        assert "[REPLAN_REQUESTED]" in result.error_message
+        assert f"[{ErrorType.REPLAN_REQUESTED.value}]" in result.error_message
         assert "Add error handling steps" in result.chat_history[0].content
     
     def test_empty_task_queue(self):
