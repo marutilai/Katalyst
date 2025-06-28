@@ -87,9 +87,10 @@ def human_plan_verification(state: KatalystState) -> KatalystState:
             HumanMessage(content=f"Plan rejected with feedback: {feedback}")
         )
         
-        # Clear task queue and set error message to trigger replanning
+        # Clear task queue and set feedback for planner
         state.task_queue = []
-        state.error_message = f"[REPLAN_REQUESTED] User feedback: {feedback}"
+        state.plan_feedback = feedback
+        state.error_message = "[REPLAN_REQUESTED]"  # Trigger replanning
     
     logger.debug("[HUMAN_PLAN_VERIFICATION] End of human plan verification")
     return state
