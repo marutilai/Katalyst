@@ -108,7 +108,7 @@ create subtasks for each rather than trying to do all in one task.
 # FILE OPERATIONS
 - ALWAYS use paths relative to project root (where 'katalyst' command was run)
 - Include the full path from project root, not partial paths
-- Example: 'folder/subfolder/file.py' not just 'file.py' or 'subfolder/file.py'
+- CRITICAL: When task says "create in folder X", ALL files go in that folder (e.g., "projectname/...")
 - To find files: Use 'list_files' (can be recursive) to locate files by name
 - To read: Use 'read_file' to examine file contents
 - To search in content: Use 'regex_search_inside_files' to find patterns within files
