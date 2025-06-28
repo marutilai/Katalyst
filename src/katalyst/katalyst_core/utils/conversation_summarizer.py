@@ -67,12 +67,6 @@ class ConversationSummarizer:
         # Build the compressed conversation
         compressed = system_messages.copy()
         
-        # Add a user message prompting for summary
-        compressed.append({
-            "role": "user",
-            "content": "Summarize the conversation so far, as described in the prompt instructions."
-        })
-        
         # Add summary as an assistant message
         compressed.append({
             "role": "assistant",
