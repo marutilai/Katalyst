@@ -65,6 +65,8 @@ def advance_pointer(state: KatalystState) -> KatalystState:
     state.action_trace.clear()
     state.agent_outcome = None
     state.error_message = None
+    # Reset repetition detector for the new task
+    state.repetition_detector.reset()
     
     # 3) If plan is exhausted, check outer-loop guard
     if state.task_idx >= len(state.task_queue):

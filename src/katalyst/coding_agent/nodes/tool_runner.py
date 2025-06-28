@@ -64,6 +64,21 @@ def tool_runner(state: KatalystState) -> KatalystState:
         state.agent_outcome = None
         return state
     
+    # Check for repetitive tool calls
+    if not state.repetition_detector.check(tool_name, tool_input):
+        repetition_count = state.repetition_detector.get_repetition_count(tool_name, tool_input)
+        observation = create_error_message(
+            ErrorType.TOOL_REPETITION,
+            f"Tool '{tool_name}' has been called {repetition_count} times with identical inputs. "
+            "Please try a different approach or tool to avoid getting stuck in a loop.",
+            "TOOL_RUNNER",
+        )
+        logger.warning(f"[TOOL_RUNNER] Blocked repetitive tool call: {tool_name} (called {repetition_count} times)")
+        state.error_message = observation
+        state.action_trace.append((agent_action, str(observation)))
+        state.agent_outcome = None
+        return state
+    
     # Look up the tool function in the registry
     tool_fn = REGISTERED_TOOL_FUNCTIONS_MAP.get(tool_name)
     if not tool_fn:

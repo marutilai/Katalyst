@@ -2,6 +2,7 @@ from typing import List, Tuple, Optional, Union, Callable, Dict
 from pydantic import BaseModel, Field
 from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.messages import BaseMessage
+from katalyst.katalyst_core.utils.tool_repetition_detector import ToolRepetitionDetector
 import os
 
 
@@ -92,6 +93,10 @@ class KatalystState(BaseModel):
     max_outer_cycles: int = Field(
         default=int(os.getenv("KATALYST_MAX_OUTER_CYCLES", 5)),
         description="Abort outer loop once this many cycles are hit.",
+    )
+    repetition_detector: ToolRepetitionDetector = Field(
+        default_factory=ToolRepetitionDetector,
+        description="Detects repetitive tool calls to prevent infinite loops.",
     )
 
     # ── playbook / plan context ─────────────────────────────────────────────

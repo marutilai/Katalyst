@@ -19,6 +19,7 @@ class ErrorType(Enum):
                       Triggers replanning to handle the error gracefully.
     - CONTENT_OMISSION: Content validation failure in write operations.
                        Indicates LLM truncated or omitted content when line count mismatch detected.
+    - TOOL_REPETITION: Repetitive tool calls detected. Prevents infinite loops.
     - UNKNOWN: Fallback for unclassified errors.
     """
 
@@ -28,6 +29,7 @@ class ErrorType(Enum):
     REPLAN_REQUESTED = "REPLAN_REQUESTED"
     GRAPH_RECURSION = "GRAPH_RECURSION"
     CONTENT_OMISSION = "CONTENT_OMISSION"
+    TOOL_REPETITION = "TOOL_REPETITION"
     UNKNOWN = "UNKNOWN"
 
 
@@ -68,6 +70,7 @@ def classify_error(error_message: str) -> Tuple[ErrorType, str]:
         "[REPLAN_REQUESTED]": ErrorType.REPLAN_REQUESTED,
         "[GRAPH_RECURSION]": ErrorType.GRAPH_RECURSION,
         "[CONTENT_OMISSION]": ErrorType.CONTENT_OMISSION,
+        "[TOOL_REPETITION]": ErrorType.TOOL_REPETITION,
     }
 
     for tag, error_type in error_types.items():
@@ -122,5 +125,11 @@ def format_error_for_llm(error_type: ErrorType, error_details: str) -> str:
         return (
             f"Content omission detected: {error_details}\n"
             "The provided content appears to be truncated. Please provide the complete file content with accurate line count."
+        )
+    elif error_type == ErrorType.TOOL_REPETITION:
+        return (
+            f"Repetitive tool call detected: {error_details}\n"
+            "You are repeatedly calling the same tool with identical inputs. "
+            "Please try a different approach, use a different tool, or reconsider your strategy."
         )
     return f"Unknown error occurred: {error_details}"
