@@ -87,7 +87,7 @@ class TestHumanPlanVerificationFlow:
             # Should have rejected with feedback
             assert state.task_queue == []
             assert "[REPLAN_REQUESTED]" in state.error_message
-            assert "Need more detail and tests" in state.error_message
+            assert state.plan_feedback == "Need more detail and tests"
             
             # Clear error for replanning
             state.error_message = None
