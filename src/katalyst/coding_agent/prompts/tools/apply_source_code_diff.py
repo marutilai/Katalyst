@@ -31,7 +31,7 @@ Description: Apply precise code changes using search/replace diff format. Use re
   "thought": "I need to update the return value of foo function.",
   "action": "apply_source_code_diff",
   "action_input": {
-    "path": "src/utils.py",
+    "path": "project_folder/module/file.py",
     "diff": """<<<<<<< SEARCH
 :start_line:10
 -------
@@ -48,7 +48,7 @@ def foo():
 JSON with keys: 'path', 'success' (boolean), 'info' (optional), 'error' (optional)
 
 Example outputs:
-- Success: {"path": "src/utils.py", "success": true, "info": "Successfully applied diff"}
-- Error: {"path": "src/utils.py", "success": false, "error": "Search block does not match"}
-- Declined: {"path": "src/utils.py", "success": false, "info": "User declined to apply diff"}
+- Success: {"path": "project_folder/module/file.py", "success": true, "info": "Successfully applied diff"}
+- Error: {"path": "project_folder/module/file.py", "success": false, "error": "Search block does not match"}
+- Declined: {"path": "project_folder/module/file.py", "success": false, "info": "User declined to apply diff"}
 ''')

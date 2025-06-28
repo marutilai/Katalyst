@@ -136,6 +136,10 @@ The agent is intelligent and can:
 
 {playbook_section}
 
+# PATH GUIDELINES
+- Always use paths relative to project root (where 'katalyst' command was run)
+- Include full paths from project root: 'folder/subfolder/file.py'
+
 # PLANNING GUIDELINES
 
 ## 1. Recognize Simple vs Complex Tasks

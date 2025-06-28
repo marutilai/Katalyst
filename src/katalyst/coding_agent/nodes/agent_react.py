@@ -91,10 +91,13 @@ create subtasks for each rather than trying to do all in one task.
 # TOOL USAGE RULES
 - Use ONLY the tools explicitly defined in the available tools section
 - Do NOT invent or hallucinate tool names or structures
-- Execute tools sequentially, one per ReAct step
+- Execute ONE tool per ReAct step (no parallel execution, no multi_tool_use.parallel)
 - Remember: create_subtask is available for task decomposition
 
 # FILE OPERATIONS
+- ALWAYS use paths relative to project root (where 'katalyst' command was run)
+- Include the full path from project root, not partial paths
+- Example: 'folder/subfolder/file.py' not just 'file.py' or 'subfolder/file.py'
 - To find files: Use 'list_files' (can be recursive) to locate files by name
 - To read: Use 'read_file' to examine file contents
 - To search in content: Use 'regex_search_inside_files' to find patterns within files
@@ -137,12 +140,10 @@ create subtasks for each rather than trying to do all in one task.
     user_message_content_parts = [f"Current Subtask: {current_subtask}"]
 
     # Provide context from the most recently completed sub-task if available and relevant
-    if state.task_idx > 0 and state.completed_tasks:
+    if state.completed_tasks:
         try:
-            # Get the summary of the immediately preceding task
-            prev_task_name, prev_task_summary = state.completed_tasks[
-                state.task_idx - 1
-            ]
+            # Get the summary of the most recently completed task
+            prev_task_name, prev_task_summary = state.completed_tasks[-1]
             user_message_content_parts.append(
                 f"\nContext from previously completed sub-task ('{prev_task_name}'): {prev_task_summary}"
             )
@@ -207,6 +208,17 @@ create subtasks for each rather than trying to do all in one task.
 
     # 6) If "action" key is present, wrap in AgentAction and update state
     if response.action:
+        # Validate action is not a hallucinated tool
+        if response.action in ["multi_tool_use.parallel", "functions.AgentReactOutput"]:
+            state.agent_outcome = None
+            state.error_message = create_error_message(
+                ErrorType.TOOL_ERROR,
+                f"Invalid tool '{response.action}'. Use only the tools listed in the available tools section. Execute ONE tool per step.",
+                "AGENT_REACT",
+            )
+            logger.warning(f"[AGENT_REACT] Blocked hallucinated tool: {response.action}")
+            return state
+            
         args_dict = response.action_input or {}
         state.agent_outcome = AgentAction(
             tool=response.action,

@@ -13,7 +13,7 @@ Description: Search INSIDE file contents using regex patterns across files in a 
 - Finding which files contain specific imports
 
 ## Parameters:
-- path: (string, required) Directory to search (recursive)
+- path: (string, required) Directory to search (recursive) - use absolute path from project root, e.g., 'project_folder/subfolder'
 - regex: (string, required) Regular expression pattern (Rust regex syntax)
 - file_pattern: (string, optional) Glob pattern to filter files (e.g., '*.py', '*.{js,ts}')
 
@@ -34,7 +34,7 @@ JSON with keys: 'matches' (list), 'info' (optional), 'error' (optional)
 Each match object: {'file': 'filename', 'line': line_number, 'content': 'line content'}
 
 Example outputs:
-- Success: {"matches": [{"file": "src/utils.py", "line": 12, "content": "# TODO: Refactor this function"}]}
+- Success: {"matches": [{"file": "project_folder/module/file.py", "line": 12, "content": "# TODO: Refactor this function"}]}
 - No matches: {"matches": [], "info": "No matches found"}
 - Error: {"error": "Directory not found: ./missing_dir"}
 """)

@@ -13,15 +13,17 @@ Description: List files and directories in a given directory. Directories shown 
 - Discovering configuration files
 
 ## Parameters:
-- path: (string, required) Directory path to list
+- path: (string, required) Directory path to list (use absolute path from project root, e.g., 'project_folder/subfolder' not just 'subfolder')
 - recursive: (boolean, required) true for recursive listing, false for top-level only
+  - Use recursive: false for initial exploration or when you know the file is in a specific directory
+  - Use recursive: true when searching for files across nested directories
 
 ## Example:
 {
-  "thought": "I need to see what files are in the src directory.",
+  "thought": "I need to see what files are in this directory.",
   "action": "list_files",
   "action_input": {
-    "path": "src",
+    "path": "project_folder/subfolder",
     "recursive": false
   }
 }
@@ -32,7 +34,7 @@ JSON with keys: 'path', 'files' (list of strings, optional), 'error' (optional)
 Note: Directories have '/' suffix
 
 Example outputs:
-- Success: {"path": ".", "files": ["src/", "pyproject.toml", "README.md"]}
+- Success: {"path": ".", "files": ["folder1/", "folder2/", "file1.py", "file2.txt"]}
 - Not found: {"path": "missing/", "error": "Path does not exist"}
 - Empty: {"path": "empty_dir/", "files": []}
 """)

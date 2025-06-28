@@ -15,7 +15,7 @@ JSON object with keys:
 
 ## Example
 {
-  "overall_summary": "The application is a command-line agent with a REPL interface...",
-  "main_components": ["src/app/main.py", "src/katalyst_core/graph.py"]
+  "overall_summary": "Brief description of the codebase purpose and architecture...",
+  "main_components": ["project_folder/module1/file1.py", "project_folder/module2/file2.py"]
 }
 """)
