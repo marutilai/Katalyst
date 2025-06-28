@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.graph import build_compiled_graph
+from katalyst.katalyst_core.utils.error_handling import ErrorType
 from langchain_core.messages import HumanMessage
 
 pytestmark = pytest.mark.integration
@@ -86,7 +87,7 @@ class TestHumanPlanVerificationFlow:
             
             # Should have rejected with feedback
             assert state.task_queue == []
-            assert "[REPLAN_REQUESTED]" in state.error_message
+            assert ErrorType.REPLAN_REQUESTED.value in state.error_message
             assert state.plan_feedback == "Need more detail and tests"
             
             # Clear error for replanning
