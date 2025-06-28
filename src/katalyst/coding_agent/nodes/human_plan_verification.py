@@ -9,6 +9,7 @@ This module handles the human-in-the-loop verification of generated plans:
 """
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.logger import get_logger
+from katalyst.katalyst_core.utils.error_handling import ErrorType, create_error_message
 from langchain_core.messages import HumanMessage, SystemMessage
 
 
@@ -90,7 +91,12 @@ def human_plan_verification(state: KatalystState) -> KatalystState:
         # Clear task queue and set feedback for planner
         state.task_queue = []
         state.plan_feedback = feedback
-        state.error_message = "[REPLAN_REQUESTED]"  # Trigger replanning
+        # Use proper error handling mechanism
+        state.error_message = create_error_message(
+            ErrorType.REPLAN_REQUESTED, 
+            "User provided feedback for plan improvement",
+            "HUMAN_PLAN_VERIFICATION"
+        )
     
     logger.debug("[HUMAN_PLAN_VERIFICATION] End of human plan verification")
     return state

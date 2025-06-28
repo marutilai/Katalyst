@@ -96,7 +96,7 @@ class TestHumanPlanVerification:
         # Should clear task queue and set feedback
         assert result.task_queue == []
         assert result.plan_feedback == "Please include tests in the plan"
-        assert result.error_message == "[REPLAN_REQUESTED]"
+        assert "[REPLAN_REQUESTED]" in result.error_message
         assert len(result.chat_history) == 1
         assert "rejected with feedback" in result.chat_history[0].content
         assert "Please include tests" in result.chat_history[0].content
@@ -124,7 +124,7 @@ class TestHumanPlanVerification:
         # Should clear task queue and set feedback
         assert result.task_queue == []
         assert result.plan_feedback == "Add error handling steps"
-        assert result.error_message == "[REPLAN_REQUESTED]"
+        assert "[REPLAN_REQUESTED]" in result.error_message
         assert "Add error handling steps" in result.chat_history[0].content
     
     def test_empty_task_queue(self):
