@@ -221,17 +221,6 @@ create subtasks for each rather than trying to do all in one task.
 
     # 6) If "action" key is present, wrap in AgentAction and update state
     if response.action:
-        # Validate action is not a hallucinated tool
-        if response.action in ["multi_tool_use.parallel", "functions.AgentReactOutput"]:
-            state.agent_outcome = None
-            state.error_message = create_error_message(
-                ErrorType.TOOL_ERROR,
-                f"Invalid tool '{response.action}'. Use only the tools listed in the available tools section. Execute ONE tool per step.",
-                "AGENT_REACT",
-            )
-            logger.warning(f"[AGENT_REACT] Blocked hallucinated tool: {response.action}")
-            return state
-            
         args_dict = response.action_input or {}
         state.agent_outcome = AgentAction(
             tool=response.action,
