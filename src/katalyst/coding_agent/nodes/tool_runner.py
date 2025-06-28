@@ -143,8 +143,17 @@ def _validate_file_path(tool_name: str, tool_input: Dict[str, Any], agent_action
             state.agent_outcome = None
             return True
     except Exception as e:
-        # If we can't resolve paths, err on the side of caution
-        logger.warning(f"[TOOL_RUNNER] Path validation error: {e}")
+        # If we can't resolve paths, err on the side of caution and block the operation.
+        logger.warning(f"[TOOL_RUNNER] Path validation for '{path}' failed with an exception, blocking operation")
+        observation = create_error_message(
+            ErrorType.TOOL_ERROR,
+            f"Security error: Path validation failed for '{path}'. Could not resolve real path.",
+            "TOOL_RUNNER",
+        )
+        state.error_message = observation
+        state.action_trace.append((agent_action, str(observation)))
+        state.agent_outcome = None
+        return True
     
     return False
 
