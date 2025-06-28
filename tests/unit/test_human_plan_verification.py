@@ -172,7 +172,7 @@ class TestRoutingAfterVerification:
         state = KatalystState(
             task="Test",
             project_root_cwd="/test",
-            error_message="[REPLAN_REQUESTED] User feedback: Make it better",
+            error_message=f"[{ErrorType.REPLAN_REQUESTED.value}] User feedback: Make it better",
             task_queue=[]
         )
         
