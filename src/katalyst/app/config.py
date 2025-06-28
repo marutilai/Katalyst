@@ -40,6 +40,7 @@ KATALYST_IGNORE_PATTERNS = {
     "*.pyc",
     "*.pyo",
     "*.pyd",
+    "*.egg-info",
     # Environment
     ".env",
     "venv",

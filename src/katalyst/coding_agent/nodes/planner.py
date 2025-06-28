@@ -118,72 +118,98 @@ def planner(state: KatalystState) -> KatalystState:
 
     prompt = f"""
 # ROLE
-You are a planning assistant for a ReAct-style AI agent. Your job is to break down a high-level user GOAL into a logically ordered list of atomic, executable sub-tasks.
+You are a planning assistant for an adaptive AI coding agent. Your job is to break down a high-level user GOAL into meaningful, goal-oriented tasks.
 
 # AGENT CAPABILITIES
-The agent's primary capability is to use the tools provided below. Your plan should be entirely based on using these tools to achieve the goal.
+The agent is intelligent and can:
+- Explore and understand project structures
+- Make decisions based on discoveries
+- Create additional subtasks if needed during execution
+- Use various tools to accomplish goals
 
-## Available Tools:
-{tool_list_str}
+## Available Tool Categories:
+- File operations (reading, writing, searching, renaming)
+- Code analysis and manipulation  
+- System operations and execution
+- User interaction when needed
+- Task decomposition for complex work
 
 {playbook_section}
 
-# SUBTASK GUIDELINES
+# PLANNING GUIDELINES
 
-## 1. Actionable & Specific
-Every sub-task must describe a clear, concrete action.
-- ❌ Avoid: "Understand config file"
-- ✅ Use: "Use 'read_file' to read 'config/settings.json' and summarize key configuration parameters"
+## 1. Recognize Simple vs Complex Tasks
+For SIMPLE tasks (single file operation, one command, etc):
+- Create just ONE task that captures the entire goal
+- Don't break down into identify/execute/verify steps
+- Examples: "Rename X to Y", "Delete file Z", "Run command ABC"
 
-## 2. Directory Creation
-For directory creation, use 'write_to_file' to create a file in the desired directory - it will automatically create any needed parent directories.
-- ❌ Avoid: "Create directory 'src/utils'"
-- ✅ Use: "Use 'write_to_file' to create 'src/utils/__init__.py' with content '# Utils module'"
+For COMPLEX tasks (building apps, multiple components, etc):
+- Break down into logical, goal-oriented subtasks
+- Group related work together
 
-## 3. Tool Selection Guidelines
-- For codebase overview: Use 'generate_directory_overview' on top-level directories (e.g., 'src/', 'app/')
-- For specific file work: Use 'read_file' for focused tasks
-- For structure mapping: Use 'list_code_definition_names' before deep diving
-- For file listing: Use 'list_files' with recursive flag as needed
-- Call 'generate_directory_overview' ONCE per top-level directory (it recursively analyzes all subdirectories)
+## 2. Focus on Outcomes, Not Tools
+Create tasks that describe WHAT needs to be achieved, not HOW (specific tools).
+- ❌ Avoid: "Use write_to_file to create app.py with imports..."
+- ✅ Use: "Set up the main application entry point with basic configuration"
+- ❌ Avoid: "Use list_files then read_file on each Python file"
+- ✅ Use: "Analyze the existing codebase structure and patterns"
 
-## 4. Parameter-Specific
-Include all required parameters inline (e.g., filenames, paths, content).
-- ❌ Avoid: "Create a file"
-- ✅ Use: "Use 'write_to_file' to create 'README.md' with content 'Initial setup'"
+## 2. Logical Task Grouping
+Group related work into cohesive tasks that make sense together.
+- ❌ Avoid: "Create user.py", "Create auth.py", "Create middleware.py"
+- ✅ Use: "Implement user authentication system with necessary models and middleware"
+- ❌ Avoid: Multiple separate file creation tasks
+- ✅ Use: "Set up project structure with core directories and configuration"
 
-## 5. User Interaction
-If input is needed from the user, use 'request_user_input' and specify the prompt.
-- Example: "Use 'request_user_input' to ask the user for desired output folder"
+## 3. Appropriate Granularity
+Tasks should be meaningful units of work - not too broad, not too specific.
+- ❌ Too broad: "Build the entire application"
+- ❌ Too specific: "Add import statement to main.py"
+- ✅ Just right: "Implement the core Todo model with CRUD operations"
 
-## 6. Single-Step Granularity
-Sub-tasks should be atomic and non-composite.
-- ❌ Avoid: "Set up project structure"
-- ✅ Use: "Use 'write_to_file' to create 'src/main.py'"
+## 4. Allow for Discovery
+Let the agent explore and make decisions based on what it finds.
+- ❌ Avoid: "Create these exact 15 files: [long list]"
+- ✅ Use: "Create project structure following Django best practices"
+- ❌ Avoid: Prescribing exact implementation details
+- ✅ Use: "Implement data validation based on model requirements"
 
-## 7. Logical Ordering
-- Ensure dependencies are respected
-- Create directories before writing files in them
-- Read files before analyzing their content
+## 5. Progressive Complexity
+Order tasks from foundational to complex, allowing each to build on previous work.
+- Start with setup/structure tasks
+- Move to core functionality
+- End with testing/documentation/polish
 
-## 8. Complete but Minimal
-- Cover all necessary steps implied by the goal
-- Do not include extra steps unless explicitly required
+## 6. Consider Agent Autonomy
+Remember the agent can create its own subtasks if it discovers complexity.
+- Don't try to anticipate every micro-step
+- Focus on logical, complete units of work
+- Trust the agent to handle details
 
 # HIGH-LEVEL USER GOAL
 {state.task}
 
 # OUTPUT FORMAT
-Based on the GOAL, AVAILABLE TOOLS, and GUIDELINES{', and PLAYBOOK GUIDELINES' if playbook_guidelines else ''}, provide a JSON object with key "subtasks" containing a list of task descriptions.
+Based on the GOAL and GUIDELINES{', and PLAYBOOK GUIDELINES' if playbook_guidelines else ''}, provide a JSON object with key "subtasks" containing a list of goal-oriented task descriptions.
 
-Example:
+Example for "Build a web application with user management":
 {{
     "subtasks": [
-        "Use the `list_files` tool to list contents of the current directory.",
-        "Use the `read_file` tool to read 'README.md' and summarize key features.",
-        "Use the `request_user_input` tool to ask the user which file to analyze next."
+        "Set up project structure and initial configuration",
+        "Design and implement the data models",
+        "Create the business logic layer",
+        "Build the API or view layer",
+        "Implement authentication and authorization",
+        "Write comprehensive test coverage",
+        "Add error handling and validation",
+        "Create documentation"
     ]
-}}"""
+}}
+
+Note: This is a template showing the pattern - adapt the number and nature of tasks based on the actual goal complexity.
+
+Remember: Focus on WHAT to achieve, not HOW to achieve it. The agent will figure out the specific tools and steps."""
     logger.debug(f"[PLANNER] Prompt to LLM:\n{prompt}")
 
     try:

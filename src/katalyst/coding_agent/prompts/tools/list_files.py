@@ -7,7 +7,7 @@ Description: List files and directories in a given directory. Directories shown 
 
 ## When to Use:
 - Exploring project structure
-- Finding specific files or directories
+- Finding specific files or directories by name
 - Checking if files exist before operations
 - Understanding directory contents
 - Discovering configuration files

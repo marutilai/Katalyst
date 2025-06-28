@@ -32,6 +32,10 @@ class KatalystState(BaseModel):
     original_plan: Optional[List[str]] = Field(
         default=None, description="The initial plan created by the planner."
     )
+    created_subtasks: Dict[int, List[str]] = Field(
+        default_factory=dict,
+        description="Tracks subtasks created dynamically by the agent. Key is parent task index, value is list of created subtask descriptions."
+    )
 
     # ── ReAct dialogue (inner loop) ───────────────────────────────────────
     chat_history: List[BaseMessage] = Field(

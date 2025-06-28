@@ -190,6 +190,51 @@ def tool_runner(state: KatalystState) -> KatalystState:
             # The observation for generate_directory_overview is a dict, convert to JSON string
             elif isinstance(observation, dict):
                 observation = json.dumps(observation, indent=2)
+            
+            # Handle create_subtask tool specially - modify the task queue
+            if tool_name == "create_subtask" and isinstance(observation, str):
+                try:
+                    obs_data = json.loads(observation)
+                    if obs_data.get("success"):
+                        # Extract task details
+                        task_description = tool_input_resolved.get("task_description", "")
+                        insert_position = tool_input_resolved.get("insert_position", "after_current")
+                        
+                        # Check if we haven't exceeded the limit for this task
+                        current_task_idx = state.task_idx
+                        if not hasattr(state, 'created_subtasks'):
+                            state.created_subtasks = {}
+                        
+                        # Track how many subtasks created for current task
+                        if current_task_idx not in state.created_subtasks:
+                            state.created_subtasks[current_task_idx] = []
+                        
+                        # Check limit (5 subtasks per parent task)
+                        if len(state.created_subtasks[current_task_idx]) >= 5:
+                            obs_data["success"] = False
+                            obs_data["error"] = "Maximum subtasks (5) already created for current task"
+                            observation = json.dumps(obs_data)
+                            logger.warning(f"[TOOL_RUNNER] Subtask creation denied - limit exceeded")
+                        else:
+                            # Add the subtask to the queue
+                            if insert_position == "after_current":
+                                insert_idx = current_task_idx + 1 + len(state.created_subtasks[current_task_idx])
+                            else:  # end_of_queue
+                                insert_idx = len(state.task_queue)
+                            
+                            state.task_queue.insert(insert_idx, task_description)
+                            state.created_subtasks[current_task_idx].append(task_description)
+                            
+                            logger.info(f"[TOOL_RUNNER] Added subtask at position {insert_idx}: '{task_description}'")
+                            logger.info(f"[TOOL_RUNNER] Updated task queue length: {len(state.task_queue)}")
+                            
+                            # Update observation to reflect success
+                            obs_data["message"] = f"Successfully created subtask: '{task_description}'"
+                            obs_data["queue_position"] = insert_idx
+                            observation = json.dumps(obs_data)
+                            
+                except (json.JSONDecodeError, KeyError) as e:
+                    logger.error(f"[TOOL_RUNNER] Failed to process create_subtask: {e}")
 
         except GraphRecursionError as e:
             # Handle graph recursion error by triggering replanning
@@ -215,6 +260,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
     state.action_trace.append(
         (agent_action, str(observation))
     )  # Ensure observation is a string
+    logger.debug(f"[TOOL_RUNNER] Tool '{tool_name}' observation: {str(observation)}...")
     # Clear agent_outcome after processing
     state.agent_outcome = None
 

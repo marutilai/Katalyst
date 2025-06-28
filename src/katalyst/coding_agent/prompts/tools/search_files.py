@@ -1,16 +1,16 @@
 from textwrap import dedent
 
 SEARCH_FILES_PROMPT = dedent("""
-# regex_search_files Tool
+# regex_search_inside_files Tool
 
-Description: Search for regex patterns across files in a directory. Provides context-rich results with file names and line numbers.
+Description: Search INSIDE file contents using regex patterns across files in a directory. Provides context-rich results with file names and line numbers.
 
 ## When to Use:
-- Finding specific code patterns or text across multiple files
-- Locating TODO comments, FIXMEs, or other markers
-- Finding function/class definitions or usages
-- Searching for configuration values or constants
-- Identifying files that contain specific imports or dependencies
+- Finding code patterns or text within files
+- Locating TODO comments inside code  
+- Finding where functions/classes are defined
+- Searching for configuration values in files
+- Finding which files contain specific imports
 
 ## Parameters:
 - path: (string, required) Directory to search (recursive)
@@ -20,7 +20,7 @@ Description: Search for regex patterns across files in a directory. Provides con
 ## Example:
 {
   "thought": "I want to find all TODO comments in Python files.",
-  "action": "regex_search_files",
+  "action": "regex_search_inside_files",
   "action_input": {
     "path": ".",
     "regex": "TODO",

@@ -2,7 +2,7 @@ import os
 import shutil
 import pytest
 import json
-from katalyst.coding_agent.tools.search_files import regex_search_files
+from katalyst.coding_agent.tools.search_files import regex_search_inside_files
 
 pytestmark = pytest.mark.integration
 
@@ -33,8 +33,8 @@ foo bar baz
 
 
 def test_python_function_search():
-    print("Testing regex_search_files for 'def' in .py files...")
-    result = regex_search_files(
+    print("Testing regex_search_inside_files for 'def' in .py files...")
+    result = regex_search_inside_files(
         path="test_search_dir",
         regex=r"def ",
         file_pattern="*.py",
@@ -49,8 +49,8 @@ def test_python_function_search():
 
 
 def test_no_match():
-    print("Testing regex_search_files for a pattern that does not exist...")
-    result = regex_search_files(
+    print("Testing regex_search_inside_files for a pattern that does not exist...")
+    result = regex_search_inside_files(
         path="test_search_dir",
         regex=r"not_in_file",
         file_pattern="*.py",
