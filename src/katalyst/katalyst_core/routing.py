@@ -3,7 +3,7 @@ from langgraph.graph import END
 from langchain_core.agents import AgentAction
 from katalyst.katalyst_core.state import KatalystState
 
-__all__ = ["route_after_agent", "route_after_pointer", "route_after_replanner"]
+__all__ = ["route_after_agent", "route_after_pointer", "route_after_replanner", "route_after_verification"]
 
 
 def route_after_agent(state: KatalystState) -> Union[str, object]:
@@ -44,14 +44,31 @@ def route_after_replanner(state: KatalystState) -> str:
     """
     Router for after the replanner node.
     - If replanner set a final response (task done), route to END.
-    - If replanner provided new tasks, route to agent_react.
+    - If replanner provided new tasks, route to human_plan_verification for approval.
     - If replanner provided no tasks and no response, set a generic completion response and route to END.
     """
     if state.response:  # If replanner set a final response (e.g. task done)
         return END
     elif state.task_queue:  # If replanner provided new tasks
-        return "agent_react"
+        return "human_plan_verification"  # Need human approval for new plan
     else:  # No tasks and no response (should not happen, but handle gracefully)
         if not state.response:
             state.response = "Overall task concluded after replanning resulted in an empty task queue."
         return END
+
+
+def route_after_verification(state: KatalystState) -> Union[str, object]:
+    """
+    Router for after human plan verification.
+    - If user cancelled (response is set), route to END.
+    - If user rejected with feedback (REPLAN_REQUESTED), route to planner.
+    - If user approved (task_queue exists), route to agent_react.
+    """
+    if state.response:  # User cancelled
+        return END
+    elif state.error_message and "[REPLAN_REQUESTED]" in state.error_message:
+        return "planner"  # User provided feedback, regenerate plan
+    elif state.task_queue:  # User approved, proceed with plan
+        return "agent_react"
+    else:
+        return END  # Safety fallback
