@@ -130,27 +130,33 @@ class ConversationSummarizer:
         
         conversation_text = "\n\n".join(formatted_history)
         
-        prompt = f"""Your task is to create a detailed summary of the conversation so far, paying close attention to the user's explicit requests and actions taken.
+        prompt = f"""Your task is to create a RESULT-FOCUSED summary that captures the CURRENT STATE after all actions taken, not the journey of exploration.
 
-This summary should be thorough in capturing technical details, code patterns, and architectural decisions that would be essential for continuing the work.
+CRITICAL INSTRUCTION: Focus on OUTCOMES and CURRENT STATE, not the process or searches performed.
 
 Your summary should be structured as follows:
 
-Context: The context to continue the conversation with. This should include:
-  1. Previous Conversation: High level details about what was discussed, including the main objectives and any constraints
-  2. Current Work: Describe in detail what was being worked on, including specific implementation details
-  3. Key Technical Concepts: List all important technical concepts, technologies, coding conventions, and patterns discovered
-  4. Relevant Files and Code: Enumerate specific files and code sections examined, modified, or created with their purposes
-  5. Problem Solving: Document problems solved thus far and any ongoing troubleshooting efforts
-  6. Pending Tasks and Next Steps: Outline all pending tasks and include direct quotes from the most recent conversation showing exactly what task was being worked on and where it was left off
+Context: The current state to continue from. This should include:
+  1. Original Request: What the user asked for (one line)
+  2. Completed Tasks: List what has been ACCOMPLISHED with concrete outcomes:
+     - Task name: What was created/modified and its current state
+     - Focus on what EXISTS NOW, not how we searched or explored
+  3. Current Project State: Describe WHAT EXISTS NOW:
+     - List all files created with their purpose and key functionality
+     - Current features that are implemented and working
+     - What is configured and ready to use
+  4. What Does NOT Exist Yet: Explicitly state what hasn't been implemented:
+     - Features or files that were searched for but don't exist
+     - Functionality that needs to be created from scratch
+  5. Technical Setup: Current technologies and dependencies in use
+  6. Next Task Context: The immediate next task and what it needs
 
-For each section, be specific and include:
-- Exact file paths mentioned
-- Specific error messages encountered and their resolutions  
-- Commands executed and their outcomes
-- Code snippets or patterns that were important
-- Decisions made and their rationale
-- Any discoveries about the codebase structure or dependencies
+IMPORTANT RULES:
+- DO NOT mention searches, explorations, or "looked for" - only mention what was FOUND or CREATED
+- DO NOT say "searched for X" - instead say "X does not exist yet" or "X was created in Y"
+- DO NOT include the journey - only the destination
+- BE EXPLICIT about what exists vs what doesn't exist
+- Example: Instead of "Searched for CRUD endpoints in multiple locations", write "CRUD endpoints for Todo model do not exist yet and need to be created"
 
 CONVERSATION TO SUMMARIZE:
 {conversation_text}

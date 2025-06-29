@@ -18,13 +18,13 @@ summarizer = ConversationSummarizer(component="reasoning")
 
 ## Conversation Summarization
 
-The summarizer creates structured summaries following a specific format that captures:
-- Previous conversation context
-- Current work being done
-- Key technical concepts discovered
-- Files and code examined/modified
-- Problems solved and ongoing issues
-- Pending tasks with exact quotes from recent messages
+The summarizer creates RESULT-FOCUSED summaries that capture:
+- Original user request
+- Completed tasks with concrete outcomes (what was CREATED)
+- Current project state (what EXISTS NOW)
+- What does NOT exist yet (explicitly stated)
+- Technical setup and dependencies
+- Next task context and requirements
 
 ### Example Usage
 
@@ -126,25 +126,24 @@ def compress_action_trace(action_trace: List[Tuple]) -> str:
 
 ## Summary Structure
 
-The generated summaries follow this structure:
+The generated summaries follow this OUTCOME-FOCUSED structure:
 
 ```
-Context: The context to continue the conversation with.
-1. Previous Conversation: High-level overview and objectives
-2. Current Work: Detailed description of ongoing implementation
-3. Key Technical Concepts: Technologies, patterns, and conventions
-4. Relevant Files and Code: Specific files examined/modified
-5. Problem Solving: Issues resolved and ongoing challenges
-6. Pending Tasks and Next Steps: What needs to be done next
+Context: The current state to continue from.
+1. Original Request: What the user asked for (concise)
+2. Completed Tasks: What was ACCOMPLISHED with concrete outcomes
+3. Current Project State: What EXISTS NOW (files, features, configurations)
+4. What Does NOT Exist Yet: Explicitly stated missing functionality
+5. Technical Setup: Current technologies and dependencies
+6. Next Task Context: The immediate next task and requirements
 ```
 
-Each section includes:
-- Exact file paths
-- Specific error messages and resolutions
-- Commands executed and outcomes
-- Important code snippets
-- Decisions made and rationale
-- Discoveries about the codebase
+Key principles:
+- Focus on RESULTS not process
+- State what EXISTS vs what DOESN'T EXIST
+- No mention of searches or explorations
+- Concrete outcomes only
+- Clear action items for next steps
 
 ## Error Handling
 

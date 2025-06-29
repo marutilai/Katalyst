@@ -75,10 +75,22 @@ def apply_source_code_diff(
             r":start_line:(\d+)[\r\n]+-------([\s\S]*?)=======([\s\S]*)", blob
         )
         if not match:
+            # Check if they forgot the ------- separator
+            if ":start_line:" in blob and "-------" not in blob:
+                error_msg = (
+                    "Missing '-------' separator after :start_line:. "
+                    "The format MUST be:\n"
+                    ":start_line:<number>\n"
+                    "-------\n"
+                    "<search content>"
+                )
+            else:
+                error_msg = "Malformed diff block. Each block must have :start_line:, -------, and =======."
+            
             return format_apply_source_code_diff_response(
                 path,
                 False,
-                error="Malformed diff block. Each block must have :start_line, -------, and =======.",
+                error=error_msg,
             )
         parsed_blocks.append(
             {
