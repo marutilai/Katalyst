@@ -14,8 +14,10 @@ from katalyst.katalyst_core.utils.error_handling import (
     classify_error,
     format_error_for_llm,
 )
+from katalyst.katalyst_core.utils.decorators import compress_chat_history
 
 
+@compress_chat_history()
 def planner(state: KatalystState) -> KatalystState:
     """
     Generate initial subtask list in state.task_queue, set state.task_idx = 0, etc.
