@@ -112,9 +112,8 @@ def handle_model_command():
     if provider == "openai":
         console.print("\n[bold]Available OpenAI models:[/bold]")
         console.print("1. gpt4.1")
-        console.print("2. gpt-4.1-mini")
-        choice = Prompt.ask("Select model", choices=["1", "2"], default="1")
-        model = "gpt4.1" if choice == "1" else "gpt-4.1-mini"
+        choice = Prompt.ask("Select model", choices=["1"], default="1")
+        model = "gpt4.1"
     elif provider == "anthropic":
         console.print("\n[bold]Available Anthropic models:[/bold]")
         console.print("1. sonnet4")

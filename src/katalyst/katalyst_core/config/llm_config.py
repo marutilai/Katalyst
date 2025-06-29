@@ -15,7 +15,7 @@ logger = get_logger()
 PROVIDER_PROFILES = {
     "openai": {
         "reasoning": "gpt-4.1",  # High-reasoning tasks (planner, replanner)
-        "execution": "gpt-4.1-mini",  # Fast execution tasks (agent_react, tools)
+        "execution": "gpt-4.1",  # Fast execution tasks (agent_react, tools)
         "fallback": "gpt-4o",  # Fallback model
         "default_timeout": 45,
     },
