@@ -47,13 +47,13 @@ class TestConversationSummarizer:
         # Mock LLM response
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = """Context: The context to continue the conversation with.
-1. Previous Conversation: User requested help with Python file operations
-2. Current Work: Implementing a file reader function
-3. Key Technical Concepts: File I/O, error handling, context managers
-4. Relevant Files and Code: Created reader.py with read_file function
-5. Problem Solving: Resolved permission error by checking file exists first
-6. Pending Tasks and Next Steps: Need to add error handling for large files"""
+        mock_response.choices[0].message.content = """Context: The current state to continue from.
+1. Original Request: Help with Python file operations
+2. Completed Tasks: Created reader.py with read_file function that handles basic file reading
+3. Current Project State: reader.py exists with working read_file function using context managers
+4. What Does NOT Exist Yet: Error handling for large files not implemented
+5. Technical Setup: Python with standard library file I/O
+6. Next Task Context: Need to add error handling for large files"""
         
         mock_llm = MagicMock()
         mock_llm.return_value = mock_response
@@ -196,12 +196,13 @@ class TestConversationSummarizer:
         
         # Verify prompt structure
         assert prompt_captured is not None
-        assert "Previous Conversation:" in prompt_captured
-        assert "Current Work:" in prompt_captured
-        assert "Key Technical Concepts:" in prompt_captured
-        assert "Relevant Files and Code:" in prompt_captured
-        assert "Problem Solving:" in prompt_captured
-        assert "Pending Tasks and Next Steps:" in prompt_captured
+        assert "RESULT-FOCUSED" in prompt_captured
+        assert "Original Request:" in prompt_captured
+        assert "Completed Tasks:" in prompt_captured
+        assert "Current Project State:" in prompt_captured
+        assert "What Does NOT Exist Yet:" in prompt_captured
+        assert "Technical Setup:" in prompt_captured
+        assert "Next Task Context:" in prompt_captured
     
     def test_compression_stats_logging(self, caplog):
         """Test that compression statistics are logged."""
