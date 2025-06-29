@@ -18,10 +18,12 @@ from katalyst.katalyst_core.utils.error_handling import (
     classify_error,
     format_error_for_llm,
 )
+from katalyst.katalyst_core.utils.decorators import compress_chat_history
 
 REGISTERED_TOOL_FUNCTIONS_MAP = get_tool_functions_map()
 
 
+@compress_chat_history()
 def agent_react(state: KatalystState) -> KatalystState:
     """
     Execute one ReAct (Reason-Act) cycle for the current sub-task.

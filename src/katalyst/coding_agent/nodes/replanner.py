@@ -15,9 +15,11 @@ from katalyst.katalyst_core.utils.error_handling import (
     classify_error,
     format_error_for_llm,
 )
+from katalyst.katalyst_core.utils.decorators import compress_chat_history
 import os
 
 
+@compress_chat_history()
 def replanner(state: KatalystState) -> KatalystState:
     """
     Critiques the original plan based on execution history, determines if the
