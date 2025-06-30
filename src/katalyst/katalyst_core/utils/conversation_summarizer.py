@@ -138,20 +138,27 @@ Your summary should be structured as follows:
 
 Context: The current state to continue from. This should include:
   1. Original Request: What the user asked for (one line)
-  2. Completed Tasks: List what has been ACCOMPLISHED with concrete outcomes:
-     - Task name: What was created/modified and its current state
+  2. CRITICAL Project Structure: WHERE files should be created
+     - Project root directory if mentioned
+     - Main project folder and its path relative to root
+     - ALWAYS preserve the exact folder structure being used
+  3. Completed Tasks: List what has been ACCOMPLISHED with concrete outcomes:
+     - Task name: What was created/modified and its EXACT PATH
+     - Include FULL PATHS for all files relative to project root
      - Focus on what EXISTS NOW, not how we searched or explored
-  3. Current Project State: Describe WHAT EXISTS NOW:
-     - List all files created with their purpose and key functionality
+  4. Current Project State: Describe WHAT EXISTS NOW:
+     - List all files created with their FULL PATHS and purpose
      - Current features that are implemented and working
      - What is configured and ready to use
-  4. What Does NOT Exist Yet: Explicitly state what hasn't been implemented:
+  5. What Does NOT Exist Yet: Explicitly state what hasn't been implemented:
      - Features or files that were searched for but don't exist
      - Functionality that needs to be created from scratch
-  5. Technical Setup: Current technologies and dependencies in use
-  6. Next Task Context: The immediate next task and what it needs
+  6. Technical Setup: Current technologies and dependencies in use
+  7. Next Task Context: The immediate next task and what it needs
 
 IMPORTANT RULES:
+- ALWAYS include FULL PATHS for every file mentioned relative to project root
+- PRESERVE the exact project folder structure in all file paths
 - DO NOT mention searches, explorations, or "looked for" - only mention what was FOUND or CREATED
 - DO NOT say "searched for X" - instead say "X does not exist yet" or "X was created in Y"
 - DO NOT include the journey - only the destination
