@@ -88,22 +88,46 @@ def get_task_context_for_agent(state: KatalystState) -> str:
     """
     lines = []
     
-    # Add overall task
-    lines.append(f"Overall Task: {state.task}")
-    lines.append("\nAll Tasks:")
+    # 1. Overall user task
+    lines.append(f"Overall Goal: {state.task}")
     
-    # Add hierarchical task list with progress
-    task_lines = build_task_hierarchy(state, include_progress=True)
-    lines.extend(task_lines)
+    # 2. Planner's decomposition
+    lines.append("\nPlanner's Task Breakdown:")
+    completed_task_names = {task[0] for task in state.completed_tasks}
     
-    # Add current task indicator
-    current_task = (
-        state.task_queue[state.task_idx]
-        if state.task_idx < len(state.task_queue)
-        else None
-    )
+    plan_tasks = state.original_plan or state.task_queue
+    for i, task in enumerate(plan_tasks, 1):
+        is_completed = task in completed_task_names
+        marker = "✓" if is_completed else "→" if state.task_idx == i-1 else " "
+        lines.append(f"{marker} {i}. {task}")
     
-    if current_task:
-        lines.append(f"\n>>> Currently Working On: {current_task}")
+    # 3. Current focus with hierarchy
+    current_task_idx = state.task_idx
+    if current_task_idx < len(state.task_queue):
+        current_task = state.task_queue[current_task_idx]
+        
+        # Find which planner task this belongs to
+        planner_task_idx = None
+        if state.original_plan:
+            # Current task might be from original plan
+            if current_task in state.original_plan:
+                planner_task_idx = state.original_plan.index(current_task)
+            else:
+                # It's a dynamically created subtask - find its parent
+                for parent_idx, subtasks in state.created_subtasks.items():
+                    if current_task in subtasks:
+                        planner_task_idx = parent_idx
+                        break
+        
+        lines.append(f"\nCurrent Focus:")
+        if planner_task_idx is not None:
+            parent_task = state.original_plan[planner_task_idx] if state.original_plan else None
+            if parent_task and parent_task != current_task:
+                lines.append(f"  Working on planner task #{planner_task_idx + 1}: {parent_task}")
+                lines.append(f"  Specifically subtask: {current_task}")
+            else:
+                lines.append(f"  Task #{planner_task_idx + 1}: {current_task}")
+        else:
+            lines.append(f"  {current_task}")
     
     return "\n".join(lines)
