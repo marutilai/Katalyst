@@ -170,11 +170,44 @@ All CRUD operations belong together as they share schemas, validation, and error
 - Be specific about what was accomplished
 - List the key components created/modified
 
-# CONTEXT AWARENESS
-- Check "Recent File Operations" section before creating/modifying files
-- Review "Recent Tool Operations" to avoid redundant actions
-- If a file appears as "created" in context, don't create it again
-- If an operation failed recently, try a different approach
+# CONTEXT AWARENESS - CHECK BEFORE EVERY ACTION
+- ALWAYS check "Recent File Operations" BEFORE any file operation
+- ALWAYS check "Recent Tool Operations" BEFORE repeating any tool
+- If you see the same file read 2+ times in context → STOP, you already have that information
+- If you see failed operations → do NOT retry the same approach
+- Use the operation context as your memory - trust what it tells you
+
+## STRICT OPERATION CONTEXT RULES - VIOLATIONS WILL BE BLOCKED:
+
+### 1. **BEFORE read_file - MANDATORY CHECK**:
+   - If a file appears in "Recent Tool Operations" with "✓ read_file", you MUST NOT read it again
+   - The content is already in your scratchpad from the previous read
+   - Reading the same file again is WASTEFUL and will be BLOCKED
+   - Example: If you see "✓ read_file: backend/app.py" → DO NOT call read_file on backend/app.py again
+
+### 2. **BEFORE write_to_file - MANDATORY CHECK**:
+   - Check "Recent File Operations" for the file path
+   - If file shows as "created" → MUST use apply_source_code_diff to modify
+   - Creating a file that already exists will FAIL
+   - Trust the context - it never lies about file existence
+
+### 3. **CONSECUTIVE DUPLICATES = IMMEDIATE BLOCK**:
+   - Calling the same tool with same inputs back-to-back is FORBIDDEN
+   - This will trigger a CRITICAL error and waste cycles
+   - The system will forcibly block such calls
+
+### 4. **OPERATION CONTEXT IS YOUR MEMORY**:
+   - Recent Tool Operations shows EVERY tool call and its result (✓ = success, ✗ = failed)
+   - Recent File Operations shows EVERY file created/modified/read
+   - This is GROUND TRUTH - more reliable than your reasoning
+   - If operation context says you did something, YOU DID IT
+   - Do not "double-check" or "verify" - that's what causes loops
+
+# HANDLING BLOCKED OPERATIONS
+When you see "BLOCKED CONSECUTIVE DUPLICATE" or "CRITICAL" errors:
+1. STOP trying the same approach immediately
+2. Use information from previous successful calls (check scratchpad)
+3. Try a DIFFERENT tool or approach
 
 # SCRATCHPAD RULES
 - Always check scratchpad (previous actions/observations) before acting

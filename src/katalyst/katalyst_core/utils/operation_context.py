@@ -6,7 +6,7 @@ duplication and improve awareness of recent actions.
 """
 
 import os
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, Any
 from collections import deque
 from datetime import datetime
 from pydantic import BaseModel, Field
@@ -120,6 +120,65 @@ class OperationContext:
                 if op.operation == operation_type
             ]
         return [op.file_path for op in self.file_operations]
+    
+    def has_recent_operation(self, tool_name: str, tool_input: Dict[str, Any]) -> bool:
+        """
+        Check if a specific tool operation was recently performed with the same inputs.
+        
+        Args:
+            tool_name: Name of the tool
+            tool_input: Tool input parameters to check
+            
+        Returns:
+            True if the operation was recently performed, False otherwise
+        """
+        # For read operations, check if the file was recently read
+        if tool_name == "read_file" and "path" in tool_input:
+            target_path = tool_input["path"]
+            # Normalize the path for comparison
+            if not os.path.isabs(target_path):
+                target_path = os.path.abspath(target_path)
+            
+            # Check in tool operations for successful reads
+            for op in self.tool_operations:
+                if (op.tool_name == "read_file" and 
+                    op.success and 
+                    "path" in op.tool_input):
+                    op_path = op.tool_input["path"]
+                    if not os.path.isabs(op_path):
+                        op_path = os.path.abspath(op_path)
+                    if op_path == target_path:
+                        return True
+        
+        # For list_files, check if same directory was recently listed
+        elif tool_name == "list_files" and "path" in tool_input:
+            target_path = tool_input["path"]
+            if not os.path.isabs(target_path):
+                target_path = os.path.abspath(target_path)
+            
+            for op in self.tool_operations:
+                if (op.tool_name == "list_files" and 
+                    op.success and 
+                    "path" in op.tool_input):
+                    op_path = op.tool_input["path"]
+                    if not os.path.isabs(op_path):
+                        op_path = os.path.abspath(op_path)
+                    if op_path == target_path:
+                        return True
+        
+        # For search operations, check if same pattern was recently searched
+        elif tool_name in ["search_in_file", "search_in_directory"]:
+            pattern = tool_input.get("pattern", "")
+            path = tool_input.get("path", "")
+            
+            for op in self.tool_operations:
+                if (op.tool_name == tool_name and 
+                    op.success and 
+                    op.tool_input.get("pattern") == pattern and
+                    op.tool_input.get("path") == path):
+                    return True
+        
+        return False
     
     def was_file_created(self, file_path: str) -> bool:
         """Check if a file was recently created."""

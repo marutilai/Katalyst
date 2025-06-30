@@ -86,14 +86,58 @@ def _check_repetitive_calls(tool_name: str, tool_input: Dict[str, Any], agent_ac
         True if repetitive (should block), False otherwise
     """
     if not state.repetition_detector.check(tool_name, tool_input):
-        repetition_count = state.repetition_detector.get_repetition_count(tool_name, tool_input)
+        # Check if this is a consecutive duplicate
+        if state.repetition_detector.is_consecutive_duplicate(tool_name, tool_input):
+            # Stricter warning for back-to-back duplicates
+            observation = create_error_message(
+                ErrorType.TOOL_REPETITION,
+                f"⚠️ CRITICAL: Tool '{tool_name}' called with IDENTICAL inputs back-to-back! "
+                "This is wasteful and indicates you're stuck. The operation context shows you ALREADY have this information. "
+                "STOP and use a DIFFERENT approach. Check the operation context before making tool calls.",
+                "TOOL_RUNNER",
+            )
+            logger.error(f"[TOOL_RUNNER] BLOCKED CONSECUTIVE DUPLICATE: {tool_name} - This is a waste!")
+        else:
+            repetition_count = state.repetition_detector.get_repetition_count(tool_name, tool_input)
+            observation = create_error_message(
+                ErrorType.TOOL_REPETITION,
+                f"Tool '{tool_name}' has been called {repetition_count} times with identical inputs. "
+                "Please try a different approach or tool to avoid getting stuck in a loop.",
+                "TOOL_RUNNER",
+            )
+            logger.warning(f"[TOOL_RUNNER] Blocked repetitive tool call: {tool_name} (called {repetition_count} times)")
+        
+        state.error_message = observation
+        state.action_trace.append((agent_action, str(observation)))
+        state.agent_outcome = None
+        return True
+    
+    return False
+
+
+def _check_redundant_operation(tool_name: str, tool_input: Dict[str, Any], agent_action: AgentAction,
+                               state: KatalystState, logger) -> bool:
+    """
+    Check if this operation is redundant based on recent operation context.
+    
+    Returns:
+        True if redundant (should block), False otherwise
+    """
+    # Only check for read/query operations (not writes)
+    read_operations = ["read_file", "list_files", "search_in_file", "search_in_directory"]
+    if tool_name not in read_operations:
+        return False
+    
+    # Check if this exact operation was recently performed successfully
+    if state.operation_context.has_recent_operation(tool_name, tool_input):
         observation = create_error_message(
-            ErrorType.TOOL_REPETITION,
-            f"Tool '{tool_name}' has been called {repetition_count} times with identical inputs. "
-            "Please try a different approach or tool to avoid getting stuck in a loop.",
+            ErrorType.TOOL_ERROR,
+            f"⚠️ REDUNDANT OPERATION BLOCKED: Tool '{tool_name}' was already successfully executed with these inputs. "
+            "The information you need is in your scratchpad from the previous successful call. "
+            "Check your Recent Tool Operations and use the existing information.",
             "TOOL_RUNNER",
         )
-        logger.warning(f"[TOOL_RUNNER] Blocked repetitive tool call: {tool_name} (called {repetition_count} times)")
+        logger.warning(f"[TOOL_RUNNER] Blocked redundant operation: {tool_name} - Already have this information")
         state.error_message = observation
         state.action_trace.append((agent_action, str(observation)))
         state.agent_outcome = None
@@ -450,6 +494,10 @@ def tool_runner(state: KatalystState) -> KatalystState:
     
     # Check for repetitive calls
     if _check_repetitive_calls(tool_name, tool_input, agent_action, state, logger):
+        return state
+    
+    # Check for redundant operations (deterministic state tracking)
+    if _check_redundant_operation(tool_name, tool_input, agent_action, state, logger):
         return state
     
     # Validate file paths for security
