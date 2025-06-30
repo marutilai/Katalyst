@@ -109,9 +109,10 @@ class KatalystState(BaseModel):
     )
 
     # ── content reference system ───────────────────────────────────────────
-    content_store: Dict[str, str] = Field(
+    content_store: Dict[str, Union[str, Tuple[str, str]]] = Field(
         default_factory=dict,
         description="Temporary storage for file contents with reference IDs. "
+                    "Maps ref_id to either content string or (file_path, content) tuple. "
                     "Used to prevent content hallucination when passing through LLM."
     )
 

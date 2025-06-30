@@ -7,6 +7,13 @@ from katalyst.katalyst_core.utils.error_handling import (
     classify_error,
     format_error_for_llm,
 )
+from katalyst.katalyst_core.utils.task_display import get_task_progress_display
+
+
+def _display_task_progress(state: KatalystState, logger) -> None:
+    """Display visual progress of all tasks in the queue."""
+    progress_display = get_task_progress_display(state)
+    logger.info(progress_display)
 
 
 def advance_pointer(state: KatalystState) -> KatalystState:
@@ -51,6 +58,9 @@ def advance_pointer(state: KatalystState) -> KatalystState:
         logger.info(
             f"[ADVANCE_POINTER] Completed subtask: {current_subtask} | Summary: {summary}"
         )
+        
+        # Display visual task progress
+        _display_task_progress(state, logger)
     else:
         error_msg = create_error_message(
             ErrorType.PARSING_ERROR,

@@ -63,6 +63,47 @@ def create_subtask(
             error="Invalid insert_position"
         )
     
+    # Check for meta-tasks (tasks that just decompose further)
+    task_lower = task_description.lower()
+    meta_patterns = [
+        "break down",
+        "decompose",
+        "create subtasks",
+        "plan",
+        "organize",
+        "structure",
+        "divide into",
+        "split into",
+        "analyze and create",
+        "identify and implement"
+    ]
+    
+    if any(pattern in task_lower for pattern in meta_patterns):
+        logger.warning(f"[CREATE_SUBTASK] Rejected meta-task: '{task_description}'")
+        return format_create_subtask_response(
+            False,
+            "Task appears to be a meta-task that would require further decomposition. Please create concrete, actionable tasks instead.",
+            error="Meta-task detected - create concrete tasks instead"
+        )
+    
+    # Check for overly vague tasks
+    vague_patterns = [
+        "handle",
+        "process",
+        "deal with",
+        "work on",
+        "take care of"
+    ]
+    
+    # Only flag as vague if it's very short AND contains vague patterns
+    if len(task_description.split()) <= 4 and any(pattern in task_lower for pattern in vague_patterns):
+        logger.warning(f"[CREATE_SUBTASK] Rejected vague task: '{task_description}'")
+        return format_create_subtask_response(
+            False,
+            "Task description is too vague. Please be specific about what needs to be done.",
+            error="Task too vague - be more specific"
+        )
+    
     # Log the request (actual insertion happens in tool_runner)
     logger.info(f"[CREATE_SUBTASK] Request to create subtask: '{task_description}' (Reason: {reason})")
     

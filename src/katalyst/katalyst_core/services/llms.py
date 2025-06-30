@@ -5,8 +5,12 @@ Provides simplified API for LLM client access with component-specific configurat
 """
 
 from litellm import completion, acompletion
+import litellm
 import instructor
 from katalyst.katalyst_core.config import get_llm_config
+
+# Suppress litellm debug info to avoid async task warnings
+litellm.suppress_debug_info = True
 
 
 # New simplified API functions (recommended)
