@@ -56,7 +56,7 @@ def human_plan_verification(state: KatalystState) -> KatalystState:
     print("- Type 'no' or provide feedback for a better plan")
     print("- Type 'cancel' to stop")
     
-    response = user_input_fn("\nYour response: ").strip()
+    response = user_input_fn("\nYour response [yes]: ").strip() or "yes"
     
     if response.lower() in ['yes', 'y']:
         # Approve plan

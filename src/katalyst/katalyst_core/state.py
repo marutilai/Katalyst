@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.messages import BaseMessage
 from katalyst.katalyst_core.utils.tool_repetition_detector import ToolRepetitionDetector
+from katalyst.katalyst_core.utils.operation_context import OperationContext
 import os
 
 
@@ -101,6 +102,15 @@ class KatalystState(BaseModel):
     repetition_detector: ToolRepetitionDetector = Field(
         default_factory=ToolRepetitionDetector,
         description="Detects repetitive tool calls to prevent infinite loops.",
+    )
+    
+    # ── operation context tracking ─────────────────────────────────────────
+    operation_context: OperationContext = Field(
+        default_factory=lambda: OperationContext(
+            file_history_limit=int(os.getenv("KATALYST_FILE_CONTEXT_HISTORY", 10)),
+            operations_history_limit=int(os.getenv("KATALYST_OPERATIONS_CONTEXT_HISTORY", 10))
+        ),
+        description="Tracks recent file and tool operations to prevent duplication.",
     )
 
     # ── playbook / plan context ─────────────────────────────────────────────

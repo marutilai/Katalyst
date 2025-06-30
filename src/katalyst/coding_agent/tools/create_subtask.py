@@ -69,13 +69,16 @@ def create_subtask(
         "break down",
         "decompose",
         "create subtasks",
-        "plan",
-        "organize",
-        "structure",
+        "plan the",
+        "organize the",
+        "structure the",
         "divide into",
         "split into",
         "analyze and create",
-        "identify and implement"
+        "identify and implement",
+        "create tasks for",
+        "create all",
+        "plan out"
     ]
     
     if any(pattern in task_lower for pattern in meta_patterns):
@@ -103,6 +106,29 @@ def create_subtask(
             "Task description is too vague. Please be specific about what needs to be done.",
             error="Task too vague - be more specific"
         )
+    
+    # Check for file-operation-focused tasks
+    file_operation_patterns = [
+        r"^create .* (directory|folder|dir)$",
+        r"^create .* __init__\.py",
+        r"^write .* file$",
+        r"^add .* import",
+        r"^create the .* directory",
+        r"^make .* folder",
+        r"^write __init__\.py",
+        r"^create empty .* file",
+        r"^add .* to .*\.py$"
+    ]
+    
+    import re
+    for pattern in file_operation_patterns:
+        if re.search(pattern, task_lower):
+            logger.warning(f"[CREATE_SUBTASK] Rejected file-operation task: '{task_description}'")
+            return format_create_subtask_response(
+                False,
+                "Task is too focused on file operations. Tasks should represent meaningful work units (e.g., 'Implement User model' not 'Create user.py file'). File operations are implementation details, not tasks.",
+                error="File-operation task - think higher level"
+            )
     
     # Log the request (actual insertion happens in tool_runner)
     logger.info(f"[CREATE_SUBTASK] Request to create subtask: '{task_description}' (Reason: {reason})")

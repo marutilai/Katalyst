@@ -30,9 +30,18 @@ Description: Dynamically create new subtasks when you discover complexity during
 2. Keep subtasks at appropriate granularity
    - ❌ "Build entire authentication system" (too broad)
    - ❌ "Write line 1 of user.py" (too specific)
+   - ❌ "Create models directory" (file operation, not a task)
    - ✅ "Create User model with validation"
+   - ✅ "Set up database models with relationships"
 
-3. Limit subtask creation (max 5 per parent task)
+3. File operations are NOT tasks
+   - ❌ "Create routers directory with __init__.py"
+   - ❌ "Write empty __init__.py file" 
+   - ❌ "Add imports to main.py"
+   - ✅ "Implement API routing structure"
+   - These are just implementation details within a larger task
+
+4. Limit subtask creation (max 5 per parent task)
    - Group related work when possible
    - Don't decompose just for the sake of it
 
