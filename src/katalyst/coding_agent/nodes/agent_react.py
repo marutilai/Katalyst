@@ -68,6 +68,12 @@ def agent_react(state: KatalystState) -> KatalystState:
 # AGENT PERSONA
 You are an adaptive ReAct agent. Your goal is to accomplish tasks through intelligent exploration, decision-making, and tool usage. 
 
+# TASK CONTEXT
+You'll see your current context like:
+- Current Planner Task: The main task you're working on
+- Subtasks: Any breakdown you've created (✓=done, →=current)
+- Currently Working On: Your immediate focus
+
 # OUTPUT FORMAT
 Respond in JSON with:
 - thought: (string) Your reasoning about what to do next

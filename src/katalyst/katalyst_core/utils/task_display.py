@@ -78,7 +78,7 @@ def get_task_progress_display(state: KatalystState) -> str:
 
 def get_task_context_for_agent(state: KatalystState) -> str:
     """
-    Generate task context for the agent prompt, showing all tasks and their status.
+    Generate focused task context for the agent prompt, showing only current planner task and its subtasks.
     
     Args:
         state: The current Katalyst state
@@ -87,47 +87,47 @@ def get_task_context_for_agent(state: KatalystState) -> str:
         Formatted task context for agent prompt
     """
     lines = []
-    
-    # 1. Overall user task
-    lines.append(f"Overall Goal: {state.task}")
-    
-    # 2. Planner's decomposition
-    lines.append("\nPlanner's Task Breakdown:")
     completed_task_names = {task[0] for task in state.completed_tasks}
     
-    plan_tasks = state.original_plan or state.task_queue
-    for i, task in enumerate(plan_tasks, 1):
-        is_completed = task in completed_task_names
-        marker = "✓" if is_completed else "→" if state.task_idx == i-1 else " "
-        lines.append(f"{marker} {i}. {task}")
+    # Get current task
+    if state.task_idx >= len(state.task_queue):
+        return "No current task"
     
-    # 3. Current focus with hierarchy
-    current_task_idx = state.task_idx
-    if current_task_idx < len(state.task_queue):
-        current_task = state.task_queue[current_task_idx]
-        
-        # Find which planner task this belongs to
-        planner_task_idx = None
-        if state.original_plan:
-            # Current task might be from original plan
-            if current_task in state.original_plan:
-                planner_task_idx = state.original_plan.index(current_task)
-            else:
-                # It's a dynamically created subtask - find its parent
-                for parent_idx, subtasks in state.created_subtasks.items():
-                    if current_task in subtasks:
-                        planner_task_idx = parent_idx
-                        break
-        
-        lines.append(f"\nCurrent Focus:")
-        if planner_task_idx is not None:
-            parent_task = state.original_plan[planner_task_idx] if state.original_plan else None
-            if parent_task and parent_task != current_task:
-                lines.append(f"  Working on planner task #{planner_task_idx + 1}: {parent_task}")
-                lines.append(f"  Specifically subtask: {current_task}")
-            else:
-                lines.append(f"  Task #{planner_task_idx + 1}: {current_task}")
+    current_task = state.task_queue[state.task_idx]
+    
+    # Find which planner task this belongs to
+    planner_task_idx = None
+    planner_task = None
+    
+    if state.original_plan:
+        # Check if current task is from original plan
+        if current_task in state.original_plan:
+            planner_task_idx = state.original_plan.index(current_task)
+            planner_task = current_task
         else:
-            lines.append(f"  {current_task}")
+            # It's a dynamically created subtask - find its parent
+            for parent_idx, subtasks in state.created_subtasks.items():
+                if current_task in subtasks:
+                    planner_task_idx = parent_idx
+                    planner_task = state.original_plan[parent_idx]
+                    break
+    
+    # If we found a planner task, show it with its subtasks
+    if planner_task:
+        lines.append(f"Current Planner Task: {planner_task}")
+        
+        # Check if this planner task has subtasks
+        if planner_task_idx is not None and planner_task_idx in state.created_subtasks:
+            subtasks = state.created_subtasks[planner_task_idx]
+            if subtasks:
+                lines.append("\nSubtasks:")
+                for subtask in subtasks:
+                    is_completed = subtask in completed_task_names
+                    is_current = subtask == current_task
+                    marker = "✓" if is_completed else "→" if is_current else " "
+                    lines.append(f"{marker} {subtask}")
+    
+    # Always show what we're currently working on
+    lines.append(f"\nCurrently Working On: {current_task}")
     
     return "\n".join(lines)
