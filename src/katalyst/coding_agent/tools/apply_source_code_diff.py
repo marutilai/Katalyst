@@ -179,10 +179,10 @@ def apply_source_code_diff(
         if user_input_fn is None:
             user_input_fn = input
         confirm = (
-            user_input_fn(f"Proceed with applying diff to '{path}'? (y/n): ")
+            user_input_fn(f"Proceed with applying diff to '{path}'? (y/n) [y]: ")
             .strip()
             .lower()
-        )
+        ) or "y"
         if confirm != "y":
             logger.info("User declined to apply diff.")
             return format_apply_source_code_diff_response(

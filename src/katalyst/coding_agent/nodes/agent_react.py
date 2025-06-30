@@ -81,49 +81,100 @@ Respond in JSON with:
   - action: (string) Tool name AND action_input: (object) Tool arguments
   - OR final_answer: (string) Your answer when task is complete
 
-# CORE WORKFLOW: ANALYZE → DECOMPOSE (if needed) → EXECUTE
+# CORE WORKFLOW: ANALYZE → EXECUTE → DECOMPOSE (only if needed)
 
 ## 1. ANALYZE THE TASK
-For EVERY new task, your FIRST thought must determine:
-- Is this a simple, single-tool action (e.g., "read file X", "create folder Y")?
-- Or is this a complex goal requiring multiple steps (e.g., "implement authentication", "create CRUD endpoints")?
+For EVERY new task, determine the scope:
+- Is this a focused, achievable goal? (e.g., "Add user authentication endpoint", "Create Todo model with validation")
+- Or is this a broad objective needing breakdown? (e.g., "Build entire authentication system", "Create full CRUD API")
 
-## 2. DECOMPOSE (if complex)
-If the task is complex:
-- Your FIRST action MUST be create_subtask
-- Break it down into concrete, actionable steps
-- Create all necessary subtasks before starting execution
-- Each subtask should be independently executable
+## 2. START EXECUTION
+Begin working on the task:
+- If you can see a clear path to completion, proceed with implementation
+- File operations (creating directories, writing files) are NOT tasks - they're just tool operations
+- A single task often involves multiple file operations
 
-If the task is simple:
-- Proceed directly to execution
-- No decomposition needed
+## 3. DECOMPOSE (only when you discover complexity)
+Create subtasks ONLY when you discover during execution that:
+- The current task has distinct, independent components
+- You've identified multiple models/endpoints/features that need separate attention
+- The work naturally splits into logical, testable units
 
-## 3. EXECUTE
-Once you have a simple task:
-- Execute it using the appropriate tools
-- Complete it fully before moving to the next task
+## GOOD vs BAD TASK GRANULARITY
+❌ BAD (too granular): "Create models directory", "Write __init__.py file", "Add import statement"
+✅ GOOD (atomic but complete): "Implement User model with authentication fields", "Add validation to Todo endpoints", "Set up database connection"
+
+Remember: Tasks should represent meaningful work units, not individual file operations!
 
 # EXPLORATION LIMITS
-- Maximum 3 file operations before you MUST create subtasks
-- If you read/list files 3 times without progress → STOP and decompose
-- No repetitive operations - adapt or decompose
+- If you find yourself repeating similar operations without progress → reassess your approach
+- After exploring 3-4 different files/directories without finding what you need → the content likely doesn't exist
+- No repetitive operations - adapt your strategy or accept the current state
 
 # FILE OPERATIONS
 - Project root shown as "Project Root Directory" at message start
 - ALWAYS use paths relative to project root (where 'katalyst' command was run)
 - Include the full path from project root, not partial paths
-
 - write_to_file auto-creates parent directories
+
+# IMPORT STATEMENTS
+- Use relative imports for files within the same project (e.g., from .models import User)
+- Use absolute imports starting from project root for cross-module imports
+- Do NOT use package-style imports (e.g., from myproject.app.models) unless project has setup.py
+- For simple projects without setup.py, prefer relative imports or sys.path adjustments
+- Example for a FastAPI project structure:
+  - In routers/todo.py: from ..models import schemas, todo
+  - In database.py: from .models.todo import Base
+  - Or add to main.py: sys.path.append(os.path.dirname(__file__))
 
 # TOOL USAGE
 - Use ONLY tools from the available tools section
 - Execute ONE tool per ReAct step (no parallel execution, no multi_tool_use.parallel)
 - Check scratchpad before acting - don't repeat failed operations
 
+# TASK GRANULARITY EXAMPLES
+
+## Example 1: Setting up a FastAPI project structure
+❌ WRONG APPROACH (too granular subtasks):
+- "Create app directory"
+- "Create models directory" 
+- "Create routers directory"
+- "Write __init__.py files"
+
+✅ RIGHT APPROACH (single task with multiple operations):
+Task: "Set up FastAPI project structure with standard directories"
+Then use write_to_file multiple times to create all needed files/directories
+
+## Example 2: Implementing a data model
+❌ WRONG APPROACH (file-focused):
+- "Create user.py file"
+- "Add SQLAlchemy imports"
+- "Define User class"
+
+✅ RIGHT APPROACH (feature-focused):
+Task: "Implement User model with authentication fields and validation"
+This naturally includes creating the file, imports, model definition, and validation
+
+## Example 3: Building CRUD endpoints
+❌ WRONG APPROACH (too detailed):
+- "Create GET endpoint"
+- "Create POST endpoint"
+- "Add error handling to endpoints"
+
+✅ RIGHT APPROACH (cohesive unit):
+Task: "Implement CRUD endpoints for Todo model"
+All CRUD operations belong together as they share schemas, validation, and error handling
+
 # TASK COMPLETION
 - final_answer only when task FULLY complete
 - Be specific about what was accomplished
+- List the key components created/modified
+
+# CONTEXT AWARENESS
+- Check "Recent File Operations" section before creating/modifying files
+- Review "Recent Tool Operations" to avoid redundant actions
+- If a file appears as "created" in context, don't create it again
+- If an operation failed recently, try a different approach
 
 # SCRATCHPAD RULES
 - Always check scratchpad (previous actions/observations) before acting
@@ -147,11 +198,30 @@ Once you have a simple task:
     # Get full task context with hierarchy
     task_context = get_task_context_for_agent(state)
     
+    # Get operation context
+    operation_context = state.operation_context.get_context_for_agent()
+    
+    # Log contexts for debugging
+    logger.debug(f"[AGENT_REACT] Task context:\n{task_context}")
+    if operation_context:
+        logger.debug(f"[AGENT_REACT] Operation context:\n{operation_context}")
+    else:
+        logger.debug("[AGENT_REACT] Operation context: None")
+    
     user_message_content_parts = [
         f"Project Root Directory: {state.project_root_cwd}",
         "",
+        "=== Task Context: Current Planner Task, Subtasks, and Currently Working On ===",
         task_context
     ]
+    
+    # Add operation context if available
+    if operation_context:
+        user_message_content_parts.extend([
+            "",
+            "=== Operation Context: Recent File Operations and Tool Operations DONE in the previous ReAct loop ===",
+            operation_context
+        ])
 
     # Provide context from the most recently completed sub-task if available and relevant
     if state.completed_tasks:

@@ -14,6 +14,7 @@ def format_write_to_file_response(
     info: str = None,
     error: str = None,
     cancelled: bool = False,
+    created: bool = False,
 ) -> str:
     resp = {"success": success, "path": path}
     if info:
@@ -22,6 +23,8 @@ def format_write_to_file_response(
         resp["error"] = error
     if cancelled:
         resp["cancelled"] = True
+    if created:
+        resp["created"] = True
     return json.dumps(resp)
 
 
@@ -84,10 +87,10 @@ def write_to_file(
     # Confirm with user unless auto_approve is True
     if not auto_approve:
         confirm = (
-            user_input_fn(f"Proceed with write to '{abs_path}'? (y/n): ")
+            user_input_fn(f"Proceed with write to '{abs_path}'? (y/n) [y]: ")
             .strip()
             .lower()
-        )
+        ) or "y"
         if confirm != "y":
             logger.info("User declined to write file.")
             return format_write_to_file_response(
@@ -95,13 +98,18 @@ def write_to_file(
             )
 
     try:
+        # Check if file exists before writing
+        file_exists = os.path.exists(abs_path)
+        
         # Ensure parent directory exists
         os.makedirs(os.path.dirname(abs_path) or ".", exist_ok=True)
         with open(abs_path, "w", encoding="utf-8") as f:
             f.write(content)
         logger.info(f"Successfully wrote to file: {abs_path}")
         return format_write_to_file_response(
-            True, abs_path, info=f"Successfully wrote to file: {abs_path}"
+            True, abs_path, 
+            info=f"Successfully wrote to file: {abs_path}",
+            created=not file_exists  # True if file didn't exist before
         )
     except Exception as e:
         logger.error(f"Error writing to file {abs_path}: {e}")

@@ -344,12 +344,32 @@ def _handle_create_subtask(observation: str, tool_input_resolved: Dict[str, Any]
         if not hasattr(state, 'created_subtasks'):
             state.created_subtasks = {}
         
-        # Track how many subtasks created for current task
-        if current_task_idx not in state.created_subtasks:
-            state.created_subtasks[current_task_idx] = []
+        # Find the parent planner task index
+        parent_planner_idx = None
+        if state.original_plan and current_task_idx < len(state.task_queue):
+            current_task = state.task_queue[current_task_idx]
+            
+            # Check if current task is from original plan
+            if current_task in state.original_plan:
+                parent_planner_idx = state.original_plan.index(current_task)
+            else:
+                # It's a dynamically created subtask - find its parent
+                for planner_idx, subtasks in state.created_subtasks.items():
+                    if current_task in subtasks:
+                        parent_planner_idx = planner_idx
+                        break
+        
+        # If we couldn't find parent, use 0 as fallback
+        if parent_planner_idx is None:
+            parent_planner_idx = 0
+            logger.warning(f"[TOOL_RUNNER] Could not determine parent planner task for subtask creation, using index 0")
+        
+        # Track how many subtasks created for this planner task
+        if parent_planner_idx not in state.created_subtasks:
+            state.created_subtasks[parent_planner_idx] = []
         
         # Check limit (5 subtasks per parent task)
-        if len(state.created_subtasks[current_task_idx]) >= 5:
+        if len(state.created_subtasks[parent_planner_idx]) >= 5:
             obs_data["success"] = False
             obs_data["error"] = "Maximum subtasks (5) already created for current task"
             observation = json.dumps(obs_data)
@@ -358,14 +378,23 @@ def _handle_create_subtask(observation: str, tool_input_resolved: Dict[str, Any]
         
         # Add the subtask to the queue
         if insert_position == "after_current":
-            insert_idx = current_task_idx + 1 + len(state.created_subtasks[current_task_idx])
+            # Count existing subtasks for this parent to insert in right position
+            existing_subtasks_count = 0
+            for i in range(current_task_idx + 1, len(state.task_queue)):
+                task = state.task_queue[i]
+                # Stop counting if we hit another planner task
+                if state.original_plan and task in state.original_plan:
+                    break
+                existing_subtasks_count += 1
+            insert_idx = current_task_idx + 1 + existing_subtasks_count
         else:  # end_of_queue
             insert_idx = len(state.task_queue)
         
         state.task_queue.insert(insert_idx, task_description)
-        state.created_subtasks[current_task_idx].append(task_description)
+        state.created_subtasks[parent_planner_idx].append(task_description)
         
         logger.info(f"[TOOL_RUNNER] Added subtask at position {insert_idx}: '{task_description}'")
+        logger.info(f"[TOOL_RUNNER] Subtask assigned to parent planner task index {parent_planner_idx}")
         logger.info(f"[TOOL_RUNNER] Updated task queue length: {len(state.task_queue)}")
         
         # Update observation to reflect success
@@ -468,6 +497,17 @@ def tool_runner(state: KatalystState) -> KatalystState:
             # Create content reference for read_file
             if tool_name == "read_file" and isinstance(observation, str):
                 observation = _create_read_file_content_ref(observation, state, logger)
+                # Track file read operation
+                try:
+                    obs_data = json.loads(observation)
+                    if obs_data.get("success") and "path" in obs_data:
+                        state.operation_context.add_file_operation(
+                            file_path=obs_data["path"],
+                            operation="read"
+                        )
+                        logger.debug(f"[TOOL_RUNNER] Added file read to operation context: {obs_data['path']}")
+                except json.JSONDecodeError:
+                    pass
             
             # Convert dict observations to JSON
             elif isinstance(observation, dict):
@@ -476,6 +516,49 @@ def tool_runner(state: KatalystState) -> KatalystState:
             # Handle create_subtask special logic
             if tool_name == "create_subtask" and isinstance(observation, str):
                 observation = _handle_create_subtask(observation, tool_input_resolved, state, logger)
+            
+            # Track file write operations
+            if tool_name == "write_to_file" and isinstance(observation, str):
+                try:
+                    obs_data = json.loads(observation)
+                    if obs_data.get("success") and "path" in obs_data:
+                        # Determine if file was created or modified
+                        file_path = obs_data["path"]
+                        operation = "created" if obs_data.get("created", False) else "modified"
+                        state.operation_context.add_file_operation(
+                            file_path=file_path,
+                            operation=operation
+                        )
+                        logger.debug(f"[TOOL_RUNNER] Added file {operation} to operation context: {file_path}")
+                except json.JSONDecodeError:
+                    pass
+            
+            # Track all tool operations
+            success = True
+            summary = None
+            if isinstance(observation, str):
+                try:
+                    obs_data = json.loads(observation)
+                    success = obs_data.get("success", True)
+                    # Extract meaningful summary based on tool type
+                    if tool_name == "write_to_file":
+                        summary = f"{obs_data.get('path', 'unknown')}"
+                    elif tool_name == "read_file":
+                        summary = f"{obs_data.get('path', 'unknown')}"
+                    elif tool_name == "create_subtask":
+                        summary = f"Added subtask to queue"
+                except json.JSONDecodeError:
+                    # For non-JSON observations, check for error patterns
+                    if "error" in observation.lower() or "failed" in observation.lower():
+                        success = False
+            
+            state.operation_context.add_tool_operation(
+                tool_name=tool_name,
+                tool_input=tool_input_resolved,
+                success=success,
+                summary=summary
+            )
+            logger.debug(f"[TOOL_RUNNER] Added to operation context: tool={tool_name}, success={success}, summary={summary}")
             
         except GraphRecursionError as e:
             # Handle graph recursion error
