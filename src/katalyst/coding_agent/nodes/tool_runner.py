@@ -17,6 +17,7 @@ from typing import Dict, Any, Optional, Tuple
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.tools import get_tool_functions_map
+from katalyst.katalyst_core.utils.task_utils import find_parent_planner_task_index
 from langchain_core.agents import AgentAction
 from katalyst.katalyst_core.utils.error_handling import (
     ErrorType,
@@ -393,18 +394,14 @@ def _handle_create_subtask(observation: str, tool_input_resolved: Dict[str, Any]
         
         # Find the parent planner task index
         parent_planner_idx = None
-        if state.original_plan and current_task_idx < len(state.task_queue):
+        if current_task_idx < len(state.task_queue):
             current_task = state.task_queue[current_task_idx]
-            
-            # Check if current task is from original plan
-            if current_task in state.original_plan:
-                parent_planner_idx = state.original_plan.index(current_task)
-            else:
-                # It's a dynamically created subtask - find its parent
-                for planner_idx, subtasks in state.created_subtasks.items():
-                    if current_task in subtasks:
-                        parent_planner_idx = planner_idx
-                        break
+            parent_planner_idx = find_parent_planner_task_index(
+                current_task,
+                current_task_idx,
+                state.original_plan,
+                state.created_subtasks
+            )
         
         # If we couldn't find parent, use 0 as fallback
         if parent_planner_idx is None:
@@ -633,8 +630,19 @@ def tool_runner(state: KatalystState) -> KatalystState:
     
     # ========== STEP 6: Record Results ==========
     # Record the (AgentAction, observation) tuple in the action trace
-    state.action_trace.append((agent_action, str(observation)))
-    logger.debug(f"[TOOL_RUNNER] Tool '{tool_name}' observation: {str(observation)[:200]}...")
+    observation_str = str(observation)
+    state.action_trace.append((agent_action, observation_str))
+    
+    # Log observation size for debugging
+    logger.debug(f"[TOOL_RUNNER] Tool '{tool_name}' observation: {observation_str[:200]}...")
+    logger.debug(f"[TOOL_RUNNER] Observation size: {len(observation_str)} chars")
+    
+    # Calculate total scratchpad size
+    total_scratchpad_size = sum(len(str(obs)) for _, obs in state.action_trace)
+    logger.debug(f"[TOOL_RUNNER] Total scratchpad size: {total_scratchpad_size} chars across {len(state.action_trace)} actions")
+    
+    if total_scratchpad_size > 20000:
+        logger.warning(f"[TOOL_RUNNER] Large scratchpad accumulation: {total_scratchpad_size} chars")
     
     # Clear agent_outcome after processing
     state.agent_outcome = None

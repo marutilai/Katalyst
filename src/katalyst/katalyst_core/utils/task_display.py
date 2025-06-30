@@ -7,6 +7,7 @@ hierarchical format for both agent context and user display.
 
 from typing import List, Tuple, Set, Dict
 from katalyst.katalyst_core.state import KatalystState
+from .task_utils import find_parent_planner_task_index
 
 
 def build_task_hierarchy(state: KatalystState, include_progress: bool = True) -> List[str]:
@@ -96,21 +97,19 @@ def get_task_context_for_agent(state: KatalystState) -> str:
     current_task = state.task_queue[state.task_idx]
     
     # Find which planner task this belongs to
-    planner_task_idx = None
-    planner_task = None
+    planner_task_idx = find_parent_planner_task_index(
+        current_task,
+        state.task_idx,
+        state.original_plan,
+        state.created_subtasks
+    )
     
-    if state.original_plan:
-        # Check if current task is from original plan
+    planner_task = None
+    if planner_task_idx is not None and state.original_plan:
         if current_task in state.original_plan:
-            planner_task_idx = state.original_plan.index(current_task)
             planner_task = current_task
         else:
-            # It's a dynamically created subtask - find its parent
-            for parent_idx, subtasks in state.created_subtasks.items():
-                if current_task in subtasks:
-                    planner_task_idx = parent_idx
-                    planner_task = state.original_plan[parent_idx]
-                    break
+            planner_task = state.original_plan[planner_task_idx]
     
     # If we found a planner task, show it with its subtasks
     if planner_task:

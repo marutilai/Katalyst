@@ -20,6 +20,7 @@ from katalyst.katalyst_core.utils.error_handling import (
 )
 from katalyst.katalyst_core.utils.decorators import compress_chat_history
 from katalyst.katalyst_core.utils.task_display import get_task_context_for_agent
+from katalyst.katalyst_core.utils.action_trace_summarizer import ActionTraceSummarizer
 
 REGISTERED_TOOL_FUNCTIONS_MAP = get_tool_functions_map()
 
@@ -209,6 +210,13 @@ When you see "BLOCKED CONSECUTIVE DUPLICATE" or "CRITICAL" errors:
 2. Use information from previous successful calls (check scratchpad)
 3. Try a DIFFERENT tool or approach
 
+# REDUNDANT OPERATIONS - CRITICAL
+If a tool is blocked as redundant, the information you seek ALREADY EXISTS in your scratchpad.
+- DO NOT attempt the operation again with different parameters
+- DO NOT "verify" or "double-check" - trust the block
+- IMMEDIATELY use the existing information to continue your task
+- Blocked operations mean you're wasting cycles - adapt your strategy NOW
+
 # SCRATCHPAD RULES
 - Always check scratchpad (previous actions/observations) before acting
 - Use EXACT information from scratchpad - do NOT hallucinate
@@ -279,17 +287,74 @@ When you see "BLOCKED CONSECUTIVE DUPLICATE" or "CRITICAL" errors:
 
     # Add action trace if it exists (scratchpad for LLM reasoning)
     if state.action_trace:
-        scratchpad_content = "\n".join(
-            [
+        # Get configuration
+        action_trace_trigger = int(os.getenv("KATALYST_ACTION_TRACE_TRIGGER", 10))
+        keep_last_n = int(os.getenv("KATALYST_ACTION_TRACE_KEEP_LAST_N", 5))
+        
+        # Be more aggressive if context is already large
+        current_context_size = len(system_message_content) + len("\n".join(user_message_content_parts))
+        if current_context_size > 30000:
+            # Very aggressive settings for large contexts
+            action_trace_trigger = min(action_trace_trigger, 5)
+            keep_last_n = min(keep_last_n, 3)
+        
+        # Check if we need to compress based on count (similar to conversation summarizer)
+        if len(state.action_trace) > action_trace_trigger:
+            # Calculate size before compression
+            full_scratchpad = "\n".join([
                 f"Previous Action: {action.tool}\nPrevious Action Input: {action.tool_input}\nObservation: {obs}"
                 for action, obs in state.action_trace
-            ]
-        )
+            ])
+            before_size = len(full_scratchpad)
+            
+            logger.info(
+                f"[ACTION_TRACE_COMPRESSION] Compressing action trace in {agent_react.__name__}: "
+                f"{len(state.action_trace)} actions > {action_trace_trigger} trigger, "
+                f"size before: {before_size} chars"
+            )
+            
+            # Use summarizer to compress
+            summarizer = ActionTraceSummarizer(component="execution")
+            # Force summarization by setting max_chars very low
+            scratchpad_content = summarizer.summarize_action_trace(
+                state.action_trace,
+                keep_last_n=keep_last_n,
+                max_chars=1  # Force summarization
+            )
+            
+            # Log compression results
+            after_size = len(scratchpad_content)
+            reduction = (1 - after_size / before_size) * 100 if before_size > 0 else 0
+            logger.info(
+                f"[ACTION_TRACE_COMPRESSION] Compressed from {before_size} to {after_size} chars "
+                f"({reduction:.1f}% reduction)"
+            )
+        else:
+            # Just format normally if under threshold
+            formatted_actions = []
+            for action, obs in state.action_trace:
+                # Truncate very long observations even in normal formatting
+                if len(obs) > 1000:
+                    obs = obs[:997] + "..."
+                formatted_actions.append(
+                    f"Previous Action: {action.tool}\nPrevious Action Input: {action.tool_input}\nObservation: {obs}"
+                )
+            scratchpad_content = "\n".join(formatted_actions)
+        
         user_message_content_parts.append(
             f"\nPrevious actions and observations (scratchpad):\n{scratchpad_content}"
         )
+        
+        # Log scratchpad size for debugging
+        logger.debug(f"[AGENT_REACT] Scratchpad size: {len(scratchpad_content)} chars, {len(state.action_trace)} actions")
 
     user_message_content = "\n".join(user_message_content_parts)
+    
+    # Log total context size for debugging
+    total_context_size = len(system_message_content) + len(user_message_content)
+    logger.debug(f"[AGENT_REACT] Total context size: {total_context_size} chars (system: {len(system_message_content)}, user: {len(user_message_content)})")
+    if total_context_size > 50000:
+        logger.warning(f"[AGENT_REACT] Very large context detected: {total_context_size} chars - may cause performance issues")
 
     # Compose the full LLM message list
     llm_messages = [
