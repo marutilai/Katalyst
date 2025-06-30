@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Optional
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.tools import katalyst_tool
@@ -120,7 +121,6 @@ def create_subtask(
         r"^add .* to .*\.py$"
     ]
     
-    import re
     for pattern in file_operation_patterns:
         if re.search(pattern, task_lower):
             logger.warning(f"[CREATE_SUBTASK] Rejected file-operation task: '{task_description}'")

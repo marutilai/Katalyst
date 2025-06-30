@@ -252,6 +252,14 @@ def validate_tool_call(tool_name, tool_input, state):
     return "ALLOWED"
 ```
 
+## Related Systems
+
+### Context Management
+In addition to redundancy protection, Katalyst implements intelligent context summarization to manage token usage and prevent context bloat. See [Context Summarization](context_summarization.md) for details on:
+- Conversation history compression
+- Action trace (scratchpad) summarization
+- Adaptive compression strategies
+
 ## Summary
 
 The three-level redundancy protection system in Katalyst provides:
@@ -260,4 +268,4 @@ The three-level redundancy protection system in Katalyst provides:
 - **Loop prevention** through repetition thresholds
 - **Efficiency optimization** by tracking successful operations
 
-Together, they ensure the agent operates efficiently without getting stuck or wasting resources on redundant operations. Each level complements the others, creating a robust defense against different patterns of repetitive behavior.
+Together with [context summarization](context_summarization.md), these systems ensure the agent operates efficiently without getting stuck, wasting resources, or running into context limitations. Each level complements the others, creating a robust defense against different patterns of repetitive behavior.
