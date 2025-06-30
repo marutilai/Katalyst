@@ -313,13 +313,37 @@ If a tool is blocked as redundant, the information you seek ALREADY EXISTS in yo
                 f"size before: {before_size} chars"
             )
             
-            # Use summarizer to compress
+            # Split the trace
+            actions_to_summarize = state.action_trace[:-keep_last_n]
+            actions_to_keep = state.action_trace[-keep_last_n:]
+            
+            # Use summarizer to create a summary
             summarizer = ActionTraceSummarizer(component="execution")
-            # Force summarization by setting max_chars very low
+            # Get just the summary text
+            summary_text = summarizer._create_summary(actions_to_summarize, target_reduction=0.8)
+            
+            if summary_text:
+                # Create a synthetic action/observation pair for the summary
+                summary_action = AgentAction(
+                    tool="[SUMMARY]",
+                    tool_input={"count": len(actions_to_summarize)},
+                    log=f"Summary of {len(actions_to_summarize)} previous actions"
+                )
+                summary_observation = f"[PREVIOUS ACTIONS SUMMARY]\n{summary_text}\n[END OF SUMMARY]"
+                
+                # Replace the action trace with summary + recent actions
+                state.action_trace = [(summary_action, summary_observation)] + actions_to_keep
+                
+                logger.info(
+                    f"[ACTION_TRACE_COMPRESSION] Replaced {len(actions_to_summarize)} actions with summary. "
+                    f"New trace has {len(state.action_trace)} entries."
+                )
+            
+            # Format the scratchpad content
             scratchpad_content = summarizer.summarize_action_trace(
                 state.action_trace,
-                keep_last_n=keep_last_n,
-                max_chars=1  # Force summarization
+                keep_last_n=len(state.action_trace),  # Keep all since we already compressed
+                max_chars=100000  # Don't force additional summarization
             )
             
             # Log compression results
@@ -345,8 +369,8 @@ If a tool is blocked as redundant, the information you seek ALREADY EXISTS in yo
             f"\nPrevious actions and observations (scratchpad):\n{scratchpad_content}"
         )
         
-        # Log scratchpad size for debugging
-        logger.debug(f"[AGENT_REACT] Scratchpad size: {len(scratchpad_content)} chars, {len(state.action_trace)} actions")
+        # Log scratchpad size for debugging (max 10 actions now)
+        logger.debug(f"[AGENT_REACT] Scratchpad size: {len(scratchpad_content)} chars, {len(state.action_trace)} actions (max 10)")
 
     user_message_content = "\n".join(user_message_content_parts)
     

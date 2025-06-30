@@ -348,25 +348,66 @@ def _create_read_file_content_ref(observation: str, state: KatalystState, logger
     try:
         obs_data = json.loads(observation)
         if "content" in obs_data and obs_data["content"]:
-            # Generate content reference ID
+            # Use file path as the content reference key
             content = obs_data["content"]
-            content_hash = hashlib.md5(content.encode()).hexdigest()[:8]
             file_path = obs_data.get("path", "unknown")
-            ref_id = f"ref:{os.path.basename(file_path)}:{content_hash}"
             
-            # Store in content_store with file path
-            state.content_store[ref_id] = (file_path, content)
+            # Store/update content with path as key (single entry)
+            state.content_store[file_path] = (file_path, content)
             
-            # Add reference to observation
-            obs_data["content_ref"] = ref_id
+            # Add path as content reference
+            obs_data["content_ref"] = file_path
             observation = json.dumps(obs_data, indent=2)
             
-            logger.info(f"[TOOL_RUNNER][CONTENT_REF] Created content reference '{ref_id}' for file '{file_path}'")
+            logger.info(f"[TOOL_RUNNER][CONTENT_REF] Stored content for '{file_path}'")
             return observation
     except (json.JSONDecodeError, KeyError) as e:
         logger.warning(f"[TOOL_RUNNER][CONTENT_REF] Could not process read_file observation: {e}")
     
     return observation
+
+
+def _process_observation_for_trace(observation: str, tool_name: str) -> str:
+    """
+    Process observation before adding to action trace.
+    Removes redundant content to reduce scratchpad size.
+    
+    Args:
+        observation: Raw observation string from tool
+        tool_name: Name of the tool that generated the observation
+        
+    Returns:
+        Processed observation with redundant content removed
+    """
+    logger = get_logger()
+    
+    try:
+        obs_data = json.loads(observation)
+        
+        # For read_file: remove content if content_ref exists
+        if tool_name == "read_file" and "content_ref" in obs_data and "content" in obs_data:
+            content_len = len(obs_data.get("content", ""))
+            lines = obs_data.get("content", "").count('\n') + 1
+            del obs_data["content"]
+            obs_data["content_summary"] = f"{content_len} chars, {lines} lines"
+            logger.debug(f"[PROCESS_OBS] Removed content from read_file observation, saved {content_len} chars")
+            
+        # For write_to_file: truncate long content
+        elif tool_name == "write_to_file" and "content" in obs_data:
+            content = obs_data.get("content", "")
+            content_len = len(content)
+            if content_len > 200:
+                # Show first 100 and last 100 chars
+                obs_data["content"] = content[:100] + f"\n...[{content_len-200} chars omitted]...\n" + content[-100:]
+                obs_data["content_truncated"] = True
+                obs_data["original_length"] = content_len
+                logger.debug(f"[PROCESS_OBS] Truncated write_to_file content from {content_len} to ~200 chars")
+                
+        return json.dumps(obs_data, indent=2)
+    except (json.JSONDecodeError, KeyError, TypeError) as e:
+        # If we can't parse or process, return original
+        logger.debug(f"[PROCESS_OBS] Failed to process observation for {tool_name}: {type(e).__name__}: {e}")
+        return observation
 
 
 # ============================================================================
@@ -629,9 +670,26 @@ def tool_runner(state: KatalystState) -> KatalystState:
             state.error_message = observation
     
     # ========== STEP 6: Record Results ==========
-    # Record the (AgentAction, observation) tuple in the action trace
-    observation_str = str(observation)
-    state.action_trace.append((agent_action, observation_str))
+    # Ensure observation is a proper string (JSON for dicts)
+    if isinstance(observation, dict):
+        observation_str = json.dumps(observation, indent=2)
+    else:
+        observation_str = str(observation)
+    
+    # Process observation to remove redundant content
+    processed_observation = _process_observation_for_trace(observation_str, tool_name)
+    
+    # Log size reduction for debugging
+    if len(processed_observation) < len(observation_str):
+        reduction_pct = (1 - len(processed_observation) / len(observation_str)) * 100
+        logger.debug(f"[TOOL_RUNNER] Observation processing reduced size by {reduction_pct:.1f}% ({len(observation_str)} -> {len(processed_observation)} chars)")
+    
+    state.action_trace.append((agent_action, processed_observation))
+    
+    # Keep only the recent 10 entries (increased from 7 for better context)
+    if len(state.action_trace) > 10:
+        state.action_trace = state.action_trace[-10:]
+        logger.debug(f"[TOOL_RUNNER] Trimmed action trace to keep only recent 10 entries")
     
     # Log observation size for debugging
     logger.debug(f"[TOOL_RUNNER] Tool '{tool_name}' observation: {observation_str[:200]}...")
