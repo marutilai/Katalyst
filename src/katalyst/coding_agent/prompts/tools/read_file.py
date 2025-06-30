@@ -35,7 +35,7 @@ JSON with keys: 'path', 'start_line', 'end_line', 'content', 'content_ref' (opti
 - Use content_ref when copying or duplicating files to avoid content corruption by the LLM.
 
 Example outputs:
-- Success: {"path": "/path/to/file.py", "start_line": 1, "end_line": 50, "content": "import os\\n...", "content_ref": "ref:file.py:a1b2c3d4"}
+- Success: {"path": "/path/to/file.py", "start_line": 1, "end_line": 50, "content": "import os\\n...", "content_ref": "/path/to/file.py"}
 - Error: {"error": "File not found: missing.py"}
 - Empty: {"path": "/path/to/empty.txt", "start_line": 1, "end_line": 1, "info": "File is empty", "content": ""}
 """)
