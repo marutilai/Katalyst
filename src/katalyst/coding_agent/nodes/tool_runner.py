@@ -130,6 +130,9 @@ def _check_redundant_operation(tool_name: str, tool_input: Dict[str, Any], agent
     
     # Check if this exact operation was recently performed successfully
     if state.operation_context.has_recent_operation(tool_name, tool_input):
+        # Extract key info for better logging
+        path_or_pattern = tool_input.get("path", tool_input.get("pattern", ""))
+        
         observation = create_error_message(
             ErrorType.TOOL_ERROR,
             f"⚠️ REDUNDANT OPERATION BLOCKED: Tool '{tool_name}' was already successfully executed with these inputs. "
@@ -137,7 +140,7 @@ def _check_redundant_operation(tool_name: str, tool_input: Dict[str, Any], agent
             "Check your Recent Tool Operations and use the existing information.",
             "TOOL_RUNNER",
         )
-        logger.warning(f"[TOOL_RUNNER] Blocked redundant operation: {tool_name} - Already have this information")
+        logger.warning(f"[TOOL_RUNNER] Blocked redundant operation: {tool_name} on '{path_or_pattern}' - Already have this information")
         state.error_message = observation
         state.action_trace.append((agent_action, str(observation)))
         state.agent_outcome = None
