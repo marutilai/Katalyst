@@ -63,6 +63,11 @@ class ToolRepetitionDetector(BaseModel):
         input_hash = self._hash_input(tool_input)
         current_call = (tool_name, input_hash)
         
+        # Check for immediate back-to-back duplicate (waste for sure)
+        if self.recent_calls and self.recent_calls[-1] == current_call:
+            # Don't add it again to history since it's already the last entry
+            return False
+        
         # Count how many times this exact call appears in recent history
         repetition_count = sum(1 for call in self.recent_calls if call == current_call)
         
@@ -90,3 +95,21 @@ class ToolRepetitionDetector(BaseModel):
         input_hash = self._hash_input(tool_input)
         target_call = (tool_name, input_hash)
         return sum(1 for call in self.recent_calls if call == target_call)
+    
+    def is_consecutive_duplicate(self, tool_name: str, tool_input: Dict[str, Any]) -> bool:
+        """
+        Check if this is an immediate back-to-back duplicate call.
+        
+        Args:
+            tool_name: Name of the tool
+            tool_input: Input parameters for the tool
+            
+        Returns:
+            True if this is the exact same call as the previous one
+        """
+        if not self.recent_calls:
+            return False
+        
+        input_hash = self._hash_input(tool_input)
+        current_call = (tool_name, input_hash)
+        return self.recent_calls[-1] == current_call
