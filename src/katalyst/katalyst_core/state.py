@@ -125,6 +125,13 @@ class KatalystState(BaseModel):
                     "Maps ref_id to either content string or (file_path, content) tuple. "
                     "Used to prevent content hallucination when passing through LLM."
     )
+    
+    # ── directory cache system ─────────────────────────────────────────────
+    directory_cache: Optional[Dict] = Field(
+        None,
+        description="Cache for list_files operations. Stores complete directory tree "
+                    "after first scan to serve subsequent requests without file I/O."
+    )
 
     class Config:
         arbitrary_types_allowed = True  # Enables AgentAction / AgentFinish
