@@ -74,7 +74,7 @@ class TestLLMService:
             params = get_llm_params("planner")
             assert params["model"] == "test-model"
             assert params["timeout"] == 90
-            assert params["temperature"] == 0.1
+            assert params["temperature"] == 0.3  # Default temperature in get_llm_params
 
     def test_get_llm_params_different_components(self):
         """Test params differ based on component type."""

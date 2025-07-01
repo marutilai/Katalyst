@@ -63,8 +63,12 @@ def test_action_trace_compression_reduces_state_size():
         mock_llm.chat.completions.create.return_value = mock_response
         mock_get_llm.return_value = mock_llm
         
-        # Run agent_react which should trigger compression
-        state = agent_react(state)
+        # Mock the action trace summarizer to avoid real LLM calls
+        with patch('katalyst.katalyst_core.utils.action_trace_summarizer.ActionTraceSummarizer._create_summary') as mock_create_summary:
+            mock_create_summary.return_value = "Summary of first 7 actions: Read multiple files"
+            
+            # Run agent_react which should trigger compression
+            state = agent_react(state)
     
     # Check compressed size
     compressed_entries = len(state.action_trace)

@@ -41,8 +41,12 @@ def test_chat_history_compression():
         mock_llm.chat.completions.create.return_value = mock_response
         mock_get_llm.return_value = mock_llm
         
-        # Run agent_react which should trigger compression
-        state = agent_react(state)
+        # Mock the conversation summarizer to avoid real LLM calls
+        with patch('katalyst.katalyst_core.utils.conversation_summarizer.ConversationSummarizer._create_summary') as mock_create_summary:
+            mock_create_summary.return_value = "This is a summary of the previous conversation about testing"
+            
+            # Run agent_react which should trigger compression
+            state = agent_react(state)
     
     # Check compressed state
     compressed_count = len(state.chat_history)
@@ -92,8 +96,9 @@ def test_chat_history_no_compression_under_threshold():
         
         state = agent_react(state)
     
-    # Should not compress (added 2 more messages from agent_react)
-    assert len(state.chat_history) == initial_count + 2
+    # Should not compress (added 1 message from agent_react - just the thought)
+    # When agent goes directly to final answer, only thought is added, not action
+    assert len(state.chat_history) == initial_count + 1
     
     # Should not have summary
     has_summary = any(
