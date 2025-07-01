@@ -12,6 +12,7 @@ import inspect
 import os
 import json
 import hashlib
+from collections import deque
 from typing import Dict, Any, Optional, Tuple
 
 from katalyst.katalyst_core.state import KatalystState
@@ -960,7 +961,6 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 
                 # Also clear operation context for list_files to allow re-scanning
                 # Remove list_files operations from operation context
-                from collections import deque
                 filtered_ops = [
                     op for op in state.operation_context.tool_operations
                     if op.tool_name != "list_files"
