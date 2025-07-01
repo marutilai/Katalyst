@@ -29,7 +29,7 @@ def format_execute_command_response(
     return json.dumps(resp)
 
 
-@katalyst_tool(prompt_module="execute_command", prompt_var="EXECUTE_COMMAND_PROMPT")
+@katalyst_tool(prompt_module="execute_command", prompt_var="EXECUTE_COMMAND_TOOL_PROMPT")
 def execute_command(
     command: str,
     cwd: str = None,

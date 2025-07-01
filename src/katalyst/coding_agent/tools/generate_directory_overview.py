@@ -15,13 +15,52 @@ from langgraph.constants import Send
 from pydantic import BaseModel
 import operator
 
-# Import the map and reduce prompts
-from katalyst.coding_agent.prompts.tools.generate_directory_overview_map import (
-    GENERATE_DIRECTORY_OVERVIEW_MAP_PROMPT,
-)
-from katalyst.coding_agent.prompts.tools.generate_directory_overview_reduce import (
-    GENERATE_DIRECTORY_OVERVIEW_REDUCE_PROMPT,
-)
+# Define the map and reduce prompts internally
+from textwrap import dedent
+
+GENERATE_DIRECTORY_OVERVIEW_MAP_PROMPT = dedent("""
+# generate_directory_overview (Map Step)
+
+Description: Summarize the purpose, main logic, and key components of a single code file. Identify important classes and functions.
+
+## Input
+- File content: {context}
+
+## Output Format
+JSON object with keys:
+- file_path: (string) File being summarized
+- summary: (string) Concise summary of file's purpose and main logic
+- key_classes: (list of strings) Important class names
+- key_functions: (list of strings) Important function names
+
+## Example
+{
+  "file_path": "project_folder/module/filename.py",
+  "summary": "Brief description of what this file does and its main purpose.",
+  "key_classes": ["ExampleClass", "AnotherClass"],
+  "key_functions": ["process_data", "validate_input"]
+}
+""")
+
+GENERATE_DIRECTORY_OVERVIEW_REDUCE_PROMPT = dedent("""
+# generate_directory_overview (Reduce Step)
+
+Description: Given file summaries, produce overall summary of codebase's purpose, architecture, and main components. Identify most important files, classes, or modules.
+
+## Input
+- File summaries: {docs}
+
+## Output Format
+JSON object with keys:
+- overall_summary: (string) Concise summary of codebase's purpose, architecture, and main components
+- main_components: (list of strings) Most important files, classes, or modules
+
+## Example
+{
+  "overall_summary": "Brief description of the codebase purpose and architecture...",
+  "main_components": ["project_folder/module1/file1.py", "project_folder/module2/file2.py"]
+}
+""")
 
 logger = get_logger()
 
@@ -60,7 +99,7 @@ class ReduceSummaryModel(BaseModel):
 
 @katalyst_tool(
     prompt_module="generate_directory_overview",
-    prompt_var="GENERATE_DIRECTORY_OVERVIEW_PROMPT",
+    prompt_var="GENERATE_DIRECTORY_OVERVIEW_TOOL_PROMPT",
 )
 async def generate_directory_overview(
     dir_path: str, respect_gitignore: bool = True

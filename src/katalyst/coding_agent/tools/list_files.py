@@ -22,7 +22,7 @@ def format_list_files_response(path: str, files: list = None, error: str = None)
     return json.dumps(response)
 
 
-@katalyst_tool(prompt_module="list_files", prompt_var="LIST_FILES_PROMPT")
+@katalyst_tool(prompt_module="list_files", prompt_var="LIST_FILES_TOOL_PROMPT")
 def list_files(path: str, recursive: bool, respect_gitignore: bool = True) -> str:
     """
     Lists files and directories within a given path, with options for recursion and respecting .gitignore.
