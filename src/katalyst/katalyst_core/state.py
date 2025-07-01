@@ -70,6 +70,14 @@ class KatalystState(BaseModel):
             "Useful for LangSmith deep-trace or step-by-step UI replay."
         ),
     )
+    tool_execution_history: List[Dict[str, str]] = Field(
+        default_factory=list,
+        description=(
+            "Concise history of all tool executions across all tasks. "
+            "Each entry contains: task, tool_name, status (success/error), summary. "
+            "Used by replanner to understand full execution context."
+        ),
+    )
 
     # ── error / completion flags ──────────────────────────────────────────
     error_message: Optional[str] = Field(
