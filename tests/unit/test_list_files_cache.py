@@ -223,11 +223,15 @@ class TestListFilesCaching:
         # Check that directory cache was initialized
         assert result_state.directory_cache is not None
         
-        # Check that list_files was called with modified parameters for full scan
+        # Check that list_files was called with root path and recursive=True for full scan
         call_args = mock_list_files.call_args[1]
-        assert call_args["_first_call"] == True
+        # Internal params like _first_call are filtered out before calling the tool
         assert call_args["path"] == mock_state.project_root_cwd
         assert call_args["recursive"] == True
+        
+        # Verify cache was populated
+        cache = DirectoryCache.from_dict(result_state.directory_cache)
+        assert cache.full_scan_done
     
     @patch('katalyst.coding_agent.nodes.tool_runner.REGISTERED_TOOL_FUNCTIONS_MAP')
     def test_cached_list_files_response(self, mock_tools, mock_state):
