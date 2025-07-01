@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.messages import BaseMessage
 from katalyst.katalyst_core.utils.tool_repetition_detector import ToolRepetitionDetector
+from katalyst.katalyst_core.utils.operation_context import OperationContext
 import os
 
 
@@ -102,6 +103,15 @@ class KatalystState(BaseModel):
         default_factory=ToolRepetitionDetector,
         description="Detects repetitive tool calls to prevent infinite loops.",
     )
+    
+    # ── operation context tracking ─────────────────────────────────────────
+    operation_context: OperationContext = Field(
+        default_factory=lambda: OperationContext(
+            file_history_limit=int(os.getenv("KATALYST_FILE_CONTEXT_HISTORY", 10)),
+            operations_history_limit=int(os.getenv("KATALYST_OPERATIONS_CONTEXT_HISTORY", 10))
+        ),
+        description="Tracks recent file and tool operations to prevent duplication.",
+    )
 
     # ── playbook / plan context ─────────────────────────────────────────────
     playbook_guidelines: Optional[str] = Field(
@@ -109,9 +119,10 @@ class KatalystState(BaseModel):
     )
 
     # ── content reference system ───────────────────────────────────────────
-    content_store: Dict[str, str] = Field(
+    content_store: Dict[str, Union[str, Tuple[str, str]]] = Field(
         default_factory=dict,
         description="Temporary storage for file contents with reference IDs. "
+                    "Maps ref_id to either content string or (file_path, content) tuple. "
                     "Used to prevent content hallucination when passing through LLM."
     )
 

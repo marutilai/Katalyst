@@ -16,6 +16,9 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.agents import AgentFinish
 from langgraph.errors import GraphRecursionError
 
+# Import async cleanup to register cleanup handlers
+import katalyst.katalyst_core.utils.async_cleanup
+
 # Load environment variables from .env file
 load_dotenv()
 

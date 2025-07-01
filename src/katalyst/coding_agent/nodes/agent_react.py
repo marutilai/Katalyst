@@ -19,6 +19,8 @@ from katalyst.katalyst_core.utils.error_handling import (
     format_error_for_llm,
 )
 from katalyst.katalyst_core.utils.decorators import compress_chat_history
+from katalyst.katalyst_core.utils.task_display import get_task_context_for_agent
+from katalyst.katalyst_core.utils.action_trace_summarizer import ActionTraceSummarizer
 
 REGISTERED_TOOL_FUNCTIONS_MAP = get_tool_functions_map()
 
@@ -65,57 +67,160 @@ def agent_react(state: KatalystState) -> KatalystState:
     # It also appends detailed tool descriptions for LLM reference.
     system_message_content = """
 # AGENT PERSONA
-You are an adaptive ReAct agent. Your goal is to accomplish tasks through intelligent exploration, decision-making, and tool usage. Tasks may be goal-oriented rather than tool-specific.
+You are an adaptive ReAct agent. Your goal is to accomplish tasks through intelligent exploration, decision-making, and tool usage. 
+
+# TASK CONTEXT
+You'll see your current context like:
+- Current Planner Task: The main task you're working on
+- Subtasks: Any breakdown you've created (✓=done, →=current)
+- Currently Working On: Your immediate focus
 
 # OUTPUT FORMAT
 Respond in JSON with:
-- thought: (string) Your step-by-step reasoning
+- thought: (string) Your reasoning about what to do next
 - EITHER:
   - action: (string) Tool name AND action_input: (object) Tool arguments
-  - OR final_answer: (string) Your answer when the task is complete
+  - OR final_answer: (string) Your answer when task is complete
 
-# HANDLING GOAL-ORIENTED TASKS
-When given a high-level task (e.g., "Implement user authentication system"):
-1. First understand the goal - what needs to be achieved?
-2. Check dependencies - what must exist before this task can succeed?
-3. Explore the existing codebase if relevant (list files, read examples)
-4. Plan your approach mentally before starting implementation
-5. Execute systematically, adapting based on discoveries
-6. Use create_subtask if you discover the task has multiple independent parts
+# CORE WORKFLOW: ANALYZE → EXECUTE → DECOMPOSE (only if needed)
 
-# DEPENDENCY CHECKING
-Before starting implementation:
-- Ask: "What needs to exist for this task to succeed?"
-- Can't add validation to schemas that don't exist
-- Can't test functions that aren't implemented
-- Can't import from files that haven't been created
-- If dependencies are missing, either:
-  - Create them first within this task, OR
-  - Use create_subtask to add prerequisite tasks
+## 1. ANALYZE THE TASK
+For EVERY new task, determine the scope:
+- Is this a focused, achievable goal? (e.g., "Add user authentication endpoint", "Create Todo model with validation")
+- Or is this a broad objective needing breakdown? (e.g., "Build entire authentication system", "Create full CRUD API")
 
-# DYNAMIC TASK DECOMPOSITION
-You can create subtasks when:
-- The current task has multiple independent components
-- You discover complexity during exploration
-- Better organization would help track progress
-Example: If asked to "Create models", and you find User, Todo, and Category are needed,
-create subtasks for each rather than trying to do all in one task.
+## 2. START EXECUTION
+Begin working on the task:
+- If you can see a clear path to completion, proceed with implementation
+- File operations (creating directories, writing files) are NOT tasks - they're just tool operations
+- A single task often involves multiple file operations
 
-# TOOL USAGE RULES
-- Use ONLY the tools explicitly defined in the available tools section
-- Do NOT invent or hallucinate tool names or structures
-- Execute ONE tool per ReAct step (no parallel execution, no multi_tool_use.parallel)
-- Remember: create_subtask is available for task decomposition
+## 3. DECOMPOSE (only when you discover complexity)
+Create subtasks ONLY when you discover during execution that:
+- The current task has distinct, independent components
+- You've identified multiple models/endpoints/features that need separate attention
+- The work naturally splits into logical, testable units
+
+## GOOD vs BAD TASK GRANULARITY
+❌ BAD (too granular): "Create models directory", "Write __init__.py file", "Add import statement"
+✅ GOOD (atomic but complete): "Implement User model with authentication fields", "Add validation to Todo endpoints", "Set up database connection"
+
+Remember: Tasks should represent meaningful work units, not individual file operations!
+
+# EXPLORATION LIMITS
+- If you find yourself repeating similar operations without progress → reassess your approach
+- After exploring 3-4 different files/directories without finding what you need → the content likely doesn't exist
+- No repetitive operations - adapt your strategy or accept the current state
 
 # FILE OPERATIONS
+- Project root shown as "Project Root Directory" at message start
 - ALWAYS use paths relative to project root (where 'katalyst' command was run)
 - Include the full path from project root, not partial paths
-- CRITICAL: When task says "create in folder X", ALL files go in that folder (e.g., "projectname/...")
-- To find files: Use 'list_files' (can be recursive) to locate files by name
-- To read: Use 'read_file' to examine file contents
-- To search in content: Use 'regex_search_inside_files' to find patterns within files
-- To create/modify: Use 'write_to_file' or 'apply_source_code_diff'
-- For directories: 'write_to_file' auto-creates parent directories
+- write_to_file auto-creates parent directories
+
+# IMPORT STATEMENTS
+- Use relative imports for files within the same project (e.g., from .models import User)
+- Use absolute imports starting from project root for cross-module imports
+- Do NOT use package-style imports (e.g., from myproject.app.models) unless project has setup.py
+- For simple projects without setup.py, prefer relative imports or sys.path adjustments
+- Example for a FastAPI project structure:
+  - In routers/todo.py: from ..models import schemas, todo
+  - In database.py: from .models.todo import Base
+  - Or add to main.py: sys.path.append(os.path.dirname(__file__))
+
+# TOOL USAGE
+- Use ONLY tools from the available tools section
+- Execute ONE tool per ReAct step (no parallel execution, no multi_tool_use.parallel)
+- Check scratchpad before acting - don't repeat failed operations
+
+# TASK GRANULARITY EXAMPLES
+
+## Example 1: Setting up a FastAPI project structure
+❌ WRONG APPROACH (too granular subtasks):
+- "Create app directory"
+- "Create models directory" 
+- "Create routers directory"
+- "Write __init__.py files"
+
+✅ RIGHT APPROACH (single task with multiple operations):
+Task: "Set up FastAPI project structure with standard directories"
+Then use write_to_file multiple times to create all needed files/directories
+
+## Example 2: Implementing a data model
+❌ WRONG APPROACH (file-focused):
+- "Create user.py file"
+- "Add SQLAlchemy imports"
+- "Define User class"
+
+✅ RIGHT APPROACH (feature-focused):
+Task: "Implement User model with authentication fields and validation"
+This naturally includes creating the file, imports, model definition, and validation
+
+## Example 3: Building CRUD endpoints
+❌ WRONG APPROACH (too detailed):
+- "Create GET endpoint"
+- "Create POST endpoint"
+- "Add error handling to endpoints"
+
+✅ RIGHT APPROACH (cohesive unit):
+Task: "Implement CRUD endpoints for Todo model"
+All CRUD operations belong together as they share schemas, validation, and error handling
+
+# TASK COMPLETION
+- final_answer only when task FULLY complete
+- Be specific about what was accomplished
+- List the key components created/modified
+
+# CONTEXT AWARENESS - CHECK BEFORE EVERY ACTION
+- ALWAYS check "Recent File Operations" BEFORE any file operation
+- ALWAYS check "Recent Tool Operations" BEFORE repeating any tool
+- If you see the same file read 2+ times in context → STOP, you already have that information
+- If you see failed operations → do NOT retry the same approach
+- Use the operation context as your memory - trust what it tells you
+
+## STRICT OPERATION CONTEXT RULES - VIOLATIONS WILL BE BLOCKED:
+
+### 1. **BEFORE read_file - MANDATORY CHECK**:
+   - If a file appears in "Recent Tool Operations" with "✓ read_file", you MUST NOT read it again
+   - The content is already in your scratchpad from the previous read
+   - Reading the same file again is WASTEFUL and will be BLOCKED
+   - Example: If you see "✓ read_file: backend/app.py" → DO NOT call read_file on backend/app.py again
+
+### 2. **BEFORE write_to_file - MANDATORY CHECK**:
+   - Check "Recent File Operations" for the file path
+   - If file shows as "created" → MUST use apply_source_code_diff to modify
+   - Creating a file that already exists will FAIL
+   - Trust the context - it never lies about file existence
+
+### 3. **CONSECUTIVE DUPLICATES = IMMEDIATE BLOCK**:
+   - Calling the same tool with same inputs back-to-back is FORBIDDEN
+   - This will trigger a CRITICAL error and waste cycles
+   - The system will forcibly block such calls
+
+### 4. **OPERATION CONTEXT IS YOUR MEMORY**:
+   - Recent Tool Operations shows EVERY tool call and its result (✓ = success, ✗ = failed)
+   - Recent File Operations shows EVERY file created/modified/read
+   - This is GROUND TRUTH - more reliable than your reasoning
+   - If operation context says you did something, YOU DID IT
+   - Do not "double-check" or "verify" - that's what causes loops
+
+# HANDLING BLOCKED OPERATIONS - ESCALATING FEEDBACK SYSTEM
+When you see "BLOCKED CONSECUTIVE DUPLICATE" or "CRITICAL" errors:
+1. STOP trying the same approach immediately
+2. Use information from previous successful calls (check scratchpad)
+3. Try a DIFFERENT tool or approach
+
+⚠️  CONSECUTIVE BLOCKS WARNING: If you get blocked multiple times in a row, feedback will escalate:
+- 1-2 blocks: Gentle hints to check existing information
+- 3-4 blocks: Strong warnings to completely change strategy
+- 5+ blocks: CRITICAL alerts demanding fundamental approach change
+
+# REDUNDANT OPERATIONS - CRITICAL
+If a tool is blocked as redundant, the information you seek ALREADY EXISTS in your scratchpad.
+- DO NOT attempt the operation again with different parameters
+- DO NOT "verify" or "double-check" - trust the block
+- IMMEDIATELY use the existing information to continue your task
+- Blocked operations mean you're wasting cycles - adapt your strategy NOW
 
 # SCRATCHPAD RULES
 - Always check scratchpad (previous actions/observations) before acting
@@ -124,18 +229,7 @@ create subtasks for each rather than trying to do all in one task.
 - Build on previous discoveries to make informed decisions
 - If searches yield no results after 2-3 attempts, accept that the content doesn't exist
 - Don't keep searching for the same patterns - move on to creating what you need
-
-# TASK COMPLETION
-- Only provide 'final_answer' when the current task goal is FULLY achieved
-- Be specific about what was accomplished
-- If task was too complex, mention any subtasks created for remaining work
-- Focus on outcomes, not just tool executions
-
-# ERROR RECOVERY
-1. Analyze errors and adapt your approach
-2. Use create_subtask if the task needs different strategy
-3. Request replanning only if fundamentally stuck
-4. Learn from failures to improve subsequent attempts"""
+"""
 
     # Add detailed tool descriptions to the system message for LLM tool selection
     all_detailed_tool_prompts = get_formatted_tool_prompts_for_llm(
@@ -147,12 +241,39 @@ create subtasks for each rather than trying to do all in one task.
     # --------------------------------------------------------------------------
     # This message provides the current subtask, context from the previous sub-task (if any),
     # any error feedback, and a scratchpad of previous actions/observations to help the LLM reason step by step.
-    current_subtask = (
-        state.task_queue[state.task_idx]
-        if state.task_idx < len(state.task_queue)
-        else ""
-    )
-    user_message_content_parts = [f"Current Subtask: {current_subtask}"]
+    # Get full task context with hierarchy
+    task_context = get_task_context_for_agent(state)
+    
+    # Get operation context
+    operation_context = state.operation_context.get_context_for_agent()
+    
+    # Log contexts for debugging
+    logger.debug(f"[AGENT_REACT] Task context:\n{task_context}")
+    if operation_context:
+        logger.debug(f"[AGENT_REACT] Operation context:\n{operation_context}")
+    else:
+        logger.debug("[AGENT_REACT] Operation context: None")
+    
+    user_message_content_parts = [
+        f"Project Root Directory: {state.project_root_cwd}",
+        ""
+    ]
+    
+    # Add operation context if available - MAKE IT PROMINENT
+    if operation_context:
+        user_message_content_parts.extend([
+            "🔍 === CRITICAL: CHECK THIS FIRST - Recent Operations (YOUR MEMORY) ===",
+            "⚠️  MANDATORY: Review this before any action to avoid redundant/blocked operations!",
+            operation_context,
+            "🚫 Do NOT repeat operations shown above - use existing information instead!",
+            ""
+        ])
+    
+    # Add task context after operation context
+    user_message_content_parts.extend([
+        "=== Task Context: Current Planner Task, Subtasks, and Currently Working On ===",
+        task_context
+    ])
 
     # Provide context from the most recently completed sub-task if available and relevant
     if state.completed_tasks:
@@ -171,23 +292,116 @@ create subtasks for each rather than trying to do all in one task.
     if state.error_message:
         # Classify and format the error for better LLM understanding
         error_type, error_details = classify_error(state.error_message)
-        formatted_error = format_error_for_llm(error_type, error_details)
+        
+        # Check if this is an escalated error message that should be preserved
+        # These contain critical feedback patterns that help the agent adapt
+        escalation_markers = ["💡 HINT:", "⚠️ WARNING:", "🚨 CRITICAL:", "THINK HARDER", "consecutive blocks"]
+        should_preserve = any(marker in error_details for marker in escalation_markers)
+        
+        if should_preserve:
+            # Preserve the full custom message for escalated feedback
+            formatted_error = format_error_for_llm(error_type, error_details, custom_message=error_details)
+        else:
+            # Use default formatting for regular errors
+            formatted_error = format_error_for_llm(error_type, error_details)
+            
         user_message_content_parts.append(f"\nError Information:\n{formatted_error}")
         state.error_message = None  # Consume the error message
 
     # Add action trace if it exists (scratchpad for LLM reasoning)
     if state.action_trace:
-        scratchpad_content = "\n".join(
-            [
+        # Get configuration
+        action_trace_trigger = int(os.getenv("KATALYST_ACTION_TRACE_TRIGGER", 10))
+        keep_last_n = int(os.getenv("KATALYST_ACTION_TRACE_KEEP_LAST_N", 5))
+        
+        # Be more aggressive if context is already large
+        current_context_size = len(system_message_content) + len("\n".join(user_message_content_parts))
+        if current_context_size > 30000:
+            # Very aggressive settings for large contexts
+            action_trace_trigger = min(action_trace_trigger, 5)
+            keep_last_n = min(keep_last_n, 3)
+        
+        # Check if we need to compress based on count (similar to conversation summarizer)
+        if len(state.action_trace) > action_trace_trigger:
+            # Calculate size before compression
+            full_scratchpad = "\n".join([
                 f"Previous Action: {action.tool}\nPrevious Action Input: {action.tool_input}\nObservation: {obs}"
                 for action, obs in state.action_trace
-            ]
-        )
+            ])
+            before_size = len(full_scratchpad)
+            
+            logger.info(
+                f"[ACTION_TRACE_COMPRESSION] Compressing action trace in {agent_react.__name__}: "
+                f"{len(state.action_trace)} actions > {action_trace_trigger} trigger, "
+                f"size before: {before_size} chars"
+            )
+            
+            # Split the trace
+            actions_to_summarize = state.action_trace[:-keep_last_n]
+            actions_to_keep = state.action_trace[-keep_last_n:]
+            
+            # Use summarizer to create a summary
+            summarizer = ActionTraceSummarizer(component="execution")
+            # Get just the summary text
+            summary_text = summarizer._create_summary(actions_to_summarize, target_reduction=0.8)
+            
+            if summary_text:
+                # Create a synthetic action/observation pair for the summary
+                summary_action = AgentAction(
+                    tool="[SUMMARY]",
+                    tool_input={"count": len(actions_to_summarize)},
+                    log=f"Summary of {len(actions_to_summarize)} previous actions"
+                )
+                summary_observation = f"[PREVIOUS ACTIONS SUMMARY]\n{summary_text}\n[END OF SUMMARY]"
+                
+                # Replace the action trace with summary + recent actions
+                state.action_trace = [(summary_action, summary_observation)] + actions_to_keep
+                
+                logger.info(
+                    f"[ACTION_TRACE_COMPRESSION] Replaced {len(actions_to_summarize)} actions with summary. "
+                    f"New trace has {len(state.action_trace)} entries."
+                )
+            
+            # Format the scratchpad content
+            scratchpad_content = summarizer.summarize_action_trace(
+                state.action_trace,
+                keep_last_n=len(state.action_trace),  # Keep all since we already compressed
+                max_chars=100000  # Don't force additional summarization
+            )
+            
+            # Log compression results
+            after_size = len(scratchpad_content)
+            reduction = (1 - after_size / before_size) * 100 if before_size > 0 else 0
+            logger.info(
+                f"[ACTION_TRACE_COMPRESSION] Compressed from {before_size} to {after_size} chars "
+                f"({reduction:.1f}% reduction)"
+            )
+        else:
+            # Just format normally if under threshold
+            formatted_actions = []
+            for action, obs in state.action_trace:
+                # Truncate very long observations even in normal formatting
+                if len(obs) > 1000:
+                    obs = obs[:997] + "..."
+                formatted_actions.append(
+                    f"Previous Action: {action.tool}\nPrevious Action Input: {action.tool_input}\nObservation: {obs}"
+                )
+            scratchpad_content = "\n".join(formatted_actions)
+        
         user_message_content_parts.append(
             f"\nPrevious actions and observations (scratchpad):\n{scratchpad_content}"
         )
+        
+        # Log scratchpad size for debugging (max 10 actions now)
+        logger.debug(f"[AGENT_REACT] Scratchpad size: {len(scratchpad_content)} chars, {len(state.action_trace)} actions (max 10)")
 
     user_message_content = "\n".join(user_message_content_parts)
+    
+    # Log total context size for debugging
+    total_context_size = len(system_message_content) + len(user_message_content)
+    logger.debug(f"[AGENT_REACT] Total context size: {total_context_size} chars (system: {len(system_message_content)}, user: {len(user_message_content)})")
+    if total_context_size > 50000:
+        logger.warning(f"[AGENT_REACT] Very large context detected: {total_context_size} chars - may cause performance issues")
 
     # Compose the full LLM message list
     llm_messages = [

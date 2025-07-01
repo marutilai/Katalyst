@@ -5,8 +5,21 @@ Provides simplified API for LLM client access with component-specific configurat
 """
 
 from litellm import completion, acompletion
+import litellm
 import instructor
 from katalyst.katalyst_core.config import get_llm_config
+
+# Suppress litellm debug info to avoid async task warnings
+litellm.suppress_debug_info = True
+
+# Disable async callbacks to prevent pending task warnings
+litellm.callbacks = []
+litellm.success_callback = []
+litellm._async_success_callback = []
+
+# Set to synchronous mode
+import os
+os.environ["LITELLM_LOG"] = "ERROR"
 
 
 # New simplified API functions (recommended)
@@ -50,7 +63,7 @@ def get_llm_params(component: str) -> dict:
     params = {
         "model": config.get_model_for_component(component),
         "timeout": config.get_timeout(),
-        "temperature": 0.1,  # Default temperature
+        "temperature": 0.3,  # Default temperature
         "fallbacks": config.get_fallback_models(),
     }
     

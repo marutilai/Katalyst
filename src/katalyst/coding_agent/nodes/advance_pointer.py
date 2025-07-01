@@ -7,6 +7,13 @@ from katalyst.katalyst_core.utils.error_handling import (
     classify_error,
     format_error_for_llm,
 )
+from katalyst.katalyst_core.utils.task_display import get_task_progress_display
+
+
+def _display_task_progress(state: KatalystState, logger) -> None:
+    """Display visual progress of all tasks in the queue."""
+    progress_display = get_task_progress_display(state)
+    logger.info(progress_display)
 
 
 def advance_pointer(state: KatalystState) -> KatalystState:
@@ -51,6 +58,9 @@ def advance_pointer(state: KatalystState) -> KatalystState:
         logger.info(
             f"[ADVANCE_POINTER] Completed subtask: {current_subtask} | Summary: {summary}"
         )
+        
+        # Display visual task progress
+        _display_task_progress(state, logger)
     else:
         error_msg = create_error_message(
             ErrorType.PARSING_ERROR,
@@ -67,6 +77,20 @@ def advance_pointer(state: KatalystState) -> KatalystState:
     state.error_message = None
     # Reset repetition detector for the new task
     state.repetition_detector.reset()
+    
+    # Check if we're moving to a new planner task (not a subtask)
+    if state.original_plan and state.task_idx < len(state.task_queue):
+        current_task = state.task_queue[state.task_idx]
+        # If this task is in the original plan, it's a new planner task
+        if current_task in state.original_plan:
+            # Log operation context before clearing
+            context_before = state.operation_context.get_context_for_agent()
+            if context_before:
+                logger.debug(f"[ADVANCE_POINTER] Operation context before clearing:\n{context_before}")
+            
+            # Clear operation context for new planner task
+            state.operation_context.clear()
+            logger.info("[ADVANCE_POINTER] Cleared operation context for new planner task")
     
     # 3) If plan is exhausted, check outer-loop guard
     if state.task_idx >= len(state.task_queue):
