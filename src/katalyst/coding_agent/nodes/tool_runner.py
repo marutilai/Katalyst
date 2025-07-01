@@ -104,6 +104,16 @@ def tool_runner(state: KatalystState) -> KatalystState:
     # but other nodes (replanner, advance_pointer) still depend on it
     state.action_trace.append((agent_action, observation_str))
     
+    # Record concise execution history for replanner
+    current_task = state.task_queue[state.task_idx] if state.task_idx < len(state.task_queue) else "Unknown task"
+    execution_record = {
+        "task": current_task,
+        "tool_name": tool_name,
+        "status": "error" if "Error:" in observation_str else "success",
+        "summary": observation_str[:100] + "..." if len(observation_str) > 100 else observation_str
+    }
+    state.tool_execution_history.append(execution_record)
+    
     # Clear agent_outcome
     state.agent_outcome = None
     
