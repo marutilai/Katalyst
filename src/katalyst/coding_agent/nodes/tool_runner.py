@@ -309,6 +309,11 @@ def _prepare_tool_input(tool_fn, tool_input: Dict[str, Any], state: KatalystStat
     """
     tool_input_resolved = dict(tool_input)
     
+    # Remove internal cache-related parameters that shouldn't be passed to tools
+    internal_params = ["_first_call", "_original_path", "_original_recursive"]
+    for param in internal_params:
+        tool_input_resolved.pop(param, None)
+    
     # Add auto_approve if the tool accepts it
     if "auto_approve" in tool_fn.__code__.co_varnames:
         tool_input_resolved["auto_approve"] = state.auto_approve
@@ -740,11 +745,14 @@ def tool_runner(state: KatalystState) -> KatalystState:
         else:
             # First call - will trigger full scan below
             logger.info("[TOOL_RUNNER][CACHE] First list_files call, will trigger full scan")
+            # Store original parameters for later
+            original_path = tool_input.get("path", ".")
+            original_recursive = tool_input.get("recursive", False)
             # Modify tool_input to scan from root on first call
             tool_input = dict(tool_input)
             tool_input["_first_call"] = True
-            tool_input["_original_path"] = tool_input.get("path", ".")
-            tool_input["_original_recursive"] = tool_input.get("recursive", False)
+            tool_input["_original_path"] = original_path
+            tool_input["_original_recursive"] = original_recursive
             # Force recursive scan from root
             tool_input["path"] = state.project_root_cwd
             tool_input["recursive"] = True
@@ -828,7 +836,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
             if tool_name == "list_files" and isinstance(observation, str):
                 try:
                     obs_data = json.loads(observation)
-                    if "_first_call" in tool_input_resolved and obs_data.get("files"):
+                    if "_first_call" in tool_input and obs_data.get("files"):
                         # This was the first call - we did a full root scan
                         logger.info("[TOOL_RUNNER][CACHE] Processing first list_files scan")
                         
@@ -838,8 +846,8 @@ def tool_runner(state: KatalystState) -> KatalystState:
                         state.directory_cache = cache.to_dict()
                         
                         # Now get the actual requested listing from cache
-                        original_path = tool_input_resolved["_original_path"]
-                        original_recursive = tool_input_resolved["_original_recursive"]
+                        original_path = tool_input["_original_path"]
+                        original_recursive = tool_input["_original_recursive"]
                         
                         if not os.path.isabs(original_path):
                             resolved_path = os.path.abspath(os.path.join(state.project_root_cwd, original_path))
@@ -949,6 +957,19 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 cache = DirectoryCache.from_dict(state.directory_cache)
                 cache.invalidate()
                 state.directory_cache = cache.to_dict()
+                
+                # Also clear operation context for list_files to allow re-scanning
+                # Remove list_files operations from operation context
+                from collections import deque
+                filtered_ops = [
+                    op for op in state.operation_context.tool_operations
+                    if op.tool_name != "list_files"
+                ]
+                state.operation_context.tool_operations = deque(
+                    filtered_ops, 
+                    maxlen=state.operation_context._operations_history_limit
+                )
+                logger.debug("[TOOL_RUNNER][DIR_CACHE] Cleared list_files from operation context")
             
             # Track all tool operations
             success = True
