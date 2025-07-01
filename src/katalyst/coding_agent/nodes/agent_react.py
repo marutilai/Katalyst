@@ -204,11 +204,16 @@ All CRUD operations belong together as they share schemas, validation, and error
    - If operation context says you did something, YOU DID IT
    - Do not "double-check" or "verify" - that's what causes loops
 
-# HANDLING BLOCKED OPERATIONS
+# HANDLING BLOCKED OPERATIONS - ESCALATING FEEDBACK SYSTEM
 When you see "BLOCKED CONSECUTIVE DUPLICATE" or "CRITICAL" errors:
 1. STOP trying the same approach immediately
 2. Use information from previous successful calls (check scratchpad)
 3. Try a DIFFERENT tool or approach
+
+⚠️  CONSECUTIVE BLOCKS WARNING: If you get blocked multiple times in a row, feedback will escalate:
+- 1-2 blocks: Gentle hints to check existing information
+- 3-4 blocks: Strong warnings to completely change strategy
+- 5+ blocks: CRITICAL alerts demanding fundamental approach change
 
 # REDUNDANT OPERATIONS - CRITICAL
 If a tool is blocked as redundant, the information you seek ALREADY EXISTS in your scratchpad.
@@ -251,18 +256,24 @@ If a tool is blocked as redundant, the information you seek ALREADY EXISTS in yo
     
     user_message_content_parts = [
         f"Project Root Directory: {state.project_root_cwd}",
-        "",
-        "=== Task Context: Current Planner Task, Subtasks, and Currently Working On ===",
-        task_context
+        ""
     ]
     
-    # Add operation context if available
+    # Add operation context if available - MAKE IT PROMINENT
     if operation_context:
         user_message_content_parts.extend([
-            "",
-            "=== Operation Context: Recent File Operations and Tool Operations DONE in the previous ReAct loop ===",
-            operation_context
+            "🔍 === CRITICAL: CHECK THIS FIRST - Recent Operations (YOUR MEMORY) ===",
+            "⚠️  MANDATORY: Review this before any action to avoid redundant/blocked operations!",
+            operation_context,
+            "🚫 Do NOT repeat operations shown above - use existing information instead!",
+            ""
         ])
+    
+    # Add task context after operation context
+    user_message_content_parts.extend([
+        "=== Task Context: Current Planner Task, Subtasks, and Currently Working On ===",
+        task_context
+    ])
 
     # Provide context from the most recently completed sub-task if available and relevant
     if state.completed_tasks:
@@ -281,7 +292,19 @@ If a tool is blocked as redundant, the information you seek ALREADY EXISTS in yo
     if state.error_message:
         # Classify and format the error for better LLM understanding
         error_type, error_details = classify_error(state.error_message)
-        formatted_error = format_error_for_llm(error_type, error_details)
+        
+        # Check if this is an escalated error message that should be preserved
+        # These contain critical feedback patterns that help the agent adapt
+        escalation_markers = ["💡 HINT:", "⚠️ WARNING:", "🚨 CRITICAL:", "THINK HARDER", "consecutive blocks"]
+        should_preserve = any(marker in error_details for marker in escalation_markers)
+        
+        if should_preserve:
+            # Preserve the full custom message for escalated feedback
+            formatted_error = format_error_for_llm(error_type, error_details, custom_message=error_details)
+        else:
+            # Use default formatting for regular errors
+            formatted_error = format_error_for_llm(error_type, error_details)
+            
         user_message_content_parts.append(f"\nError Information:\n{formatted_error}")
         state.error_message = None  # Consume the error message
 

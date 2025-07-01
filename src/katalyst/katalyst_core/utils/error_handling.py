@@ -85,17 +85,21 @@ def classify_error(error_message: str) -> Tuple[ErrorType, str]:
     return ErrorType.UNKNOWN, error_message
 
 
-def format_error_for_llm(error_type: ErrorType, error_details: str) -> str:
+def format_error_for_llm(error_type: ErrorType, error_details: str, custom_message: Optional[str] = None) -> str:
     """
     Formats error information for LLM understanding and action.
 
     Args:
         error_type: Type of error from ErrorType enum
         error_details: Detailed error message
+        custom_message: Optional pre-formatted message that takes priority
 
     Returns:
         Formatted error message for LLM consumption
     """
+    # If custom message is provided, use it directly
+    if custom_message is not None:
+        return custom_message
     if error_type == ErrorType.TOOL_ERROR:
         return (
             f"Tool execution failed: {error_details}\n"

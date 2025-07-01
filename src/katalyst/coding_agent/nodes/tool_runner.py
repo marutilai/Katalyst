@@ -90,24 +90,32 @@ def _check_repetitive_calls(tool_name: str, tool_input: Dict[str, Any], agent_ac
         # Check if this is a consecutive duplicate
         if state.repetition_detector.is_consecutive_duplicate(tool_name, tool_input):
             # Stricter warning for back-to-back duplicates
-            observation = create_error_message(
-                ErrorType.TOOL_REPETITION,
+            base_message = (
                 f"⚠️ CRITICAL: Tool '{tool_name}' called with IDENTICAL inputs back-to-back! "
-                "This is wasteful and indicates you're stuck. The operation context shows you ALREADY have this information. "
-                "STOP and use a DIFFERENT approach. Check the operation context before making tool calls.",
-                "TOOL_RUNNER",
+                "You are STUCK in a repetitive loop. THINK HARDER and CHANGE YOUR STRATEGY COMPLETELY. "
+                "Stop trying the same approach. The operation context shows you ALREADY have this information. "
+                "Ask yourself: What DIFFERENT tool or approach will actually progress your task?"
             )
             logger.error(f"[TOOL_RUNNER] BLOCKED CONSECUTIVE DUPLICATE: {tool_name} - This is a waste!")
         else:
             repetition_count = state.repetition_detector.get_repetition_count(tool_name, tool_input)
-            observation = create_error_message(
-                ErrorType.TOOL_REPETITION,
+            base_message = (
                 f"Tool '{tool_name}' has been called {repetition_count} times with identical inputs. "
-                "Please try a different approach or tool to avoid getting stuck in a loop.",
-                "TOOL_RUNNER",
+                "STOP repeating the same operation! THINK HARDER about alternative approaches. "
+                "What DIFFERENT tool or strategy will actually help you complete your task? "
+                "Use your existing knowledge from previous operations instead of re-exploring."
             )
             logger.warning(f"[TOOL_RUNNER] Blocked repetitive tool call: {tool_name} (called {repetition_count} times)")
         
+        # Add escalated feedback based on consecutive blocks
+        escalation_msg = _handle_consecutive_block_escalation(tool_name, agent_action, state, logger)
+        full_message = base_message + escalation_msg
+        
+        observation = create_error_message(
+            ErrorType.TOOL_REPETITION,
+            full_message,
+            "TOOL_RUNNER",
+        )
         state.error_message = observation
         state.action_trace.append((agent_action, str(observation)))
         state.agent_outcome = None
@@ -134,11 +142,20 @@ def _check_redundant_operation(tool_name: str, tool_input: Dict[str, Any], agent
         # Extract key info for better logging
         path_or_pattern = tool_input.get("path", tool_input.get("pattern", ""))
         
+        base_message = (
+            f"⚠️ REDUNDANT OPERATION BLOCKED: Tool '{tool_name}' was already successfully executed with these inputs. "
+            "THINK HARDER - you already have this information! Check your Recent Tool Operations and action trace. "
+            "Instead of re-exploring, use what you already know to make actual progress on your task. "
+            "Consider: What specific action will move your task forward? Try a DIFFERENT approach."
+        )
+        
+        # Add escalated feedback based on consecutive blocks
+        escalation_msg = _handle_consecutive_block_escalation(tool_name, agent_action, state, logger)
+        full_message = base_message + escalation_msg
+        
         observation = create_error_message(
             ErrorType.TOOL_ERROR,
-            f"⚠️ REDUNDANT OPERATION BLOCKED: Tool '{tool_name}' was already successfully executed with these inputs. "
-            "The information you need is in your scratchpad from the previous successful call. "
-            "Check your Recent Tool Operations and use the existing information.",
+            full_message,
             "TOOL_RUNNER",
         )
         logger.warning(f"[TOOL_RUNNER] Blocked redundant operation: {tool_name} on '{path_or_pattern}' - Already have this information")
@@ -204,6 +221,81 @@ def _validate_file_path(tool_name: str, tool_input: Dict[str, Any], agent_action
         return True
     
     return False
+
+
+def _count_consecutive_blocks(state: KatalystState) -> int:
+    """
+    Count consecutive blocked operations by analyzing recent action trace.
+    
+    Args:
+        state: Current state containing action_trace
+        
+    Returns:
+        Number of consecutive blocked operations
+    """
+    consecutive_blocks = 0
+    
+    # Check recent action trace entries in reverse (most recent first)
+    for i in range(len(state.action_trace) - 1, -1, -1):
+        _, observation = state.action_trace[i]
+        
+        # Check if this was a blocked operation
+        if any(blocked_term in str(observation) for blocked_term in [
+            "BLOCKED", "REDUNDANT OPERATION", "CONSECUTIVE DUPLICATE", 
+            "Tool repetition detected", "has been called"
+        ]):
+            consecutive_blocks += 1
+        else:
+            # Stop counting when we hit a successful operation
+            break
+    
+    return consecutive_blocks
+
+
+def _handle_consecutive_block_escalation(tool_name: str, agent_action: AgentAction, state: KatalystState, logger) -> str:
+    """
+    Analyze consecutive blocked operations and escalate feedback when agent gets stuck.
+    
+    Args:
+        tool_name: Name of the tool that was blocked
+        agent_action: The agent action that was blocked
+        state: Current state containing action_trace
+        logger: Logger instance
+        
+    Returns:
+        Enhanced error message with escalated feedback if needed
+    """
+    # Count consecutive blocks from action trace
+    consecutive_blocks = _count_consecutive_blocks(state) + 1  # +1 for the current block
+    logger.debug(f"[TOOL_RUNNER] Consecutive blocks detected: {consecutive_blocks}")
+    
+    # Escalate feedback based on consecutive blocks
+    if consecutive_blocks >= 5:
+        # Very aggressive feedback after 5 consecutive blocks
+        escalated_msg = (
+            f"\n\n🚨 CRITICAL: You've been blocked {consecutive_blocks} times in a row! "
+            "You are COMPLETELY STUCK and need to FUNDAMENTALLY CHANGE YOUR APPROACH. "
+            "STOP ALL EXPLORATION and START EXECUTING your task with COMPLETELY DIFFERENT tools. "
+            "Think step-by-step: What is your actual goal? What concrete action will achieve it? "
+            "Use ONLY tools that make direct progress, not exploration tools."
+        )
+    elif consecutive_blocks >= 3:
+        # Strong feedback after 3 consecutive blocks
+        escalated_msg = (
+            f"\n\n⚠️ WARNING: {consecutive_blocks} consecutive blocked operations! "
+            "You are stuck in a repetitive pattern. CHANGE YOUR STRATEGY COMPLETELY. "
+            "Stop exploring and start executing. What specific action will complete your task? "
+            "Try a DIFFERENT type of tool or approach."
+        )
+    else:
+        # Moderate escalation for first couple blocks
+        escalated_msg = (
+            f"\n\n💡 HINT: {consecutive_blocks} consecutive blocks. "
+            "Consider if you're trying to re-do something you already accomplished. "
+            "Check your action trace for existing information before exploring further."
+        )
+    
+    return escalated_msg
 
 
 # ============================================================================
@@ -527,7 +619,64 @@ def tool_runner(state: KatalystState) -> KatalystState:
     # Log tool execution (important for debugging)
     logger.info(f"[TOOL_RUNNER] Executing tool: {tool_name}")
     
-    # ========== STEP 2: Pre-execution Validation ==========
+    # ========== STEP 2: Check Cache for read_file ==========
+    # This must come before repetition checks to avoid blocking cached reads
+    if tool_name == "read_file":
+        file_path = tool_input.get("path")
+        if file_path:
+            # Prepare the resolved path
+            if not os.path.isabs(file_path):
+                resolved_path = os.path.abspath(os.path.join(state.project_root_cwd, file_path))
+            else:
+                resolved_path = os.path.abspath(file_path)
+            
+            # Check if content is cached
+            if resolved_path in state.content_store:
+                # Retrieve cached content
+                _, cached_content = state.content_store[resolved_path]
+                
+                # Create observation in the same format as read_file tool
+                observation = {
+                    "path": resolved_path,
+                    "content": cached_content,
+                    "start_line": 1,
+                    "end_line": len(cached_content.splitlines()),
+                    "cached": True,
+                    "message": "Content retrieved from cache",
+                    "content_ref": resolved_path  # Include content_ref for consistency
+                }
+                
+                # Track as successful read operation
+                state.operation_context.add_file_operation(
+                    file_path=resolved_path,
+                    operation="read"
+                )
+                state.operation_context.add_tool_operation(
+                    tool_name=tool_name,
+                    tool_input=tool_input,
+                    success=True,
+                    summary=resolved_path
+                )
+                
+                logger.info(f"[TOOL_RUNNER][CACHE_HIT] Returned cached content for {file_path}")
+                logger.debug(f"[TOOL_RUNNER] Added cached read to operation context: {resolved_path}")
+                
+                # Convert to JSON string like regular observations
+                observation_str = json.dumps(observation, indent=2)
+                
+                # Process and record the observation
+                processed_observation = _process_observation_for_trace(observation_str, tool_name)
+                state.action_trace.append((agent_action, processed_observation))
+                
+                # Keep only recent entries
+                if len(state.action_trace) > 10:
+                    state.action_trace = state.action_trace[-10:]
+                
+                # Clear agent_outcome and return
+                state.agent_outcome = None
+                return state
+    
+    # ========== STEP 3: Pre-execution Validation ==========
     
     # Check for hallucinated tools
     if _check_hallucinated_tools(tool_name, agent_action, state, logger):
@@ -606,7 +755,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
             if tool_name == "create_subtask" and isinstance(observation, str):
                 observation = _handle_create_subtask(observation, tool_input_resolved, state, logger)
             
-            # Track file write operations
+            # Track file write operations and update cache
             if tool_name == "write_to_file" and isinstance(observation, str):
                 try:
                     obs_data = json.loads(observation)
@@ -619,6 +768,38 @@ def tool_runner(state: KatalystState) -> KatalystState:
                             operation=operation
                         )
                         logger.debug(f"[TOOL_RUNNER] Added file {operation} to operation context: {file_path}")
+                        
+                        # Update cache with the new content
+                        content = tool_input_resolved.get("content", "")
+                        if content:
+                            state.content_store[file_path] = (file_path, content)
+                            logger.debug(f"[TOOL_RUNNER][CACHE] Updated cached content for {operation} file: {file_path} ({len(content)} chars)")
+                except json.JSONDecodeError:
+                    pass
+            
+            # Track apply_source_code_diff operations and update cache
+            if tool_name == "apply_source_code_diff" and isinstance(observation, str):
+                try:
+                    obs_data = json.loads(observation)
+                    if obs_data.get("success") and "path" in obs_data:
+                        file_path = obs_data["path"]
+                        state.operation_context.add_file_operation(
+                            file_path=file_path,
+                            operation="modified"
+                        )
+                        
+                        # Read the file to update cache with new content
+                        try:
+                            logger.debug(f"[TOOL_RUNNER][CACHE] Reading modified file to update cache: {file_path}")
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                new_content = f.read()
+                            state.content_store[file_path] = (file_path, new_content)
+                            logger.debug(f"[TOOL_RUNNER][CACHE] Successfully updated cache for modified file: {file_path} ({len(new_content)} chars)")
+                        except Exception as e:
+                            # If we can't read the file, just invalidate the cache
+                            if file_path in state.content_store:
+                                del state.content_store[file_path]
+                            logger.debug(f"[TOOL_RUNNER][CACHE] Could not read file for cache update, invalidated cache: {e}")
                 except json.JSONDecodeError:
                     pass
             
