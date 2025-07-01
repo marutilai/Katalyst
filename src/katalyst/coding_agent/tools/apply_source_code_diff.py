@@ -22,7 +22,7 @@ def format_apply_source_code_diff_response(
 
 
 @katalyst_tool(
-    prompt_module="apply_source_code_diff", prompt_var="APPLY_SOURCE_CODE_DIFF_PROMPT"
+    prompt_module="apply_source_code_diff", prompt_var="APPLY_SOURCE_CODE_DIFF_TOOL_PROMPT"
 )
 def apply_source_code_diff(
     path: str, diff: str, auto_approve: bool = True, user_input_fn=None,

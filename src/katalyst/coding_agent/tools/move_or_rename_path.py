@@ -28,7 +28,7 @@ def format_move_or_rename_path_response(
 
 
 @katalyst_tool(
-    prompt_module="move_or_rename_path", prompt_var="MOVE_OR_RENAME_PATH_PROMPT"
+    prompt_module="move_or_rename_path", prompt_var="MOVE_OR_RENAME_PATH_TOOL_PROMPT"
 )
 def move_or_rename_path(source_path: str, destination_path: str) -> str:
     """

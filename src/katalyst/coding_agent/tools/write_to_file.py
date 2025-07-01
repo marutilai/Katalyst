@@ -28,7 +28,7 @@ def format_write_to_file_response(
     return json.dumps(resp)
 
 
-@katalyst_tool(prompt_module="write_to_file", prompt_var="WRITE_TO_FILE_PROMPT")
+@katalyst_tool(prompt_module="write_to_file", prompt_var="WRITE_TO_FILE_TOOL_PROMPT")
 def write_to_file(
     path: str, content: str, line_count: int = None, auto_approve: bool = True, user_input_fn=None
 ) -> str:
