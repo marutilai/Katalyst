@@ -44,12 +44,11 @@ def test_three_levels_of_protection():
         success=True
     )
     
-    # ========== Level 2: Consecutive duplicate blocked ==========
+    # ========== Level 2: Second call passes (under threshold) ==========
     action2 = make_action("read_file", {"path": "test.py"})
-    # This should be blocked by consecutive duplicate detection
-    assert _check_repetitive_calls("read_file", {"path": "test.py"}, action2, state, logger) is True
-    assert "CRITICAL" in state.error_message
-    state.error_message = None  # Clear for next test
+    # Second call should pass (threshold is 3)
+    assert _check_repetitive_calls("read_file", {"path": "test.py"}, action2, state, logger) is False
+    # But it's tracked as a repetition
     
     # ========== Interleave with different operation ==========
     action3 = make_action("list_files", {"path": "./"})
