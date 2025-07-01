@@ -6,23 +6,24 @@ from katalyst.katalyst_core.utils.tool_repetition_detector import ToolRepetition
 
 
 def test_consecutive_duplicate_detection():
-    """Test that consecutive identical calls are immediately blocked."""
+    """Test that consecutive identical calls are tracked."""
     detector = ToolRepetitionDetector()
     
     # First call should pass
     assert detector.check("read_file", {"path": "test.py"}) is True
     
-    # Immediate duplicate should fail
-    assert detector.check("read_file", {"path": "test.py"}) is False
+    # Second call should pass (threshold is 3)
+    assert detector.check("read_file", {"path": "test.py"}) is True
+    # But it is a consecutive duplicate
     assert detector.is_consecutive_duplicate("read_file", {"path": "test.py"}) is True
     
     # Different tool should pass
     assert detector.check("write_file", {"path": "test.py", "content": "data"}) is True
     
-    # Going back to read_file should pass (not consecutive)
+    # Going back to read_file - third call at threshold
     assert detector.check("read_file", {"path": "test.py"}) is True
     
-    # But immediate duplicate again should fail
+    # Fourth call should fail (exceeds threshold)
     assert detector.check("read_file", {"path": "test.py"}) is False
 
 
@@ -38,8 +39,8 @@ def test_consecutive_duplicate_with_different_inputs():
     # After check(), file2 is now in history, so it will show as consecutive
     assert detector.is_consecutive_duplicate("read_file", {"path": "file2.py"}) is True
     
-    # Now duplicate of file2 should fail
-    assert detector.check("read_file", {"path": "file2.py"}) is False
+    # Now duplicate of file2 should pass (still under threshold)
+    assert detector.check("read_file", {"path": "file2.py"}) is True
 
 
 def test_threshold_still_applies():
@@ -65,7 +66,9 @@ def test_reset_clears_history():
     
     # Make some calls
     assert detector.check("read_file", {"path": "test.py"}) is True
-    assert detector.check("read_file", {"path": "test.py"}) is False  # This should fail
+    assert detector.check("read_file", {"path": "test.py"}) is True  # Second call passes
+    assert detector.check("read_file", {"path": "test.py"}) is True  # Third at threshold
+    assert detector.check("read_file", {"path": "test.py"}) is False  # Fourth fails
     
     # Reset
     detector.reset()

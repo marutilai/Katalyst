@@ -57,6 +57,10 @@ class TestAdaptivePlanning:
             "Implement models for the application",
             "Create API endpoints"
         ]
+        initial_state.original_plan = [
+            "Implement models for the application",
+            "Create API endpoints"
+        ]
         initial_state.task_idx = 0
         
         # Create agent action for create_subtask
@@ -126,6 +130,7 @@ class TestAdaptivePlanning:
     def test_subtask_insertion_positions(self, initial_state):
         """Test different insertion positions for subtasks."""
         initial_state.task_queue = ["Task A", "Task B", "Task C"]
+        initial_state.original_plan = ["Task A", "Task B", "Task C"]
         initial_state.task_idx = 0
         
         # Test after_current position

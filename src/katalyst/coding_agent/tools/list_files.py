@@ -1,8 +1,9 @@
-from typing import Dict
+from typing import Dict, Optional
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.tools import katalyst_tool
 from katalyst.katalyst_core.utils.file_utils import filter_paths, should_ignore_path
 from katalyst.katalyst_core.utils.error_handling import create_error_message, ErrorType
+from katalyst.katalyst_core.utils.directory_cache import DirectoryCache
 import os
 from pathlib import Path
 import pathspec

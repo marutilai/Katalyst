@@ -63,18 +63,14 @@ class ToolRepetitionDetector(BaseModel):
         input_hash = self._hash_input(tool_input)
         current_call = (tool_name, input_hash)
         
-        # Check for immediate back-to-back duplicate (waste for sure)
-        if self.recent_calls and self.recent_calls[-1] == current_call:
-            # Don't add it again to history since it's already the last entry
-            return False
-        
         # Count how many times this exact call appears in recent history
         repetition_count = sum(1 for call in self.recent_calls if call == current_call)
         
-        # Add to history regardless (will be used for next check)
+        # Add to history
         self.recent_calls.append(current_call)
         
-        # Return False if we've seen this call too many times
+        # Return False if we've exceeded the threshold
+        # Note: We count before adding, so if count >= threshold, this is the (threshold+1)th call
         return repetition_count < self.repetition_threshold
     
     def reset(self):

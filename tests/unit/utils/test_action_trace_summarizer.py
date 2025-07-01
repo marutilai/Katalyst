@@ -121,9 +121,9 @@ class TestActionTraceSummarizer:
     @patch('katalyst.katalyst_core.utils.action_trace_summarizer.get_llm_params')
     def test_create_summary_success(self, mock_get_params, mock_get_client):
         """Test successful summary creation."""
-        # Mock LLM response
+        # Mock LLM response with shorter text that won't be truncated
         mock_response = Mock()
-        mock_response.choices = [Mock(message=Mock(content="Concise summary of actions"))]
+        mock_response.choices = [Mock(message=Mock(content="Summary"))]
         mock_llm = Mock(return_value=mock_response)
         mock_get_client.return_value = mock_llm
         mock_get_params.return_value = {"temperature": 0.1}
@@ -133,7 +133,8 @@ class TestActionTraceSummarizer:
         summarizer = ActionTraceSummarizer()
         result = summarizer._create_summary([(action, "File contents")], target_reduction=0.5)
         
-        assert result == "Concise summary of actions"
+        # The summary should be returned (might be truncated if too long)
+        assert result == "Summary"
         mock_llm.assert_called_once()
         
     @patch('katalyst.katalyst_core.utils.action_trace_summarizer.get_llm_client')

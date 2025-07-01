@@ -12,6 +12,7 @@ import inspect
 import os
 import json
 import hashlib
+from collections import deque
 from typing import Dict, Any, Optional, Tuple
 
 from katalyst.katalyst_core.state import KatalystState
@@ -27,6 +28,7 @@ from katalyst.katalyst_core.utils.error_handling import (
 )
 from langgraph.errors import GraphRecursionError
 from katalyst.coding_agent.tools.write_to_file import format_write_to_file_response
+from katalyst.katalyst_core.utils.directory_cache import DirectoryCache
 
 # Global registry of available tools
 REGISTERED_TOOL_FUNCTIONS_MAP = get_tool_functions_map()
@@ -307,6 +309,11 @@ def _prepare_tool_input(tool_fn, tool_input: Dict[str, Any], state: KatalystStat
     Prepare tool input by adding required parameters and resolving paths.
     """
     tool_input_resolved = dict(tool_input)
+    
+    # Remove internal cache-related parameters that shouldn't be passed to tools
+    internal_params = ["_first_call", "_original_path", "_original_recursive"]
+    for param in internal_params:
+        tool_input_resolved.pop(param, None)
     
     # Add auto_approve if the tool accepts it
     if "auto_approve" in tool_fn.__code__.co_varnames:
@@ -619,7 +626,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
     # Log tool execution (important for debugging)
     logger.info(f"[TOOL_RUNNER] Executing tool: {tool_name}")
     
-    # ========== STEP 2: Check Cache for read_file ==========
+    # ========== STEP 2: Check Cache for read_file and list_files ==========
     # This must come before repetition checks to avoid blocking cached reads
     if tool_name == "read_file":
         file_path = tool_input.get("path")
@@ -675,6 +682,81 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 # Clear agent_outcome and return
                 state.agent_outcome = None
                 return state
+    
+    # Check Cache for list_files
+    if tool_name == "list_files":
+        # Initialize directory cache if needed
+        if state.directory_cache is None:
+            state.directory_cache = DirectoryCache(state.project_root_cwd).to_dict()
+            logger.info("[TOOL_RUNNER][CACHE] Initialized directory cache")
+        
+        # Convert from dict if needed
+        cache_dict = state.directory_cache
+        cache = DirectoryCache.from_dict(cache_dict)
+        
+        # Check if we have a full scan done
+        if cache.full_scan_done:
+            # Serve from cache
+            path = tool_input.get("path", ".")
+            recursive = tool_input.get("recursive", False)
+            
+            # Resolve path
+            if not os.path.isabs(path):
+                resolved_path = os.path.abspath(os.path.join(state.project_root_cwd, path))
+            else:
+                resolved_path = os.path.abspath(path)
+            
+            # Get from cache
+            cached_files = cache.get_listing(resolved_path, recursive)
+            
+            if cached_files is not None:
+                # Create observation in list_files format
+                observation = {
+                    "path": resolved_path,
+                    "files": cached_files,
+                    "cached": True,
+                    "message": "Content retrieved from directory cache"
+                }
+                
+                # Track successful operation
+                state.operation_context.add_tool_operation(
+                    tool_name=tool_name,
+                    tool_input=tool_input,
+                    success=True,
+                    summary=f"{resolved_path} ({len(cached_files)} entries)"
+                )
+                
+                logger.info(f"[TOOL_RUNNER][CACHE_HIT] Returned cached listing for {path}")
+                
+                # Convert to JSON string
+                observation_str = json.dumps(observation, indent=2)
+                
+                # Record and return
+                state.action_trace.append((agent_action, observation_str))
+                
+                # Keep only recent entries
+                if len(state.action_trace) > 10:
+                    state.action_trace = state.action_trace[-10:]
+                
+                # Clear agent_outcome and return
+                state.agent_outcome = None
+                return state
+            else:
+                logger.debug(f"[TOOL_RUNNER][CACHE_MISS] Path {path} not in cache")
+        else:
+            # First call - will trigger full scan below
+            logger.info("[TOOL_RUNNER][CACHE] First list_files call, will trigger full scan")
+            # Store original parameters for later
+            original_path = tool_input.get("path", ".")
+            original_recursive = tool_input.get("recursive", False)
+            # Modify tool_input to scan from root on first call
+            tool_input = dict(tool_input)
+            tool_input["_first_call"] = True
+            tool_input["_original_path"] = original_path
+            tool_input["_original_recursive"] = original_recursive
+            # Force recursive scan from root
+            tool_input["path"] = state.project_root_cwd
+            tool_input["recursive"] = True
     
     # ========== STEP 3: Pre-execution Validation ==========
     
@@ -751,6 +833,42 @@ def tool_runner(state: KatalystState) -> KatalystState:
             elif isinstance(observation, dict):
                 observation = json.dumps(observation, indent=2)
             
+            # Handle list_files first scan and cache update
+            if tool_name == "list_files" and isinstance(observation, str):
+                try:
+                    obs_data = json.loads(observation)
+                    if "_first_call" in tool_input and obs_data.get("files"):
+                        # This was the first call - we did a full root scan
+                        logger.info("[TOOL_RUNNER][CACHE] Processing first list_files scan")
+                        
+                        # Update the directory cache with the full scan
+                        cache = DirectoryCache.from_dict(state.directory_cache)
+                        cache.perform_full_scan(tool_input_resolved.get("respect_gitignore", True))
+                        state.directory_cache = cache.to_dict()
+                        
+                        # Now get the actual requested listing from cache
+                        original_path = tool_input["_original_path"]
+                        original_recursive = tool_input["_original_recursive"]
+                        
+                        if not os.path.isabs(original_path):
+                            resolved_path = os.path.abspath(os.path.join(state.project_root_cwd, original_path))
+                        else:
+                            resolved_path = os.path.abspath(original_path)
+                        
+                        cached_files = cache.get_listing(resolved_path, original_recursive)
+                        
+                        # Update observation to show the originally requested path
+                        obs_data = {
+                            "path": resolved_path,
+                            "files": cached_files or [],
+                            "message": "First scan completed, returning requested directory"
+                        }
+                        observation = json.dumps(obs_data, indent=2)
+                        
+                        logger.info(f"[TOOL_RUNNER][CACHE] Cache populated, returning listing for {original_path}")
+                except json.JSONDecodeError:
+                    pass
+            
             # Handle create_subtask special logic
             if tool_name == "create_subtask" and isinstance(observation, str):
                 observation = _handle_create_subtask(observation, tool_input_resolved, state, logger)
@@ -774,6 +892,30 @@ def tool_runner(state: KatalystState) -> KatalystState:
                         if content:
                             state.content_store[file_path] = (file_path, content)
                             logger.debug(f"[TOOL_RUNNER][CACHE] Updated cached content for {operation} file: {file_path} ({len(content)} chars)")
+                        
+                        # Update directory cache for file operations
+                        if state.directory_cache:
+                            cache = DirectoryCache.from_dict(state.directory_cache)
+                            cache.update_for_file_operation(file_path, operation)
+                            
+                            # If file was created, also ensure parent directories are in cache
+                            if operation == "created":
+                                dir_path = os.path.dirname(file_path)
+                                # Walk up the directory tree and ensure all dirs are cached
+                                while dir_path and dir_path != os.path.dirname(dir_path):
+                                    if not os.path.isabs(dir_path):
+                                        abs_dir_path = os.path.abspath(dir_path)
+                                    else:
+                                        abs_dir_path = dir_path
+                                    
+                                    if abs_dir_path not in cache.cache:
+                                        cache.update_for_directory_creation(abs_dir_path)
+                                        logger.debug(f"[TOOL_RUNNER][DIR_CACHE] Added new directory to cache: {abs_dir_path}")
+                                    
+                                    dir_path = os.path.dirname(dir_path)
+                            
+                            state.directory_cache = cache.to_dict()
+                            logger.debug(f"[TOOL_RUNNER][DIR_CACHE] Updated directory cache for {operation} file: {file_path}")
                 except json.JSONDecodeError:
                     pass
             
@@ -800,8 +942,34 @@ def tool_runner(state: KatalystState) -> KatalystState:
                             if file_path in state.content_store:
                                 del state.content_store[file_path]
                             logger.debug(f"[TOOL_RUNNER][CACHE] Could not read file for cache update, invalidated cache: {e}")
+                        
+                        # Update directory cache (file was modified)
+                        if state.directory_cache:
+                            cache = DirectoryCache.from_dict(state.directory_cache)
+                            cache.update_for_file_operation(file_path, "modified")
+                            state.directory_cache = cache.to_dict()
+                            logger.debug(f"[TOOL_RUNNER][DIR_CACHE] Updated directory cache for modified file: {file_path}")
                 except json.JSONDecodeError:
                     pass
+            
+            # Invalidate directory cache on execute_command
+            if tool_name == "execute_command" and state.directory_cache:
+                logger.info("[TOOL_RUNNER][DIR_CACHE] Invalidating directory cache due to execute_command")
+                cache = DirectoryCache.from_dict(state.directory_cache)
+                cache.invalidate()
+                state.directory_cache = cache.to_dict()
+                
+                # Also clear operation context for list_files to allow re-scanning
+                # Remove list_files operations from operation context
+                filtered_ops = [
+                    op for op in state.operation_context.tool_operations
+                    if op.tool_name != "list_files"
+                ]
+                state.operation_context.tool_operations = deque(
+                    filtered_ops, 
+                    maxlen=state.operation_context._operations_history_limit
+                )
+                logger.debug("[TOOL_RUNNER][DIR_CACHE] Cleared list_files from operation context")
             
             # Track all tool operations
             success = True

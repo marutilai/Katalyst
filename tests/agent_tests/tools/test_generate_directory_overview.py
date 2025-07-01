@@ -14,8 +14,9 @@ async def test_functional_run_on_full_project():
     Runs the tool on the entire project root as a smoke test to verify
     it can handle a real-world codebase without crashing and produces a valid output structure.
     """
+    # Run on a smaller subset of the project to avoid rate limits and long runtime
     project_dir = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "../../../..")
+        os.path.join(os.path.dirname(__file__), "../../unit")  # Just the unit tests folder
     )
     print(f"\n[Agent Smoke Test] Summarizing full project directory: {project_dir}")
 

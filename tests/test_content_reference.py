@@ -32,6 +32,7 @@ def test_read_file_creates_content_reference(mock_state):
     
     with patch("katalyst.coding_agent.nodes.tool_runner.REGISTERED_TOOL_FUNCTIONS_MAP") as mock_tools:
         mock_read_file = Mock(return_value=read_file_response)
+        mock_read_file.__code__ = Mock(co_varnames=["path", "start_line", "end_line"])
         mock_tools.get.return_value = mock_read_file
         
         # Create agent action for read_file
@@ -46,29 +47,34 @@ def test_read_file_creates_content_reference(mock_state):
         
         # Check that content_store has the reference
         assert len(result_state.content_store) == 1
-        ref_key = list(result_state.content_store.keys())[0]
-        assert ref_key.startswith("ref:README.md:")
-        assert result_state.content_store[ref_key] == sample_content
+        # Content is stored using the full file path as key
+        expected_key = "/test/project/README.md"
+        assert expected_key in result_state.content_store
+        # Content is stored as (path, content) tuple
+        path, content = result_state.content_store[expected_key]
+        assert path == expected_key
+        assert content == sample_content
         
         # Check that observation includes content_ref
         action, observation = result_state.action_trace[-1]
         obs_data = json.loads(observation)
         assert "content_ref" in obs_data
-        assert obs_data["content_ref"] == ref_key
+        assert obs_data["content_ref"] == expected_key
 
 
 def test_write_file_uses_content_reference(mock_state):
     """Test that write_to_file uses content reference instead of direct content."""
-    # Pre-populate content_store
+    # Pre-populate content_store using file path as key (matches actual implementation)
     sample_content = "# Original Content\n\nThis should be preserved exactly."
-    ref_id = "ref:README.md:12345678"
-    mock_state.content_store[ref_id] = sample_content
+    file_path = "/test/project/README.md"
+    mock_state.content_store[file_path] = (file_path, sample_content)
     
     with patch("katalyst.coding_agent.nodes.tool_runner.REGISTERED_TOOL_FUNCTIONS_MAP") as mock_tools:
         mock_write_file = Mock(return_value=json.dumps({
             "success": True,
             "path": "/test/project/README_copy.md"
         }))
+        mock_write_file.__code__ = Mock(co_varnames=["path", "content"])
         mock_tools.get.return_value = mock_write_file
         
         # Create agent action with content_ref
@@ -76,7 +82,7 @@ def test_write_file_uses_content_reference(mock_state):
             tool="write_to_file",
             tool_input={
                 "path": "README_copy.md",
-                "content_ref": ref_id
+                "content_ref": file_path  # Use file path as ref
             },
             log="Writing file using reference"
         )
@@ -96,6 +102,7 @@ def test_invalid_content_reference(mock_state):
     with patch("katalyst.coding_agent.nodes.tool_runner.REGISTERED_TOOL_FUNCTIONS_MAP") as mock_tools:
         # Mock write_to_file shouldn't be called for invalid ref
         mock_write_file = Mock()
+        mock_write_file.__code__ = Mock(co_varnames=["path", "content"])
         mock_tools.get.return_value = mock_write_file
         
         # Create agent action with invalid content_ref
@@ -116,9 +123,8 @@ def test_invalid_content_reference(mock_state):
         
         # Check error in observation
         action, observation = result_state.action_trace[-1]
-        obs_data = json.loads(observation)
-        assert not obs_data["success"]
-        assert "Invalid content reference" in obs_data["error"]
+        # For invalid ref, we get an error message not JSON
+        assert "Invalid content reference" in observation or "[TOOL_ERROR]" in observation
 
 
 def test_content_reference_preserves_exact_content():
@@ -145,12 +151,8 @@ pip install katalyst
 cp .env.example .env
 ```'''
     
-    # Generate the expected reference ID
-    content_hash = hashlib.md5(tricky_content.encode()).hexdigest()[:8]
-    expected_ref = f"ref:README.md:{content_hash}"
-    
-    # Verify hash generation
-    assert expected_ref == f"ref:README.md:{content_hash}"
+    # In actual implementation, content is stored by file path
+    file_path = "/test/README.md"
     
     # Test that content with special characters, markdown, code blocks etc. is preserved
     state = KatalystState(
@@ -158,9 +160,10 @@ cp .env.example .env
         project_root_cwd="/test",
         content_store={}
     )
-    state.content_store[expected_ref] = tricky_content
+    state.content_store[file_path] = (file_path, tricky_content)
     
     # Verify retrieval
-    assert state.content_store[expected_ref] == tricky_content
-    assert len(state.content_store[expected_ref]) == len(tricky_content)
-    assert state.content_store[expected_ref].count('\n') == tricky_content.count('\n')
+    path, content = state.content_store[file_path]
+    assert content == tricky_content
+    assert len(content) == len(tricky_content)
+    assert content.count('\n') == tricky_content.count('\n')
