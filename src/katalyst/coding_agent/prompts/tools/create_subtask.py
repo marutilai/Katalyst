@@ -3,10 +3,12 @@ from textwrap import dedent
 CREATE_SUBTASK_TOOL_PROMPT = dedent("""
 # create_subtask Tool
 
-Description: Decompose the current task into smaller subtasks when complexity is discovered.
+Description: Create a new subtask when discovering complexity during task execution.
 
 Parameters:
-- subtasks: (array, required) List of subtask descriptions
+- task_description: (string, required) Clear description of the subtask
+- reason: (string, required) Why this subtask is needed
+- insert_position: (string, optional) "after_current" or "end_of_queue"
 
-Output: JSON with keys: 'success', 'subtasks', 'error'
+Output: JSON with keys: 'success', 'message', 'tasks_created', 'error'
 """)
