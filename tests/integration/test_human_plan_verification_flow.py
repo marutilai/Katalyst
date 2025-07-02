@@ -1,4 +1,8 @@
 import pytest
+
+# Skip this entire test file since it uses chat_history and ChatLiteLLM which have been removed
+pytestmark = pytest.mark.skip("test uses chat_history and ChatLiteLLM which have been removed")
+
 from unittest.mock import MagicMock, patch, Mock
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.graph import build_compiled_graph
@@ -6,7 +10,7 @@ from katalyst.katalyst_core.utils.error_handling import ErrorType
 from katalyst.katalyst_core.utils.models import SubtaskList
 from langchain_core.messages import HumanMessage
 
-pytestmark = pytest.mark.integration
+# pytestmark = pytest.mark.integration
 
 
 # Helper function to create a mock planner

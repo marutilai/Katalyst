@@ -2,6 +2,10 @@
 
 import os
 import pytest
+
+# Skip this entire test file since it uses llms service which has been removed
+pytestmark = pytest.mark.skip("test uses llms service which has been removed")
+
 from unittest.mock import patch, MagicMock, Mock
 from katalyst.katalyst_core.config.llm_config import LLMConfig, PROVIDER_PROFILES
 from katalyst.katalyst_core.services.llms import get_llm_client, get_llm_params

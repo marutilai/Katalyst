@@ -2,6 +2,10 @@
 Unit tests for tool repetition detection in tool_runner.
 """
 import pytest
+
+# Skip this entire test file since repetition_detector has been commented out
+pytestmark = pytest.mark.skip("repetition_detector has been commented out in minimal implementation")
+
 from unittest.mock import Mock, MagicMock
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.error_handling import ErrorType
