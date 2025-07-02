@@ -1,5 +1,4 @@
 from langgraph.graph import StateGraph, START, END
-from langchain_core.agents import AgentAction
 
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.routing import (
@@ -10,7 +9,6 @@ from katalyst.katalyst_core.routing import (
 )
 from katalyst.coding_agent.nodes.planner import planner
 from katalyst.coding_agent.nodes.agent_react import agent_react
-from katalyst.coding_agent.nodes.tool_runner import tool_runner
 from katalyst.coding_agent.nodes.advance_pointer import advance_pointer
 from katalyst.coding_agent.nodes.replanner import replanner
 from katalyst.coding_agent.nodes.human_plan_verification import human_plan_verification
@@ -20,9 +18,8 @@ from katalyst.coding_agent.nodes.human_plan_verification import human_plan_verif
 # ------------------------------------------------------------------
 # • planner                    – produces an ordered list of sub‑tasks in ``state.task_queue``
 # • human_plan_verification    – allows user to approve/reject plan with feedback
-# • agent_react                – LLM step that yields AgentAction / AgentFinish in ``state.agent_outcome``
-# • tool_runner                – executes Python tool extracted from AgentAction
-# • advance_pointer            – increments ``state.task_idx`` and resets ``state.inner_cycles`` & ``state.action_trace``
+# • agent_react                – Uses create_react_agent to complete the task (handles tool execution internally)
+# • advance_pointer            – increments ``state.task_idx`` when task is complete
 # • replanner                  – builds a fresh plan or final answer when current plan exhausted
 # ------------------------------------------------------------------
 
@@ -37,7 +34,7 @@ from katalyst.coding_agent.nodes.human_plan_verification import human_plan_verif
 #                                                         human_verification → END
 #
 # 2. INNER LOOP  (ReAct over a single task)
-#    agent_react  →  tool_runner  →  agent_react  (repeat until AgentFinish)
+#    agent_react (handles full tool execution loop internally via create_react_agent)
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -51,8 +48,7 @@ def build_compiled_graph():
     g.add_node("human_plan_verification", human_plan_verification)
 
     # ── INNER LOOP nodes ─────────────────────────────────────────────────────────
-    g.add_node("agent_react", agent_react)  # LLM emits AgentAction/Finish
-    g.add_node("tool_runner", tool_runner)  # Executes the chosen tool
+    g.add_node("agent_react", agent_react)  # Uses create_react_agent to complete the task
     g.add_node("advance_pointer", advance_pointer)  # Marks task complete
 
     # ── replanner: invoked when plan is exhausted or needs adjustment ────────────
@@ -69,15 +65,12 @@ def build_compiled_graph():
         ["agent_react", "planner", END],
     )
 
-    # ── routing inside INNER LOOP (delegated to router.py) ───────────────────────
+    # ── routing after agent completes the task ───────────────────────────────────
     g.add_conditional_edges(
         "agent_react",
-        route_after_agent,  # may return "tool_runner", "advance_pointer", or END
-        ["tool_runner", "advance_pointer", END],
+        route_after_agent,  # returns "advance_pointer" or END
+        ["advance_pointer", "replanner", END],
     )
-
-    # tool → agent (reflection)                          (INNER LOOP)
-    g.add_edge("tool_runner", "agent_react")
 
     # ── decide whether to re‑plan or continue with next sub‑task ─────────────────
     g.add_conditional_edges(

@@ -3,7 +3,6 @@ Minimal Replanner using LangChain's approach with tool execution history.
 """
 
 from langchain_core.prompts import ChatPromptTemplate
-from katalyst.katalyst_core.services.litellm_chat_model import ChatLiteLLM
 # MINIMAL: AIMessage import not needed when chat_history is commented out
 # from langchain_core.messages import AIMessage
 from typing import Dict
@@ -12,6 +11,7 @@ from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.models import ReplannerOutput
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.config import get_llm_config
+from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
 
 
 # Minimal replanner prompt inspired by LangChain but using our execution history
@@ -101,9 +101,10 @@ def replanner(state: KatalystState) -> KatalystState:
     
     logger.debug(f"[REPLANNER] Using model: {model_name} (provider: {llm_config.get_provider()})")
     
-    # Create replanner chain with ChatLiteLLM
-    model = ChatLiteLLM(
-        model=model_name,
+    # Get native LangChain model
+    model = get_langchain_chat_model(
+        model_name=model_name,
+        provider=llm_config.get_provider(),
         temperature=0,
         timeout=timeout,
         api_base=api_base
@@ -152,8 +153,7 @@ def replanner(state: KatalystState) -> KatalystState:
             # Reset for new plan
             state.task_queue = result.subtasks
             state.task_idx = 0
-            state.inner_cycles = 0
-            state.action_trace = []  # Clear current task trace
+            # Reset for new plan
             state.error_message = None
             state.response = None
             

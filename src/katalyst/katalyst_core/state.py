@@ -1,6 +1,7 @@
-from typing import List, Tuple, Optional, Union, Callable, Dict
+from typing import List, Tuple, Optional, Union, Callable, Dict, Any
 from pydantic import BaseModel, Field
 from langchain_core.agents import AgentAction, AgentFinish
+from langchain_core.messages import BaseMessage
 import os
 
 
@@ -33,6 +34,15 @@ class KatalystState(BaseModel):
     )
 
     # ── ReAct dialogue (inner loop) ───────────────────────────────────────
+    agent_executor: Optional[Any] = Field(
+        None,
+        exclude=True,  # Don't persist the agent instance
+        description="The persistent create_react_agent instance"
+    )
+    messages: List[BaseMessage] = Field(
+        default_factory=list,
+        description="Accumulated messages for the persistent agent conversation"
+    )
     agent_outcome: Optional[Union[AgentAction, AgentFinish]] = Field(
         None,
         description=(

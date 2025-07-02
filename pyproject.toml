@@ -17,10 +17,11 @@ dependencies = [
     "tree-sitter-languages>=1.10.2",
     "rich>=13.9.4",
     "instructor>=1.8.3",
-    "litellm>=1.72.1",
     "bm25s (>=0.2.13,<0.3.0)",
     "pytest-asyncio (>=1.0.0,<2.0.0)",
     "thefuzz>=0.22.1",
+    "langchain-ollama (>=0.3.3,<0.4.0)",
+    "langchain-anthropic (>=0.3.16,<0.4.0)",
 ]
 
 [project.scripts]
@@ -48,7 +49,6 @@ rich = "^13.9.4"
 pytest = "^8.3.5"
 instructor = "^1.8.3"
 pytest-cov = "^6.1.1"
-litellm = "^1.72.1"
 thefuzz = "^0.22.1"
 
 [tool.setuptools.packages.find]

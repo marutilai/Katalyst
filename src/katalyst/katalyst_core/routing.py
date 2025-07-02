@@ -1,6 +1,6 @@
 from typing import Union
 from langgraph.graph import END
-from langchain_core.agents import AgentAction
+from langchain_core.agents import AgentFinish
 from katalyst.katalyst_core.state import KatalystState
 
 __all__ = ["route_after_agent", "route_after_pointer", "route_after_replanner", "route_after_verification"]
@@ -8,20 +8,20 @@ __all__ = ["route_after_agent", "route_after_pointer", "route_after_replanner", 
 
 def route_after_agent(state: KatalystState) -> Union[str, object]:
     """
-    1) If state.response is already set (inner guard tripped), return END.
+    Route after agent_react completes.
+    1) If state.response is already set, return END.
     2) If state.error_message contains [GRAPH_RECURSION], go to "replanner".
-    3) Else if the last LLM outcome was AgentAction, go to "tool_runner".
-    4) Else (AgentFinish), go to "advance_pointer".
+    3) If agent completed the task (AgentFinish), go to "advance_pointer".
+    4) Otherwise, something went wrong, go to "replanner".
     """
-    if state.response:  # inner guard tripped
+    if state.response:  # final response set
         return END
     if state.error_message and "[GRAPH_RECURSION]" in state.error_message:
         return "replanner"
-    return (
-        "tool_runner"
-        if isinstance(state.agent_outcome, AgentAction)
-        else "advance_pointer"
-    )
+    if isinstance(state.agent_outcome, AgentFinish):
+        return "advance_pointer"
+    # If no AgentFinish, something went wrong
+    return "replanner"
 
 
 def route_after_pointer(state: KatalystState) -> Union[str, object]:
