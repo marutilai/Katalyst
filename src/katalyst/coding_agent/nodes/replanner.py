@@ -3,13 +3,14 @@ Minimal Replanner using LangChain's approach with tool execution history.
 """
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
+from katalyst.katalyst_core.services.litellm_chat_model import ChatLiteLLM
 from langchain_core.messages import AIMessage
 from typing import Dict
 
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.models import ReplannerOutput
 from katalyst.katalyst_core.utils.logger import get_logger
+from katalyst.katalyst_core.config import get_llm_config
 
 
 # Minimal replanner prompt inspired by LangChain but using our execution history
@@ -91,8 +92,21 @@ def replanner(state: KatalystState) -> KatalystState:
         else "No current task"
     )
     
-    # Create replanner chain with our existing model
-    model = ChatOpenAI(model="gpt-4o", temperature=0)
+    # Get configured model from LLM config
+    llm_config = get_llm_config()
+    model_name = llm_config.get_model_for_component("replanner")
+    timeout = llm_config.get_timeout()
+    api_base = llm_config.get_api_base()
+    
+    logger.debug(f"[REPLANNER] Using model: {model_name} (provider: {llm_config.get_provider()})")
+    
+    # Create replanner chain with ChatLiteLLM
+    model = ChatLiteLLM(
+        model=model_name,
+        temperature=0,
+        timeout=timeout,
+        api_base=api_base
+    )
     replanner_chain = replanner_prompt | model.with_structured_output(ReplannerOutput)
     
     try:
