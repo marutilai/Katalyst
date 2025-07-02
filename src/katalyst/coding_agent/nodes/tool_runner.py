@@ -68,8 +68,13 @@ def tool_runner(state: KatalystState) -> KatalystState:
         # Minimal input preparation - just add auto_approve if needed
         tool_input_resolved = dict(tool_input)
         
-        if "auto_approve" in tool_fn.__code__.co_varnames:
-            tool_input_resolved["auto_approve"] = state.auto_approve
+        # Check if auto_approve is needed (handle mocked functions gracefully)
+        try:
+            if hasattr(tool_fn, '__code__') and "auto_approve" in tool_fn.__code__.co_varnames:
+                tool_input_resolved["auto_approve"] = state.auto_approve
+        except AttributeError:
+            # Skip for mocked functions
+            pass
         
         # Add user_input_fn if the tool needs it
         sig = inspect.signature(tool_fn)
