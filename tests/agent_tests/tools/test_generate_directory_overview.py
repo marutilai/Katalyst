@@ -9,6 +9,7 @@ pytestmark = pytest.mark.agent
 
 @pytest.mark.agent
 @pytest.mark.asyncio
+@pytest.mark.skip(reason="Requires active OpenAI API billing")
 async def test_functional_run_on_full_project():
     """
     Runs the tool on the entire project root as a smoke test to verify

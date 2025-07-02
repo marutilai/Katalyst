@@ -10,11 +10,13 @@ Parameters:
 - diff: (string, required) Changes in diff format
 
 Diff format:
-<<<<<<< ORIGINAL
+<<<<<<< SEARCH
+:start_line:<line_number>
+-------
 original code
 =======
 modified code
->>>>>>> MODIFIED
+>>>>>>> REPLACE
 
 Output: JSON with keys: 'path', 'success', 'error'
 """)

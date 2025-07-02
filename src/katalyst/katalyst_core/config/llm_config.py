@@ -71,7 +71,9 @@ class LLMConfig:
     def _load_config(self):
         """Load configuration from environment variables."""
         # Get provider
-        self._provider = os.getenv("KATALYST_LITELLM_PROVIDER", "openai").lower()
+        # Support both old and new env var names for backward compatibility
+        self._provider = os.getenv("KATALYST_LLM_PROVIDER", 
+                                   os.getenv("KATALYST_LITELLM_PROVIDER", "openai")).lower()
 
         # Get profile or use provider as profile name
         self._profile = os.getenv("KATALYST_LLM_PROFILE", self._provider).lower()
@@ -100,7 +102,8 @@ class LLMConfig:
 
         # Load timeout
         try:
-            self._timeout = int(os.getenv("KATALYST_LITELLM_TIMEOUT", "0"))
+            self._timeout = int(os.getenv("KATALYST_LLM_TIMEOUT", 
+                                         os.getenv("KATALYST_LITELLM_TIMEOUT", "0")))
         except ValueError:
             self._timeout = 0
 

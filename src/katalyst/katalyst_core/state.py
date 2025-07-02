@@ -1,9 +1,7 @@
-from typing import List, Tuple, Optional, Union, Callable, Dict
+from typing import List, Tuple, Optional, Union, Callable, Dict, Any
 from pydantic import BaseModel, Field
 from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.messages import BaseMessage
-from katalyst.katalyst_core.utils.tool_repetition_detector import ToolRepetitionDetector
-from katalyst.katalyst_core.utils.operation_context import OperationContext
 import os
 
 
@@ -34,19 +32,16 @@ class KatalystState(BaseModel):
     original_plan: Optional[List[str]] = Field(
         default=None, description="The initial plan created by the planner."
     )
-    created_subtasks: Dict[int, List[str]] = Field(
-        default_factory=dict,
-        description="Tracks subtasks created dynamically by the agent. Key is parent task index, value is list of created subtask descriptions."
-    )
 
     # ── ReAct dialogue (inner loop) ───────────────────────────────────────
-    chat_history: List[BaseMessage] = Field(
+    agent_executor: Optional[Any] = Field(
+        None,
+        exclude=True,  # Don't persist the agent instance
+        description="The persistent create_react_agent instance"
+    )
+    messages: List[BaseMessage] = Field(
         default_factory=list,
-        description=(
-            "Full conversation history as LangChain BaseMessage objects "
-            "(e.g., HumanMessage, AIMessage, SystemMessage, ToolMessage). "
-            "Used by planner, ReAct agent, and replanner for context."
-        ),
+        description="Accumulated messages for the persistent agent conversation"
     )
     agent_outcome: Optional[Union[AgentAction, AgentFinish]] = Field(
         None,
@@ -62,12 +57,12 @@ class KatalystState(BaseModel):
         default_factory=list,
         description="(task, summary) tuples appended after each task finishes.",
     )
-    action_trace: List[Tuple[AgentAction, str]] = Field(
+    tool_execution_history: List[Dict[str, str]] = Field(
         default_factory=list,
         description=(
-            "Sequence of (AgentAction, observation) tuples recorded during "
-            "each agent↔tool cycle inside the current task. "
-            "Useful for LangSmith deep-trace or step-by-step UI replay."
+            "Concise history of all tool executions across all tasks. "
+            "Each entry contains: task, tool_name, status (success/error), summary. "
+            "Used by replanner to understand full execution context."
         ),
     )
 
@@ -98,39 +93,6 @@ class KatalystState(BaseModel):
     max_outer_cycles: int = Field(
         default=int(os.getenv("KATALYST_MAX_OUTER_CYCLES", 5)),
         description="Abort outer loop once this many cycles are hit.",
-    )
-    repetition_detector: ToolRepetitionDetector = Field(
-        default_factory=ToolRepetitionDetector,
-        description="Detects repetitive tool calls to prevent infinite loops.",
-    )
-    
-    # ── operation context tracking ─────────────────────────────────────────
-    operation_context: OperationContext = Field(
-        default_factory=lambda: OperationContext(
-            file_history_limit=int(os.getenv("KATALYST_FILE_CONTEXT_HISTORY", 10)),
-            operations_history_limit=int(os.getenv("KATALYST_OPERATIONS_CONTEXT_HISTORY", 10))
-        ),
-        description="Tracks recent file and tool operations to prevent duplication.",
-    )
-
-    # ── playbook / plan context ─────────────────────────────────────────────
-    playbook_guidelines: Optional[str] = Field(
-        None, description="Playbook or plan guidelines for the current run."
-    )
-
-    # ── content reference system ───────────────────────────────────────────
-    content_store: Dict[str, Union[str, Tuple[str, str]]] = Field(
-        default_factory=dict,
-        description="Temporary storage for file contents with reference IDs. "
-                    "Maps ref_id to either content string or (file_path, content) tuple. "
-                    "Used to prevent content hallucination when passing through LLM."
-    )
-    
-    # ── directory cache system ─────────────────────────────────────────────
-    directory_cache: Optional[Dict] = Field(
-        None,
-        description="Cache for list_files operations. Stores complete directory tree "
-                    "after first scan to serve subsequent requests without file I/O."
     )
 
     class Config:

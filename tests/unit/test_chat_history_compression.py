@@ -1,5 +1,10 @@
 """Test chat history compression in state."""
 import pytest
+
+# Skip this entire test file since chat_history has been commented out
+pytestmark = pytest.mark.skip("chat_history has been commented out in minimal implementation")
+
+import pytest
 from unittest.mock import Mock, patch
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.coding_agent.nodes.agent_react import agent_react
@@ -13,6 +18,7 @@ def create_large_chat_history(state: KatalystState, count: int):
         state.chat_history.append(AIMessage(content=f"Assistant response {i}"))
 
 
+@pytest.mark.skip(reason="Chat history compression removed in minimal implementation")
 def test_chat_history_compression():
     """Test that chat history is compressed in state when threshold is exceeded."""
     # Create state with many messages
@@ -66,6 +72,7 @@ def test_chat_history_compression():
     print(f"Chat history compression: {initial_count} -> {compressed_count} messages")
 
 
+@pytest.mark.skip(reason="Chat history compression removed in minimal implementation")
 def test_chat_history_no_compression_under_threshold():
     """Test that chat history is not compressed when under threshold."""
     state = KatalystState(

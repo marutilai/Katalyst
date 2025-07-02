@@ -18,25 +18,14 @@ def _display_task_progress(state: KatalystState, logger) -> None:
 
 def advance_pointer(state: KatalystState) -> KatalystState:
     """
-    1) Called when AgentFinish → log completed subtask & summary.
-    2) Increment state.task_idx, reset state.inner_cycles & state.action_trace.
-    3) If the new plan is exhausted, bump outer_cycles and maybe set state.response.
-    4) Return state.
-
-    * Primary Task: Finalize the completed sub-task, advance to the next sub-task in the queue, and perform outer loop checks.
-    * State Changes:
-    * Retrieves the final_answer_string from state.agent_outcome.return_values["output"].
-    * Appends (state.task_queue[state.task_idx], final_answer_string) to state.completed_tasks.
-    * Increments state.task_idx += 1.
-    * Resets state.inner_cycles = 0.
-    * Clears state.action_trace = [].
-    * Clears state.agent_outcome = None.
-    * Clears state.error_message = None (as the sub-task successfully finished, clearing any prior ReAct loop errors for that sub-task).
-    * Checks if the plan is now exhausted: if state.task_idx >= len(state.task_queue):
-    * If true, increments state.outer_cycles += 1.
-    * Checks if state.outer_cycles > state.max_outer_cycles:
-    * If true, sets state.response to an error message (e.g., "Outer loop limit exceeded...").
-    * Returns: The updated KatalystState.
+    Called when agent_react completes a task with AgentFinish.
+    
+    1) Log completed subtask & summary
+    2) Increment state.task_idx
+    3) Clear agent_outcome and error_message
+    4) Check if plan is exhausted and handle outer loop limits
+    
+    Returns: The updated KatalystState
     """
     logger = get_logger()
 
@@ -69,28 +58,26 @@ def advance_pointer(state: KatalystState) -> KatalystState:
         )
         logger.warning(f"[ADVANCE_POINTER] {error_msg}")
 
-    # 2) Move to next subtask and reset loop state
+    # 2) Move to next subtask
     state.task_idx += 1
-    state.inner_cycles = 0
-    state.action_trace.clear()
     state.agent_outcome = None
     state.error_message = None
-    # Reset repetition detector for the new task
-    state.repetition_detector.reset()
     
     # Check if we're moving to a new planner task (not a subtask)
     if state.original_plan and state.task_idx < len(state.task_queue):
         current_task = state.task_queue[state.task_idx]
         # If this task is in the original plan, it's a new planner task
         if current_task in state.original_plan:
-            # Log operation context before clearing
-            context_before = state.operation_context.get_context_for_agent()
-            if context_before:
-                logger.debug(f"[ADVANCE_POINTER] Operation context before clearing:\n{context_before}")
-            
-            # Clear operation context for new planner task
-            state.operation_context.clear()
-            logger.info("[ADVANCE_POINTER] Cleared operation context for new planner task")
+            # MINIMAL: operation_context is commented out
+            # # Log operation context before clearing
+            # context_before = state.operation_context.get_context_for_agent()
+            # if context_before:
+            #     logger.debug(f"[ADVANCE_POINTER] Operation context before clearing:\n{context_before}")
+            # 
+            # # Clear operation context for new planner task
+            # state.operation_context.clear()
+            # logger.info("[ADVANCE_POINTER] Cleared operation context for new planner task")
+            pass
     
     # 3) If plan is exhausted, check outer-loop guard
     if state.task_idx >= len(state.task_queue):

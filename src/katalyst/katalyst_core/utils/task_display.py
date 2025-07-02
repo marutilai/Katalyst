@@ -36,14 +36,15 @@ def build_task_hierarchy(state: KatalystState, include_progress: bool = True) ->
         marker = "✓" if is_completed and include_progress else " "
         lines.append(f"{marker} {parent_num}. {parent_task}")
         
-        # Add any dynamically created subtasks for this parent
-        if state.created_subtasks and parent_idx in state.created_subtasks:
-            subtasks = state.created_subtasks[parent_idx]
-            for sub_idx, subtask in enumerate(subtasks):
-                sub_letter = chr(ord('a') + sub_idx)  # a, b, c, ...
-                sub_is_completed = subtask in completed_task_names
-                sub_marker = "✓" if sub_is_completed and include_progress else " "
-                lines.append(f"     {sub_marker} {parent_num}.{sub_letter}. {subtask}")
+        # MINIMAL: created_subtasks is commented out
+        # # Add any dynamically created subtasks for this parent
+        # if state.created_subtasks and parent_idx in state.created_subtasks:
+        #     subtasks = state.created_subtasks[parent_idx]
+        #     for sub_idx, subtask in enumerate(subtasks):
+        #         sub_letter = chr(ord('a') + sub_idx)  # a, b, c, ...
+        #         sub_is_completed = subtask in completed_task_names
+        #         sub_marker = "✓" if sub_is_completed and include_progress else " "
+        #         lines.append(f"     {sub_marker} {parent_num}.{sub_letter}. {subtask}")
     
     return lines
 
@@ -101,7 +102,7 @@ def get_task_context_for_agent(state: KatalystState) -> str:
         current_task,
         state.task_idx,
         state.original_plan,
-        state.created_subtasks
+        None  # MINIMAL: created_subtasks is commented out
     )
     
     planner_task = None
@@ -115,16 +116,17 @@ def get_task_context_for_agent(state: KatalystState) -> str:
     if planner_task:
         lines.append(f"Current Planner Task: {planner_task}")
         
-        # Check if this planner task has subtasks
-        if planner_task_idx is not None and planner_task_idx in state.created_subtasks:
-            subtasks = state.created_subtasks[planner_task_idx]
-            if subtasks:
-                lines.append("\nSubtasks:")
-                for subtask in subtasks:
-                    is_completed = subtask in completed_task_names
-                    is_current = subtask == current_task
-                    marker = "✓" if is_completed else "→" if is_current else " "
-                    lines.append(f"{marker} {subtask}")
+        # MINIMAL: created_subtasks is commented out
+        # # Check if this planner task has subtasks
+        # if planner_task_idx is not None and planner_task_idx in state.created_subtasks:
+        #     subtasks = state.created_subtasks[planner_task_idx]
+        #     if subtasks:
+        #         lines.append("\nSubtasks:")
+        #         for subtask in subtasks:
+        #             is_completed = subtask in completed_task_names
+        #             is_current = subtask == current_task
+        #             marker = "✓" if is_completed else "→" if is_current else " "
+        #             lines.append(f"{marker} {subtask}")
     
     # Always show what we're currently working on
     lines.append(f"\nCurrently Working On: {current_task}")
