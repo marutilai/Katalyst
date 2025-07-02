@@ -18,7 +18,7 @@ class ErrorType(Enum):
     - GRAPH_RECURSION: Indicates a recursion error in the graph execution.
                       Triggers replanning to handle the error gracefully.
     - CONTENT_OMISSION: Content validation failure in write operations.
-                       Indicates LLM truncated or omitted content when line count mismatch detected.
+                       Indicates LLM truncated or omitted content.
     - TOOL_REPETITION: Repetitive tool calls detected. Prevents infinite loops.
     - UNKNOWN: Fallback for unclassified errors.
     """
@@ -126,28 +126,10 @@ def format_error_for_llm(error_type: ErrorType, error_details: str, custom_messa
             "The current execution path has entered a loop. Please request replanning to try a different approach."
         )
     elif error_type == ErrorType.CONTENT_OMISSION:
-        # Extract line count info to provide specific guidance
-        import re
-        match = re.search(r"predicted (\d+) lines.*provided (\d+) lines", error_details)
-        if match:
-            predicted = int(match.group(1))
-            actual = int(match.group(2))
-            difference = predicted - actual
-            
-            return (
-                f"Content omission detected: {error_details}\n\n"
-                f"You were off by {abs(difference)} lines. Count more carefully:\n"
-                "• Count EVERY line including empty ones\n"
-                "• Each \\n creates a new line (even at EOF)\n"
-                "• Double-check: did you skip empty lines or truncate content?\n"
-                "Please provide the COMPLETE content with accurate line count."
-            )
-        else:
-            return (
-                f"Content omission detected: {error_details}\n"
-                "Count ALL lines including empty ones. Each \\n = new line.\n"
-                "Please provide the COMPLETE content with accurate line count."
-            )
+        return (
+            f"Content omission detected: {error_details}\n"
+            "Please provide the COMPLETE content without truncation."
+        )
     elif error_type == ErrorType.TOOL_REPETITION:
         return (
             f"Repetitive tool call detected: {error_details}\n"

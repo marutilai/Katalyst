@@ -52,7 +52,66 @@ def handle_init_command(graph, config):
     """
     # Create the input dictionary for generating the developer guide
     init_input = {
-        "task": "Generate a concise developer guide, in markdown format, for this repo. Cover setup/test commands, architecture, key components, project layout, technologies used, main entry point, environment variables, and example usage. Keep it structured and specific to the codebase. Create ONLY ONE file: KATALYST.md in the repository root. Do NOT create any intermediate files or documentation in other locations - compile everything directly into KATALYST.md.",
+        "task": """ROLE: You are a technical documentation specialist analyzing a codebase to create a comprehensive developer guide.
+
+OBJECTIVE: Generate a complete developer guide (KATALYST.md) for this repository by analyzing the existing codebase.
+
+CONSTRAINTS:
+- This is PURELY a documentation task
+- Do NOT modify any source code files
+- Do NOT create new features or functionality
+- Do NOT change application behavior
+- ONLY create documentation files
+
+REQUIREMENTS:
+1. Analyze the codebase to understand:
+   - Project structure and organization (list ALL directories)
+   - Technologies and dependencies (from pyproject.toml)
+   - Architecture and design patterns (two-level agent, graph-based)
+   - Key components and their interactions (EVERY module matters)
+
+2. Document the following sections IN DETAIL AND IN THIS ORDER:
+   - Project Overview (brief introduction only)
+   - Setup and Installation Commands (step-by-step with prerequisites)
+   - Test Commands and Testing Strategy (all test types and commands)
+   - Architecture Overview (explain the two-level agent structure, data flow)
+   - Key Components and Modules (DETAILED - list EVERY major module/file with its purpose and key functions)
+   - Project Layout (MANDATORY: Include complete ASCII tree with 'tree' command output style)
+   - Technologies Used (full list from pyproject.toml with purposes)
+   - Main Entry Point (how the application starts and flows)
+   - Environment Variables (ALL variables with descriptions and examples)
+   - Example Usage and Common Tasks (comprehensive examples)
+
+3. Output Requirements:
+   - Save as KATALYST.md in the repository root
+   - If KATALYST.md already exists, assume it's outdated and OVERWRITE it completely
+   - Use clear, detailed markdown formatting
+   - Include code examples, file paths, and command snippets
+   - IMPORTANT: Write the COMPLETE document - do NOT use placeholders
+   - The file must be self-contained with ALL sections fully written out
+   - DO NOT over-summarize - maintain detail from your analysis
+   - Target length: 300-500 lines of comprehensive documentation
+
+PROCESS:
+- You may create temporary documentation files during analysis
+- When writing KATALYST.md, compile ALL sections into ONE complete file
+- Do NOT reference previous sections with placeholders - write everything out
+- Ensure the final file contains ALL documentation from start to finish
+- For Project Layout, use format like:
+  ```
+  project-root/
+  ├── src/
+  │   └── package-name/
+  │       ├── module1/
+  │       │   ├── main.py          # Entry point description
+  │       │   ├── submodule/       # Submodule description
+  │       │   └── ...
+  │       ├── module2/             # Module description
+  │       └── ...
+  └── tests/
+  ```
+- Delete ALL temporary files when complete
+- Only KATALYST.md should remain""",
         "auto_approve": True,  # Auto-approve file creation for the init process
         "project_root_cwd": os.getcwd(),
     }
