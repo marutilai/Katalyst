@@ -72,25 +72,29 @@ def advance_pointer(state: KatalystState) -> KatalystState:
     # 2) Move to next subtask and reset loop state
     state.task_idx += 1
     state.inner_cycles = 0
-    state.action_trace.clear()
+    # MINIMAL: action_trace is commented out
+    # state.action_trace.clear()
     state.agent_outcome = None
     state.error_message = None
-    # Reset repetition detector for the new task
-    state.repetition_detector.reset()
+    # MINIMAL: repetition_detector is commented out
+    # # Reset repetition detector for the new task
+    # state.repetition_detector.reset()
     
     # Check if we're moving to a new planner task (not a subtask)
     if state.original_plan and state.task_idx < len(state.task_queue):
         current_task = state.task_queue[state.task_idx]
         # If this task is in the original plan, it's a new planner task
         if current_task in state.original_plan:
-            # Log operation context before clearing
-            context_before = state.operation_context.get_context_for_agent()
-            if context_before:
-                logger.debug(f"[ADVANCE_POINTER] Operation context before clearing:\n{context_before}")
-            
-            # Clear operation context for new planner task
-            state.operation_context.clear()
-            logger.info("[ADVANCE_POINTER] Cleared operation context for new planner task")
+            # MINIMAL: operation_context is commented out
+            # # Log operation context before clearing
+            # context_before = state.operation_context.get_context_for_agent()
+            # if context_before:
+            #     logger.debug(f"[ADVANCE_POINTER] Operation context before clearing:\n{context_before}")
+            # 
+            # # Clear operation context for new planner task
+            # state.operation_context.clear()
+            # logger.info("[ADVANCE_POINTER] Cleared operation context for new planner task")
+            pass
     
     # 3) If plan is exhausted, check outer-loop guard
     if state.task_idx >= len(state.task_queue):

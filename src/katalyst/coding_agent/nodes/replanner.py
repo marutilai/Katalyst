@@ -4,7 +4,8 @@ Minimal Replanner using LangChain's approach with tool execution history.
 
 from langchain_core.prompts import ChatPromptTemplate
 from katalyst.katalyst_core.services.litellm_chat_model import ChatLiteLLM
-from langchain_core.messages import AIMessage
+# MINIMAL: AIMessage import not needed when chat_history is commented out
+# from langchain_core.messages import AIMessage
 from typing import Dict
 
 from katalyst.katalyst_core.state import KatalystState
@@ -139,9 +140,10 @@ def replanner(state: KatalystState) -> KatalystState:
             else:
                 state.response = "Task completed as requested."
             
-            state.chat_history.append(
-                AIMessage(content=f"[REPLANNER] Goal achieved. {state.response}")
-            )
+            # MINIMAL: chat_history is commented out (LangGraph tracks messages internally)
+            # state.chat_history.append(
+            #     AIMessage(content=f"[REPLANNER] Goal achieved. {state.response}")
+            # )
             
         else:
             # More work needed
@@ -159,7 +161,8 @@ def replanner(state: KatalystState) -> KatalystState:
             plan_msg = "Continuing with updated plan:\n" + "\n".join(
                 f"{i+1}. {task}" for i, task in enumerate(result.subtasks)
             )
-            state.chat_history.append(AIMessage(content=f"[REPLANNER] {plan_msg}"))
+            # MINIMAL: chat_history is commented out (LangGraph tracks messages internally)
+            # state.chat_history.append(AIMessage(content=f"[REPLANNER] {plan_msg}"))
             logger.info(f"[REPLANNER] {plan_msg}")
             
     except Exception as e:
