@@ -59,7 +59,8 @@ def tool_runner(state: KatalystState) -> KatalystState:
         )
         logger.error(f"[TOOL_RUNNER] Tool not found: {tool_name}")
         state.error_message = observation
-        state.action_trace.append((agent_action, observation))
+        # MINIMAL: action_trace is commented out
+        # state.action_trace.append((agent_action, observation))
         state.agent_outcome = None
         return state
     
@@ -104,10 +105,11 @@ def tool_runner(state: KatalystState) -> KatalystState:
     else:
         observation_str = str(observation)
     
-    # Record in action trace
-    # NOTE: This is somewhat redundant with LangGraph's message history,
-    # but other nodes (replanner, advance_pointer) still depend on it
-    state.action_trace.append((agent_action, observation_str))
+    # MINIMAL: action_trace is commented out (redundant with LangGraph's message history)
+    # # Record in action trace
+    # # NOTE: This is somewhat redundant with LangGraph's message history,
+    # # but other nodes (replanner, advance_pointer) still depend on it
+    # state.action_trace.append((agent_action, observation_str))
     
     # Record concise execution history for replanner
     current_task = state.task_queue[state.task_idx] if state.task_idx < len(state.task_queue) else "Unknown task"

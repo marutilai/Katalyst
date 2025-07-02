@@ -4,7 +4,8 @@ Minimal Planner Node - Uses LangChain's simple prompt approach.
 
 from langchain_core.prompts import ChatPromptTemplate
 from katalyst.katalyst_core.services.litellm_chat_model import ChatLiteLLM
-from langchain_core.messages import AIMessage
+# MINIMAL: AIMessage import not needed when chat_history is commented out
+# from langchain_core.messages import AIMessage
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.models import SubtaskList
 from katalyst.katalyst_core.utils.logger import get_logger
@@ -87,7 +88,8 @@ def planner(state: KatalystState) -> KatalystState:
         plan_message = f"Generated plan:\\n" + "\\n".join(
             f"{i+1}. {s}" for i, s in enumerate(subtasks)
         )
-        state.chat_history.append(AIMessage(content=plan_message))
+        # MINIMAL: chat_history is commented out (LangGraph tracks messages internally)
+        # state.chat_history.append(AIMessage(content=plan_message))
         logger.info(f"[PLANNER] {plan_message}")
         
     except Exception as e:
