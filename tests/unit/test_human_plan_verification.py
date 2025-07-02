@@ -3,7 +3,8 @@ from unittest.mock import MagicMock, patch
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.error_handling import ErrorType
 from katalyst.coding_agent.nodes.human_plan_verification import human_plan_verification
-from langchain_core.messages import HumanMessage, SystemMessage
+# MINIMAL: Message imports not needed without chat_history
+# from langchain_core.messages import HumanMessage, SystemMessage
 
 pytestmark = pytest.mark.unit
 
@@ -20,10 +21,7 @@ class TestHumanPlanVerification:
         
         result = human_plan_verification(state)
         
-        # Should add system message about auto approval
-        assert len(result.chat_history) == 1
-        assert isinstance(result.chat_history[0], SystemMessage)
-        assert "automatically approved" in result.chat_history[0].content
+        # MINIMAL: No chat_history to check
         
         # Task queue should remain unchanged
         assert result.task_queue == ["Task 1", "Task 2", "Task 3"]
@@ -47,9 +45,7 @@ class TestHumanPlanVerification:
             result = human_plan_verification(state)
         
         # Should add approval message
-        assert len(result.chat_history) == 1
-        assert isinstance(result.chat_history[0], HumanMessage)
-        assert "approved" in result.chat_history[0].content
+        # MINIMAL: No chat_history to check
         
         # Task queue should remain unchanged
         assert result.task_queue == ["Task 1", "Task 2", "Task 3"]
@@ -75,8 +71,7 @@ class TestHumanPlanVerification:
         # Should set response and clear task queue
         assert result.response == "Operation cancelled by user"
         assert result.task_queue == []
-        assert len(result.chat_history) == 1
-        assert "cancelled" in result.chat_history[0].content
+        # MINIMAL: No chat_history to check
     
     def test_user_rejects_with_feedback(self):
         """Test when user provides feedback for a better plan."""
@@ -98,9 +93,7 @@ class TestHumanPlanVerification:
         assert result.task_queue == []
         assert result.plan_feedback == "Please include tests in the plan"
         assert f"[{ErrorType.REPLAN_REQUESTED.value}]" in result.error_message
-        assert len(result.chat_history) == 1
-        assert "rejected with feedback" in result.chat_history[0].content
-        assert "Please include tests" in result.chat_history[0].content
+        # MINIMAL: No chat_history to check
     
     def test_user_says_no_then_provides_feedback(self):
         """Test when user says 'no' and then provides specific feedback."""
@@ -126,7 +119,7 @@ class TestHumanPlanVerification:
         assert result.task_queue == []
         assert result.plan_feedback == "Add error handling steps"
         assert f"[{ErrorType.REPLAN_REQUESTED.value}]" in result.error_message
-        assert "Add error handling steps" in result.chat_history[0].content
+        # MINIMAL: No chat_history to check
     
     def test_empty_task_queue(self):
         """Test behavior with empty task queue."""
@@ -145,7 +138,7 @@ class TestHumanPlanVerification:
         
         # Should still work with empty queue
         assert result.task_queue == []
-        assert "approved" in result.chat_history[0].content
+        # MINIMAL: No chat_history to check
 
 
 class TestRoutingAfterVerification:

@@ -10,7 +10,8 @@ This module handles the human-in-the-loop verification of generated plans:
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.error_handling import ErrorType, create_error_message
-from langchain_core.messages import HumanMessage, SystemMessage
+# MINIMAL: Removed message imports since chat_history is not used
+# from langchain_core.messages import HumanMessage, SystemMessage
 
 
 def human_plan_verification(state: KatalystState) -> KatalystState:
@@ -21,8 +22,8 @@ def human_plan_verification(state: KatalystState) -> KatalystState:
     
     State Changes:
     - If approved: No changes, continues to agent_react
-    - If feedback provided: Adds feedback to chat_history and triggers replanning
-    - Adds verification result to chat_history
+    - If feedback provided: Sets plan_feedback and triggers replanning
+    - If cancelled: Sets response and clears task_queue
     
     Returns: The updated KatalystState
     """
@@ -32,9 +33,7 @@ def human_plan_verification(state: KatalystState) -> KatalystState:
     # Skip verification if auto_approve is True
     if state.auto_approve:
         logger.info("[HUMAN_PLAN_VERIFICATION] auto_approve is True, skipping human verification")
-        state.chat_history.append(
-            SystemMessage(content="Plan automatically approved (auto_approve mode)")
-        )
+        # MINIMAL: Removed chat_history append
         return state
     
     # Get user input function
@@ -61,18 +60,14 @@ def human_plan_verification(state: KatalystState) -> KatalystState:
     if response.lower() in ['yes', 'y']:
         # Approve plan
         logger.info("[HUMAN_PLAN_VERIFICATION] User approved plan")
-        state.chat_history.append(
-            HumanMessage(content="Plan approved")
-        )
+        # MINIMAL: Removed chat_history append
         
     elif response.lower() == 'cancel':
         # Cancel operation
         logger.info("[HUMAN_PLAN_VERIFICATION] User cancelled operation")
         state.response = "Operation cancelled by user"
         state.task_queue = []
-        state.chat_history.append(
-            HumanMessage(content="Operation cancelled")
-        )
+        # MINIMAL: Removed chat_history append
         
     else:
         # User provided feedback - treat anything else as feedback
@@ -83,10 +78,7 @@ def human_plan_verification(state: KatalystState) -> KatalystState:
         
         logger.info(f"[HUMAN_PLAN_VERIFICATION] User provided feedback: {feedback}")
         
-        # Add feedback to chat history for the planner to see
-        state.chat_history.append(
-            HumanMessage(content=f"Plan rejected with feedback: {feedback}")
-        )
+        # MINIMAL: Removed chat_history append
         
         # Clear task queue and set feedback for planner
         state.task_queue = []
