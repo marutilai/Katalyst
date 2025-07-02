@@ -52,7 +52,7 @@ def handle_init_command(graph, config):
     """
     # Create the input dictionary for generating the developer guide
     init_input = {
-        "task": "Generate a concise developer guide, in markdown format, for this repo. Cover setup/test commands, architecture, key components, project layout, technologies used, main entry point, environment variables, and example usage. Keep it structured and specific to the codebase. Add the output to a file named KATALYST.md.",
+        "task": "Generate a concise developer guide, in markdown format, for this repo. Cover setup/test commands, architecture, key components, project layout, technologies used, main entry point, environment variables, and example usage. Keep it structured and specific to the codebase. Create ONLY ONE file: KATALYST.md in the repository root. Do NOT create any intermediate files or documentation in other locations - compile everything directly into KATALYST.md.",
         "auto_approve": True,  # Auto-approve file creation for the init process
         "project_root_cwd": os.getcwd(),
     }
