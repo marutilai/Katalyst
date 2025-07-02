@@ -30,6 +30,7 @@ def create_large_action_trace(state: KatalystState, count: int):
         state.action_trace.append((action, observation))
 
 
+@pytest.mark.skip(reason="Action trace compression removed in minimal implementation")
 def test_action_trace_compression_reduces_state_size():
     """Test that action trace compression actually reduces the stored state size."""
     # Create initial state
@@ -90,6 +91,7 @@ def test_action_trace_compression_reduces_state_size():
     print(f"  Size: {initial_size} -> {compressed_size} ({(1-compressed_size/initial_size)*100:.1f}% reduction)")
 
 
+@pytest.mark.skip(reason="Action trace compression removed in minimal implementation")
 def test_action_trace_no_compression_under_threshold():
     """Test that action trace is not compressed when under threshold."""
     state = KatalystState(

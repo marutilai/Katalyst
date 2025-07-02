@@ -86,6 +86,7 @@ def katalyst_state(temp_project):
     )
 
 
+@pytest.mark.skip(reason="Caching removed in minimal implementation")
 class TestListFilesCacheIntegration:
     """Integration tests for list_files caching."""
     
