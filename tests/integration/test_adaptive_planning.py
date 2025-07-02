@@ -6,6 +6,7 @@ from katalyst.coding_agent.nodes.planner import planner
 from langchain_core.agents import AgentAction
 import json
 
+@pytest.mark.skip(reason="Adaptive planning removed in minimal implementation")
 class TestAdaptivePlanning:
     """Test the adaptive planning system with dynamic task creation."""
     
