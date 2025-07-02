@@ -2,7 +2,6 @@ import os
 from rich.console import Console
 from rich.prompt import Prompt
 from pathlib import Path
-from katalyst.app.playbook_navigator import PlaybookNavigator
 
 console = Console()
 
@@ -11,7 +10,7 @@ def show_help():
     print("""
 Available commands:
 /help      Show this help message
-/init      Create a KATALYST.md file with instructions
+/init      Generate a developer guide for the repository (saved as KATALYST.md)
 /provider  Set LLM provider (openai/anthropic/ollama)
 /model     Set LLM model (gpt4.1 for OpenAI, sonnet4/opus4 for Anthropic)
 /exit      Exit the agent
@@ -49,35 +48,31 @@ def get_init_plan(plan_name: str) -> str:
 
 def handle_init_command(graph, config):
     """
-    Retrieve the playbook for /init, use its text as the planner task, and execute the full Katalyst engine to generate project_knowledge.json.
+    Execute a task to generate a comprehensive developer guide for the repository and save it to KATALYST.md.
     """
-    navigator = PlaybookNavigator()
-    playbook = navigator.get_playbook_by_id("project_init")
-    if not playbook:
-        console.print("[red]No playbook found for /init![/red]")
-        return
-
-    # Create the input dictionary for this specific task
-    # Note: This will run in the SAME conversation thread, which is fine.
-    # A more advanced version might use a separate thread_id for system tasks like /init.
+    # Create the input dictionary for generating the developer guide
     init_input = {
-        "task": "Execute the project initialization playbook to generate .katalyst/project_knowledge.json.",
-        "playbook_guidelines": playbook.content_md,
-        "auto_approve": True,  # Always auto-approve for the init process
+        "task": "Generate a concise developer guide, in markdown format, for this repo. Cover setup/test commands, architecture, key components, project layout, technologies used, main entry point, environment variables, and example usage. Keep it structured and specific to the codebase. Add the output to a file named KATALYST.md.",
+        "auto_approve": True,  # Auto-approve file creation for the init process
         "project_root_cwd": os.getcwd(),
     }
 
+    console.print("[yellow]Generating developer guide for the repository...[/yellow]")
+    
     # Run the full Katalyst execution engine
-    final_state = None
-    final_state = graph.invoke(init_input, config)
+    try:
+        final_state = graph.invoke(init_input, config)
 
-    # The final step of the playbook should be a `write_to_file` call,
-    # so we can check the 'response' from the replanner for the final summary.
-    if final_state and final_state.get("response"):
-        console.print(f"[green]Project initialization complete![/green]")
-        console.print(final_state.get("response"))
-    else:
-        console.print("[red]Failed to generate .katalyst/project_knowledge.json.[/red]")
+        # Check if the task was completed successfully
+        if final_state and final_state.get("response"):
+            console.print(f"[green]Developer guide generation complete![/green]")
+            console.print(f"[green]Created KATALYST.md in the repository root.[/green]")
+            if "error" not in final_state.get("response", "").lower():
+                console.print("\n" + final_state.get("response"))
+        else:
+            console.print("[red]Failed to generate KATALYST.md developer guide.[/red]")
+    except Exception as e:
+        console.print(f"[red]Error generating developer guide: {str(e)}[/red]")
 
 
 def handle_provider_command():
