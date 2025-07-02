@@ -1,15 +1,18 @@
 """
 Minimal React agent using LangGraph's default create_react_agent.
-Uses LangChain's ChatOpenAI directly to avoid compatibility issues.
+Uses custom ChatLiteLLM wrapper to support 100+ LLM providers through LiteLLM.
 
-Note: This requires a valid OPENAI_API_KEY in the environment.
-If you're using a different provider (Anthropic, Gemini, etc.), 
-you'll need to use the original custom agent_react implementation.
+Supports all providers configured in the LLM config system:
+- OpenAI (gpt-4, gpt-3.5-turbo, etc.)
+- Anthropic (claude-3-opus, claude-3-haiku, etc.)
+- Google (gemini-1.5-pro, gemini-1.5-flash, etc.)
+- Groq (mixtral-8x7b, llama3-8b, etc.)
+- Ollama (local models)
+- And many more through LiteLLM
 """
 
-import os
 from langgraph.prebuilt import create_react_agent
-from langchain_openai import ChatOpenAI
+from katalyst.katalyst_core.services.litellm_chat_model import ChatLiteLLM
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.tools import StructuredTool
 from langchain_core.agents import AgentAction, AgentFinish
@@ -22,10 +25,10 @@ from katalyst.katalyst_core.config import get_llm_config
 def agent_react(state: KatalystState) -> KatalystState:
     """
     React agent using LangGraph's default create_react_agent.
-    Uses GPT-4o directly via LangChain for maximum compatibility.
+    Supports all LiteLLM providers through the ChatLiteLLM wrapper.
     """
     logger = get_logger()
-    logger.debug("[AGENT_REACT] Starting LangGraph default React agent")
+    logger.debug("[AGENT_REACT] Starting LangGraph default React agent with LiteLLM")
     
     # Get current task
     current_task = state.task_queue[state.task_idx] if state.task_queue else None
@@ -37,29 +40,22 @@ def agent_react(state: KatalystState) -> KatalystState:
     # Get configured model from LLM config
     llm_config = get_llm_config()
     model_name = llm_config.get_model_for_component("agent_react")
+    timeout = llm_config.get_timeout()
+    api_base = llm_config.get_api_base()
     
-    # Check if we're using OpenAI
-    if not model_name.startswith("gpt-"):
-        logger.error(f"[AGENT_REACT] LangGraph's create_react_agent requires OpenAI models. Current model: {model_name}")
-        state.error_message = f"This implementation requires OpenAI models (got {model_name}). Use the original agent for other providers."
-        return state
-    
-    # Check if we have a valid API key
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        logger.error("[AGENT_REACT] No OPENAI_API_KEY found in environment")
-        state.error_message = "OpenAI API key not configured"
-        return state
+    logger.debug(f"[AGENT_REACT] Using model: {model_name} (provider: {llm_config.get_provider()})")
     
     try:
-        # Use the configured model name
-        model = ChatOpenAI(
-            model="gpt-4.1", 
+        # Create ChatLiteLLM instance with configured model
+        model = ChatLiteLLM(
+            model=model_name,
             temperature=0,
-            api_key=api_key
+            timeout=timeout,
+            api_base=api_base,
+            verbose=False  # Set to True for debugging
         )
     except Exception as e:
-        logger.error(f"[AGENT_REACT] Failed to create ChatOpenAI model: {e}")
+        logger.error(f"[AGENT_REACT] Failed to create ChatLiteLLM model: {e}")
         state.error_message = f"Failed to initialize model: {str(e)}"
         return state
     
