@@ -3,11 +3,12 @@ Minimal Planner Node - Uses LangChain's simple prompt approach.
 """
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
+from katalyst.katalyst_core.services.litellm_chat_model import ChatLiteLLM
 from langchain_core.messages import AIMessage
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.models import SubtaskList
 from katalyst.katalyst_core.utils.logger import get_logger
+from katalyst.katalyst_core.config import get_llm_config
 
 
 # Simple planner prompt - no complex guidelines
@@ -48,8 +49,21 @@ def planner(state: KatalystState) -> KatalystState:
     logger = get_logger()
     logger.debug("[PLANNER] Starting minimal planner node...")
     
-    # Create planner chain
-    model = ChatOpenAI(model="gpt-4.1", temperature=0)
+    # Get configured model from LLM config
+    llm_config = get_llm_config()
+    model_name = llm_config.get_model_for_component("planner")
+    timeout = llm_config.get_timeout()
+    api_base = llm_config.get_api_base()
+    
+    logger.debug(f"[PLANNER] Using model: {model_name} (provider: {llm_config.get_provider()})")
+    
+    # Create planner chain with ChatLiteLLM
+    model = ChatLiteLLM(
+        model=model_name,
+        temperature=0,
+        timeout=timeout,
+        api_base=api_base
+    )
     planner_chain = planner_prompt | model.with_structured_output(SubtaskList)
     
     try:

@@ -162,7 +162,7 @@ class TestReplannerWithVerification:
         )
         
         # Patch the replanner chain creation and invocation
-        with patch.object(replanner_module, 'ChatOpenAI') as mock_chat, \
+        with patch.object(replanner_module, 'ChatLiteLLM') as mock_chat, \
              patch.object(replanner_module, 'replanner_prompt') as mock_prompt:
             # Mock the final chain that will be invoked
             mock_chain = MagicMock()
@@ -211,7 +211,7 @@ class TestReplannerWithVerification:
         )
         
         # Patch the replanner chain creation and invocation
-        with patch.object(replanner_module, 'ChatOpenAI') as mock_chat, \
+        with patch.object(replanner_module, 'ChatLiteLLM') as mock_chat, \
              patch.object(replanner_module, 'replanner_prompt') as mock_prompt:
             # Mock the final chain that will be invoked
             mock_chain = MagicMock()
