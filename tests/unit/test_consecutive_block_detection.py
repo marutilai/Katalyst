@@ -2,7 +2,7 @@
 import pytest
 from unittest.mock import Mock
 from katalyst.katalyst_core.state import KatalystState
-from katalyst.coding_agent.nodes.tool_runner import _count_consecutive_blocks
+from katalyst.coding_agent.nodes._tool_runner import _count_consecutive_blocks
 from langchain_core.agents import AgentAction
 
 

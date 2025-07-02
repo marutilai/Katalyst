@@ -2,7 +2,7 @@
 """Test script to verify observation processing reduces scratchpad size."""
 
 import json
-from katalyst.coding_agent.nodes.tool_runner import _process_observation_for_trace
+from katalyst.coding_agent.nodes._tool_runner import _process_observation_for_trace
 
 # Simulate a large read_file observation
 large_file_content = """

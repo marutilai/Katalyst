@@ -1,6 +1,6 @@
 """Integration test for escalating feedback flow."""
 from katalyst.katalyst_core.state import KatalystState
-from katalyst.coding_agent.nodes.tool_runner import (
+from katalyst.coding_agent.nodes._tool_runner import (
     _check_repetitive_calls,
     _check_redundant_operation,
     _count_consecutive_blocks,

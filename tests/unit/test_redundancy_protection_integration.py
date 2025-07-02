@@ -9,7 +9,7 @@ from unittest.mock import Mock
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.tool_repetition_detector import ToolRepetitionDetector
 from katalyst.katalyst_core.utils.operation_context import OperationContext
-from katalyst.coding_agent.nodes.tool_runner import (
+from katalyst.coding_agent.nodes._tool_runner import (
     _check_repetitive_calls,
     _check_redundant_operation,
 )
