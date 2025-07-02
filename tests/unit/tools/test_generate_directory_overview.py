@@ -1,14 +1,10 @@
 import pytest
-
-# Skip this entire test file since generate_directory_overview uses llms service which has been removed
-pytestmark = pytest.mark.skip("generate_directory_overview uses llms service which has been removed")
-
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, AsyncMock, MagicMock
 from katalyst.coding_agent.tools.generate_directory_overview import (
     generate_directory_overview,
 )
 
-# pytestmark = pytest.mark.unit
+pytestmark = pytest.mark.unit
 
 
 @pytest.mark.asyncio
@@ -34,10 +30,9 @@ async def test_error_on_empty_directory(tmp_path):
 
 @pytest.mark.asyncio
 # We patch the StateGraph class to mock the compiled app
-@patch(
-    "katalyst.coding_agent.tools.generate_directory_overview.StateGraph"
-)
-async def test_respects_gitignore(mock_state_graph, tmp_path):
+@patch("katalyst.coding_agent.tools.generate_directory_overview.get_langchain_chat_model")
+@patch("katalyst.coding_agent.tools.generate_directory_overview.StateGraph")
+async def test_respects_gitignore(mock_state_graph, mock_get_langchain_model, tmp_path):
     """
     Unit test: Verifies that gitignored files are filtered out before being passed to the internal graph.
     """
@@ -51,6 +46,12 @@ async def test_respects_gitignore(mock_state_graph, tmp_path):
     subdir.mkdir()
     (subdir / "test.py").write_text("# test file")
 
+    # Set up the mock LangChain model
+    mock_model = MagicMock()
+    mock_structured_model = AsyncMock()
+    mock_model.with_structured_output.return_value = mock_structured_model
+    mock_get_langchain_model.return_value = mock_model
+    
     # Set up the mock graph
     mock_app = AsyncMock()
     mock_app.ainvoke.return_value = {"summaries": [], "final_summary": {}}

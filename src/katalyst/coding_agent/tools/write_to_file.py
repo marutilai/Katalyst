@@ -30,7 +30,7 @@ def format_write_to_file_response(
 
 @katalyst_tool(prompt_module="write_to_file", prompt_var="WRITE_TO_FILE_TOOL_PROMPT")
 def write_to_file(
-    path: str, content: str, line_count: int = None, auto_approve: bool = True, user_input_fn=None
+    path: str, content: str, auto_approve: bool = True, user_input_fn=None
 ) -> str:
     """
     Writes full content to a file, overwriting if it exists, creating it if it doesn't. 
@@ -39,7 +39,6 @@ def write_to_file(
     Arguments:
       - path: str (file path to write)
       - content: str (the content to write)
-      - line_count: int (optional, expected number of lines for validation)
       - auto_approve: bool (if False, ask for confirmation before writing)
       - user_input_fn: function to use for user input (defaults to input)
       
@@ -60,22 +59,6 @@ def write_to_file(
         return format_write_to_file_response(
             False, path, error="No valid 'content' provided."
         )
-
-    # Validate line count if provided
-    if line_count is not None:
-        actual_lines = len(content.split('\n'))
-        # Allow some tolerance: max(5 lines, 5% of expected)
-        tolerance = max(5, int(line_count * 0.05))
-        
-        if abs(actual_lines - line_count) > tolerance:
-            error_msg = (
-                f"[CONTENT_OMISSION] LLM predicted {line_count} lines, but provided {actual_lines} lines. "
-                f"This indicates the content was likely truncated."
-            )
-            logger.error(f"Line count mismatch: expected {line_count}, got {actual_lines}")
-            return format_write_to_file_response(
-                False, path, error=error_msg
-            )
 
     # Use absolute path for writing
     abs_path = os.path.abspath(path)

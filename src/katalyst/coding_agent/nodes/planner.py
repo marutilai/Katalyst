@@ -2,6 +2,8 @@
 Minimal Planner Node - Uses LangChain's simple prompt approach.
 """
 
+import asyncio
+import inspect
 from langchain_core.prompts import ChatPromptTemplate
 # MINIMAL: AIMessage import not needed when chat_history is commented out
 # from langchain_core.messages import AIMessage
@@ -106,11 +108,26 @@ def planner(state: KatalystState) -> KatalystState:
         
         for tool_name, tool_func in tool_functions.items():
             description = tool_descriptions_map.get(tool_name, f"Tool: {tool_name}")
-            structured_tool = StructuredTool.from_function(
-                func=tool_func,
-                name=tool_name,
-                description=description
-            )
+            
+            if inspect.iscoroutinefunction(tool_func):
+                # For async functions, create a sync wrapper
+                def make_sync_wrapper(async_func):
+                    def sync_wrapper(**kwargs):
+                        return asyncio.run(async_func(**kwargs))
+                    return sync_wrapper
+                
+                structured_tool = StructuredTool.from_function(
+                    func=make_sync_wrapper(tool_func),  # Sync wrapper
+                    coroutine=tool_func,  # Async version
+                    name=tool_name,
+                    description=description
+                )
+            else:
+                structured_tool = StructuredTool.from_function(
+                    func=tool_func,
+                    name=tool_name,
+                    description=description
+                )
             tools.append(structured_tool)
         
         # Get model for agent
