@@ -3,13 +3,17 @@ Minimal Planner Node - Uses LangChain's simple prompt approach.
 """
 
 from langchain_core.prompts import ChatPromptTemplate
-from katalyst.katalyst_core.services.litellm_chat_model import ChatLiteLLM
 # MINIMAL: AIMessage import not needed when chat_history is commented out
 # from langchain_core.messages import AIMessage
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.models import SubtaskList
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.config import get_llm_config
+from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
+from katalyst.katalyst_core.utils.tools import get_tool_functions_map, extract_tool_descriptions
+from langchain_core.tools import StructuredTool
+from langchain_core.messages import HumanMessage
+from langgraph.prebuilt import create_react_agent
 
 
 # Simple planner prompt - no complex guidelines
@@ -53,14 +57,16 @@ def planner(state: KatalystState) -> KatalystState:
     # Get configured model from LLM config
     llm_config = get_llm_config()
     model_name = llm_config.get_model_for_component("planner")
+    provider = llm_config.get_provider()
     timeout = llm_config.get_timeout()
     api_base = llm_config.get_api_base()
     
-    logger.debug(f"[PLANNER] Using model: {model_name} (provider: {llm_config.get_provider()})")
+    logger.debug(f"[PLANNER] Using model: {model_name} (provider: {provider})")
     
-    # Create planner chain with ChatLiteLLM
-    model = ChatLiteLLM(
-        model=model_name,
+    # Get native LangChain model
+    model = get_langchain_chat_model(
+        model_name=model_name,
+        provider=provider,
         temperature=0,
         timeout=timeout,
         api_base=api_base
@@ -85,12 +91,52 @@ def planner(state: KatalystState) -> KatalystState:
         state.plan_feedback = None
         
         # Log the plan
-        plan_message = f"Generated plan:\\n" + "\\n".join(
+        plan_message = f"Generated plan:\n" + "\n".join(
             f"{i+1}. {s}" for i, s in enumerate(subtasks)
         )
-        # MINIMAL: chat_history is commented out (LangGraph tracks messages internally)
-        # state.chat_history.append(AIMessage(content=plan_message))
         logger.info(f"[PLANNER] {plan_message}")
+        
+        # Create the persistent agent executor that will handle all tasks
+        logger.info("[PLANNER] Creating persistent agent executor")
+        
+        # Get tools
+        tool_functions = get_tool_functions_map()
+        tool_descriptions_map = dict(extract_tool_descriptions())
+        tools = []
+        
+        for tool_name, tool_func in tool_functions.items():
+            description = tool_descriptions_map.get(tool_name, f"Tool: {tool_name}")
+            structured_tool = StructuredTool.from_function(
+                func=tool_func,
+                name=tool_name,
+                description=description
+            )
+            tools.append(structured_tool)
+        
+        # Get model for agent
+        agent_model = get_langchain_chat_model(
+            model_name=llm_config.get_model_for_component("agent_react"),
+            provider=provider,
+            temperature=0,
+            timeout=timeout,
+            api_base=api_base
+        )
+        
+        # Create the agent executor
+        state.agent_executor = create_react_agent(
+            model=agent_model,
+            tools=tools,
+            checkpointer=False
+        )
+        
+        # Initialize conversation with the plan
+        initial_message = HumanMessage(content=f"""I have the following plan to complete:
+
+{plan_message}
+
+I'll work through each task in order. Let's start with the first task.""")
+        
+        state.messages = [initial_message]
         
     except Exception as e:
         logger.error(f"[PLANNER] Failed to generate plan: {str(e)}")
