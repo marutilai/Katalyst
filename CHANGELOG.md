@@ -4,9 +4,13 @@ All notable changes to Katalyst will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased] - 2025-07-01
+
+## [0.7.0] - 2025-01-07
 
 ### Added
+- **Persistent Agent Architecture** - Single agent instance maintained across all tasks for better performance
+- **Native LangChain Model Support** for OpenAI, Anthropic, Ollama, Groq, and Together
+- **Tool Execution History** tracking across all tasks for improved replanner context
 - **File caching system** for `read_file` and `list_files` operations with automatic cache invalidation on writes
 - **Three-level redundancy protection** to prevent repetitive tool calls:
   - Consecutive duplicate detection
@@ -15,21 +19,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Context compression** for chat history and action traces to prevent token limit issues
 - **Human-in-the-loop plan verification** - review and approve plans before execution
 - **Fuzzy matching** in `apply_source_code_diff` tool for more reliable code modifications
-- **Ollama integration** for local LLM support with configurable models
 - **Content reference system** to prevent file content hallucination in write operations
 
 ### Fixed
+- **"No AIMessage found in input" infinite loop** by maintaining agent conversation continuity
+- **Performance issues** - reduced runtime from 7+ minutes to ~2 minutes
 - Context bloat during long agent sessions through intelligent compression
 - Infinite loops from repetitive tool calls with escalating feedback
 - Path validation and error handling improvements across all file operations
 - Agent task context clarity for better decision making
 
 ### Changed
+- **Complete refactor to use LangGraph's `create_react_agent`** instead of custom implementation
+- **Minimized state complexity** by commenting out unused fields (action_trace, chat_history, operation_context, etc.)
+- **Simplified tool runner, planner, and replanner** to leverage LangGraph defaults
 - Improved agent prompts for better task understanding and execution
 - Enhanced error messages with actionable feedback
 - Standardized path handling across all tools
 
-## [0.7.0] - 2025-06-28
+### Removed
+- **LiteLLM integration** - replaced with native LangChain models
+- **Custom React agent implementation** - now using LangGraph's built-in create_react_agent
+- **Unused state fields** - commented out for minimal implementation
+
+## [0.6.1] - 2025-06-23
 
 ### Added
 - **Tool Repetition Detector** to prevent infinite loops with configurable thresholds
