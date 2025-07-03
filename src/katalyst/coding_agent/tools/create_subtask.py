@@ -41,6 +41,7 @@ def create_subtask(
         JSON string with success status and message
     """
     logger = get_logger()
+    logger.debug(f"[TOOL] Entering create_subtask with task_description='{task_description}', reason='{reason}', insert_position='{insert_position}'")
     
     # Validate inputs
     if not task_description or not isinstance(task_description, str):
@@ -134,8 +135,10 @@ def create_subtask(
     logger.info(f"[CREATE_SUBTASK] Request to create subtask: '{task_description}' (Reason: {reason})")
     
     # Return success - the tool_runner will handle the actual state modification
-    return format_create_subtask_response(
+    result = format_create_subtask_response(
         True,
         f"Subtask creation request processed. Task: '{task_description}'",
         tasks_created=1
     )
+    logger.debug(f"[TOOL] Exiting create_subtask successfully")
+    return result

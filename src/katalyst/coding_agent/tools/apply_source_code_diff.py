@@ -40,6 +40,7 @@ def apply_source_code_diff(
       - fuzzy_threshold: int (minimum similarity score for fuzzy match, 0-100)
     """
     logger = get_logger()
+    logger.debug(f"[TOOL] Entering apply_source_code_diff with path='{path}', diff_length={len(diff) if diff else 0}, auto_approve={auto_approve}")
     logger.debug(
         f"Entered apply_source_code_diff with path: {path}, diff=<omitted>, auto_approve: {auto_approve}"
     )
@@ -194,7 +195,7 @@ def apply_source_code_diff(
         with open(path, "w", encoding="utf-8") as f:
             f.writelines(new_lines)
         logger.info(f"Successfully applied diff to file: {path}")
-        logger.debug("Exiting apply_source_code_diff")
+        logger.debug("[TOOL] Exiting apply_source_code_diff successfully")
         return format_apply_source_code_diff_response(
             path, True, info=f"Successfully applied diff to file: {path}"
         )

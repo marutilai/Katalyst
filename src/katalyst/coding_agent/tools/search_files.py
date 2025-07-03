@@ -91,5 +91,5 @@ def regex_search_inside_files(
         result_json["info"] = (
             f"Results truncated at {SEARCH_FILES_MAX_RESULTS} matches."
         )
-    logger.debug("Exiting regex_search_inside_files")
+    logger.debug(f"[TOOL] Exiting regex_search_inside_files successfully, found {len(matches)} matches")
     return json.dumps(result_json)

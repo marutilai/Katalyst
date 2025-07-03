@@ -20,6 +20,7 @@ def read_file(
     Returns a JSON object with keys: 'path', 'start_line', 'end_line', 'content', and optionally 'error' or 'info'.
     """
     logger = get_logger()
+    logger.debug(f"[TOOL] Entering read_file with path='{path}', start_line={start_line}, end_line={end_line}")
 
     # Validate path argument
     if not path or not isinstance(path, str):
@@ -67,12 +68,7 @@ def read_file(
         logger.error(f"Error reading file {abs_path}: {e}")
         return json.dumps({"error": f"Could not read file {abs_path}: {e}"})
 
-    # Print preview for user (not returned to agent)
-    print(f"\n# Katalyst is about to read the following content from '{abs_path}':")
-    print("-" * 80)
-    for idx, line in enumerate(selected_lines, start=s_idx + 1):
-        print(f"{idx:4d} | {line.rstrip()}")
-    print("-" * 80)
+    # No preview needed for file reading - content is returned to agent
 
 
     # If no lines were selected, return an info message
@@ -89,7 +85,7 @@ def read_file(
 
     # Join selected lines for output
     file_contents = "".join(selected_lines)
-    return json.dumps(
+    result = json.dumps(
         {
             "path": abs_path,
             "start_line": s_idx + 1,
@@ -97,3 +93,5 @@ def read_file(
             "content": file_contents,
         }
     )
+    logger.debug(f"[TOOL] Exiting read_file successfully, read {len(selected_lines)} lines from {abs_path}")
+    return result

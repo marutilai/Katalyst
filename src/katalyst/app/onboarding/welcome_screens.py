@@ -3,9 +3,11 @@ from rich.panel import Panel
 from rich.markdown import Markdown
 from rich.text import Text
 from rich.prompt import Prompt
+from katalyst.app.ui.input_handler import InputHandler
 import os
 
 console = Console()
+input_handler = InputHandler(console)
 
 
 def screen_1_welcome_and_security():
@@ -20,7 +22,7 @@ def screen_1_welcome_and_security():
             expand=False,
         )
     )
-    Prompt.ask("Press [bold]Enter[/bold] to continue", default="", show_default=False)
+    input_handler.prompt_text("Press [bold]Enter[/bold] to continue", default="", show_default=False)
 
 
 def screen_2_trust_folder(folder_path):
@@ -29,19 +31,28 @@ def screen_2_trust_folder(folder_path):
             f"[bold yellow]Do you trust the files in this folder?[/bold yellow]\n\n"
             f"[bold]{folder_path}[/bold]\n\n"
             "Katalyst Agent may read files in this folder. Reading untrusted files may lead Katalyst Agent to behave in unexpected ways.\n"
-            "With your permission Katalyst Agent may execute files in this folder. Executing untrusted code is unsafe.\n\n"
-            "[bold blue]1. Yes, proceed\n2. No, exit[/bold blue]",
+            "With your permission Katalyst Agent may execute files in this folder. Executing untrusted code is unsafe.",
             border_style="yellow",
             expand=False,
         )
     )
-    choice = Prompt.ask(
-        "Enter 1 to proceed, 2 to exit", choices=["1", "2"], default="1"
+    
+    trust_options = [
+        {"label": "Yes, I trust these files", "value": "proceed"},
+        {"label": "No, exit for safety", "value": "exit"}
+    ]
+    
+    choice = input_handler.prompt_arrow_menu(
+        title="Trust Verification",
+        options=trust_options,
+        quit_keys=["escape", "q"]
     )
-    if choice == "2":
-        console.print("[red]Exiting for safety.[/red]")
+    
+    if choice == "exit" or choice is None:
+        input_handler.show_status("Exiting for safety.", status="error")
         exit(0)
-    console.print("[green]Proceeding...[/green]\n")
+    
+    input_handler.show_status("Proceeding with trusted folder...", status="success")
 
 
 def screen_3_final_tips(cwd):
