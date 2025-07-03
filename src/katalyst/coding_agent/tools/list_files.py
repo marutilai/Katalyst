@@ -33,6 +33,7 @@ def list_files(path: str, recursive: bool, respect_gitignore: bool = True) -> st
     Returns a JSON string with keys: 'path' (input path), 'files' (list of found files/dirs), or 'error'.
     """
     logger = get_logger()
+    logger.debug(f"[TOOL] Entering list_files with path='{path}', recursive={recursive}, respect_gitignore={respect_gitignore}")
 
     if not os.path.exists(path):
         logger.error(f"Path does not exist: {path}")
@@ -79,4 +80,6 @@ def list_files(path: str, recursive: bool, respect_gitignore: bool = True) -> st
 
     # Sort for consistent output
     result.sort()
-    return format_list_files_response(path, files=result)
+    response = format_list_files_response(path, files=result)
+    logger.debug(f"[TOOL] Exiting list_files successfully, found {len(result)} items")
+    return response

@@ -47,15 +47,18 @@ def write_to_file(
     Returns a JSON string indicating success, error, or cancellation.
     """
     logger = get_logger()
+    logger.debug(f"[TOOL] Entering write_to_file with path='{path}', content_length={len(content) if content else 0}, auto_approve={auto_approve}")
 
     if user_input_fn is None:
         user_input_fn = input
 
     if not path or not isinstance(path, str):
         logger.error("No valid 'path' provided to write_to_file.")
-        return format_write_to_file_response(
+        result = format_write_to_file_response(
             False, path or "", error="No valid 'path' provided."
         )
+        logger.debug(f"[TOOL] Exiting write_to_file with error: invalid path")
+        return result
     if content is None or not isinstance(content, str):
         logger.error("No valid 'content' provided to write_to_file.")
         return format_write_to_file_response(
@@ -113,9 +116,11 @@ def write_to_file(
         
         if not approved:
             logger.info("User declined to write file.")
-            return format_write_to_file_response(
+            result = format_write_to_file_response(
                 False, abs_path, cancelled=True, info="User declined to write file."
             )
+            logger.debug(f"[TOOL] Exiting write_to_file: user declined")
+            return result
     else:
         # Even with auto_approve, show a brief preview for logging
         lines = content.split("\n")
@@ -139,11 +144,13 @@ def write_to_file(
         with open(abs_path, "w", encoding="utf-8") as f:
             f.write(content)
         logger.info(f"Successfully wrote to file: {abs_path}")
-        return format_write_to_file_response(
+        result = format_write_to_file_response(
             True, abs_path, 
             info=f"Successfully wrote to file: {abs_path}",
             created=not file_exists  # True if file didn't exist before
         )
+        logger.debug(f"[TOOL] Exiting write_to_file successfully, wrote {len(content)} chars to {abs_path}")
+        return result
     except Exception as e:
         logger.error(f"Error writing to file {abs_path}: {e}")
         return format_write_to_file_response(

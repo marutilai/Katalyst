@@ -18,6 +18,7 @@ def list_code_definition_names(path: str, auto_approve: bool = True) -> str:
     Each definition has: 'type', 'name', 'line'.
     """
     logger = get_logger()
+    logger.debug(f"[TOOL] Entering list_code_definition_names with path='{path}', auto_approve={auto_approve}")
     logger.debug(
         f"Entered list_code_definition_names with path: {path}, auto_approve: {auto_approve}"
     )
@@ -46,5 +47,5 @@ def list_code_definition_names(path: str, auto_approve: bool = True) -> str:
                         }
                     )
         files_json.append(file_entry)
-    logger.debug("Exiting list_code_definition_names")
+    logger.debug(f"[TOOL] Exiting list_code_definition_names successfully, processed {len(files_json)} files")
     return json.dumps({"files": files_json})
