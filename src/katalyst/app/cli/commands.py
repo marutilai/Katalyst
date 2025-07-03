@@ -56,6 +56,8 @@ def handle_init_command(graph, config):
 
 OBJECTIVE: Generate a complete developer guide (KATALYST.md) for this repository by analyzing the existing codebase.
 
+IMPORTANT: Start the document with a comprehensive introductory paragraph that describes what this project is, its purpose, key features, and technology stack. This should be the first thing after the title, before any other sections.
+
 CONSTRAINTS:
 - This is PURELY a documentation task
 - Do NOT modify any source code files
@@ -71,7 +73,8 @@ REQUIREMENTS:
    - Key components and their interactions (EVERY module matters)
 
 2. Document the following sections IN DETAIL AND IN THIS ORDER:
-   - Project Overview (brief introduction only)
+   - (Start with introductory paragraph as mentioned above)
+   - Project Overview (expand on the intro with more details)
    - Setup and Installation Commands (step-by-step with prerequisites)
    - Test Commands and Testing Strategy (all test types and commands)
    - Architecture Overview (explain the two-level agent structure, data flow)
