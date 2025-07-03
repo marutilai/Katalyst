@@ -1,6 +1,5 @@
 import os
 from rich.console import Console
-from rich.prompt import Prompt
 from pathlib import Path
 from katalyst.app.ui.input_handler import InputHandler
 
@@ -16,7 +15,8 @@ Available commands:
 /provider  Set LLM provider (openai/anthropic/ollama)
 /model     Set LLM model (gpt4.1 for OpenAI, sonnet4/opus4 for Anthropic)
 /exit      Exit the agent
-(Type your coding task or command below)
+
+Type / to see available commands or enter your coding task below.
 """)
 
 

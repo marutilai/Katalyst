@@ -26,6 +26,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.agents import AgentFinish
 from langgraph.errors import GraphRecursionError
 from rich.console import Console
+from rich.table import Table
 
 # Import async cleanup to register cleanup handlers
 import katalyst.katalyst_core.utils.async_cleanup
@@ -102,19 +103,17 @@ class ReplInterruptHandler:
         current_time = time.time()
         time_since_last = current_time - self.last_interrupt_time
         
-        if time_since_last <= self.double_press_window:
-            self.interrupt_count += 1
-            if self.interrupt_count >= 2:
-                self.console.print("\n\n[bold red]Double interrupt detected. Exiting Katalyst...[/bold red]")
-                self.console.print("[green]Goodbye![/green]")
-                sys.exit(0)
+        # Check if this is a second press within the window
+        if time_since_last <= self.double_press_window and self.interrupt_count >= 1:
+            self.console.print("\n\n[bold red]Double interrupt detected. Exiting Katalyst...[/bold red]")
+            self.console.print("[green]Goodbye![/green]")
+            os._exit(0)  # Force exit immediately
         else:
             self.interrupt_count = 1
+            self.last_interrupt_time = current_time
             self.console.print("\n[yellow]Press Ctrl+C again to exit Katalyst.[/yellow]")
             # Raise KeyboardInterrupt to cancel current input
             raise KeyboardInterrupt()
-        
-        self.last_interrupt_time = current_time
 
 
 def repl(user_input_fn=input):
@@ -169,17 +168,33 @@ def repl(user_input_fn=input):
 
         # Handle slash command selection
         if user_input == "/":
-            # Show interactive command menu
-            selected_command = input_handler.prompt_arrow_menu(
-                title="Select a command",
-                options=slash_commands,
-                quit_keys=["escape"]
-            )
+            # Display commands in a nice table format
+            console.print("\n[bold cyan]Available Commands:[/bold cyan]")
             
-            if selected_command:
-                # Put the selected command back as user input
-                user_input = selected_command
-                console.print(f"[dim]Selected: {selected_command}[/dim]")
+            # Create a table for better formatting
+            table = Table(show_header=False, box=None, padding=(0, 2))
+            table.add_column("Command", style="bold green", no_wrap=True)
+            table.add_column("Description", style="dim")
+            
+            for cmd in slash_commands:
+                table.add_row(cmd["label"], cmd["description"])
+            
+            console.print(table)
+            console.print("\n[dim]Type a command or press Enter to cancel[/dim]")
+            
+            # Get user input for the command
+            command_input = input_handler.prompt_text(
+                "[bold green]>[/bold green] /", 
+                default="", 
+                show_default=False
+            ).strip()
+            
+            if command_input:
+                # Add the slash back if user didn't type it
+                if not command_input.startswith("/"):
+                    user_input = "/" + command_input
+                else:
+                    user_input = command_input
             else:
                 # User cancelled
                 continue
