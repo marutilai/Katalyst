@@ -1,6 +1,9 @@
 import os
 import json
 import warnings
+import signal
+import sys
+import time
 from dotenv import load_dotenv
 
 # Suppress tree-sitter deprecation warning
@@ -85,6 +88,35 @@ def print_run_summary(final_state: dict, input_handler: InputHandler = None):
     console.print("\n[green]Katalyst Agent is now ready for a new task![/green]")
 
 
+class ReplInterruptHandler:
+    """Handles interrupt signals for the REPL with double-press detection."""
+    
+    def __init__(self, console):
+        self.console = console
+        self.last_interrupt_time = 0
+        self.interrupt_count = 0
+        self.double_press_window = 0.5
+    
+    def __call__(self, signum, frame):
+        """Handle SIGINT with double-press detection."""
+        current_time = time.time()
+        time_since_last = current_time - self.last_interrupt_time
+        
+        if time_since_last <= self.double_press_window:
+            self.interrupt_count += 1
+            if self.interrupt_count >= 2:
+                self.console.print("\n\n[bold red]Double interrupt detected. Exiting Katalyst...[/bold red]")
+                self.console.print("[green]Goodbye![/green]")
+                sys.exit(0)
+        else:
+            self.interrupt_count = 1
+            self.console.print("\n[yellow]Press Ctrl+C again to exit Katalyst.[/yellow]")
+            # Raise KeyboardInterrupt to cancel current input
+            raise KeyboardInterrupt()
+        
+        self.last_interrupt_time = current_time
+
+
 def repl(user_input_fn=input):
     """
     This is the main REPL loop for the Katalyst agent.
@@ -102,33 +134,9 @@ def repl(user_input_fn=input):
         "recursion_limit": int(os.getenv("KATALYST_RECURSION_LIMIT", 250)),
     }
     
-    # Setup global interrupt handler for REPL
-    def global_interrupt_handler(signum, frame):
-        import time
-        current_time = time.time()
-        if not hasattr(global_interrupt_handler, 'last_time'):
-            global_interrupt_handler.last_time = 0
-            global_interrupt_handler.count = 0
-            
-        time_since_last = current_time - global_interrupt_handler.last_time
-        
-        if time_since_last <= 0.5:  # 500ms window
-            global_interrupt_handler.count += 1
-            if global_interrupt_handler.count >= 2:
-                console.print("\n\n[bold red]Double interrupt detected. Exiting Katalyst...[/bold red]")
-                console.print("[green]Goodbye![/green]")
-                sys.exit(0)
-        else:
-            global_interrupt_handler.count = 1
-            console.print("\n[yellow]Press Ctrl+C again to exit Katalyst.[/yellow]")
-            # Raise KeyboardInterrupt to cancel current input
-            raise KeyboardInterrupt()
-            
-        global_interrupt_handler.last_time = current_time
-    
-    # Install the global handler
-    import signal
-    signal.signal(signal.SIGINT, global_interrupt_handler)
+    # Setup interrupt handler for REPL
+    interrupt_handler = ReplInterruptHandler(console)
+    signal.signal(signal.SIGINT, interrupt_handler)
     
     # Define available commands for interactive selection
     slash_commands = [
