@@ -2,8 +2,10 @@ import os
 from rich.console import Console
 from rich.prompt import Prompt
 from pathlib import Path
+from katalyst.app.ui.input_handler import InputHandler
 
 console = Console()
+input_handler = InputHandler(console)
 
 
 def show_help():
@@ -146,58 +148,72 @@ After completing KATALYST.md, you MUST delete ONLY the temporary documentation f
 
 
 def handle_provider_command():
-    console.print("\n[bold]Available providers:[/bold]")
-    console.print("1. openai")
-    console.print("2. anthropic")
-    console.print("3. ollama (local models)")
-
-    choice = Prompt.ask("Select provider", choices=["1", "2", "3"], default="1")
-
-    if choice == "1":
-        provider = "openai"
-    elif choice == "2":
-        provider = "anthropic"
-    else:
-        provider = "ollama"
+    providers = [
+        {"label": "OpenAI", "value": "openai", "description": "GPT models via OpenAI API"},
+        {"label": "Anthropic", "value": "anthropic", "description": "Claude models via Anthropic API"},
+        {"label": "Ollama", "value": "ollama", "description": "Local models via Ollama"}
+    ]
+    
+    provider = input_handler.prompt_arrow_menu(
+        title="Select LLM Provider",
+        options=providers,
+        quit_keys=["escape"]
+    )
+    
+    if provider is None:
+        input_handler.show_status("Provider selection cancelled", status="warning")
+        return
     
     os.environ["KATALYST_PROVIDER"] = provider
-    console.print(f"[green]Provider set to: {provider}[/green]")
+    input_handler.show_status(f"Provider set to: {provider}", status="success")
     
     if provider == "ollama":
-        console.print("[yellow]Make sure Ollama is running locally (ollama serve)[/yellow]")
+        input_handler.show_status(
+            "Make sure Ollama is running locally (ollama serve)",
+            status="warning"
+        )
     
-    console.print(f"[yellow]Now choose a model for {provider} using /model[/yellow]")
+    input_handler.show_status(
+        f"Now choose a model for {provider} using /model",
+        status="info"
+    )
 
 
 def handle_model_command():
     provider = os.getenv("KATALYST_PROVIDER")
     if not provider:
-        console.print("[yellow]Please set the provider first using /provider.[/yellow]")
+        input_handler.show_status(
+            "Please set the provider first using /provider.",
+            status="warning"
+        )
         return
+    
     if provider == "openai":
-        console.print("\n[bold]Available OpenAI models:[/bold]")
-        console.print("1. gpt4.1")
-        choice = Prompt.ask("Select model", choices=["1"], default="1")
-        model = "gpt4.1"
+        models = [
+            {"label": "GPT-4.1", "value": "gpt4.1", "description": "Latest GPT-4 model"}
+        ]
     elif provider == "anthropic":
-        console.print("\n[bold]Available Anthropic models:[/bold]")
-        console.print("1. sonnet4")
-        console.print("2. opus4")
-        choice = Prompt.ask("Select model", choices=["1", "2"], default="1")
-        model = "sonnet4" if choice == "1" else "opus4"
+        models = [
+            {"label": "Claude 3.5 Sonnet", "value": "sonnet4", "description": "Fast and capable"},
+            {"label": "Claude 3 Opus", "value": "opus4", "description": "Most capable model"}
+        ]
     else:  # ollama
-        console.print("\n[bold]Available Ollama models:[/bold]")
-        console.print("1. qwen2.5-coder:7b (Best for coding)")
-        console.print("2. phi4 (Fast execution)")
-        console.print("3. codestral (22B model)")
-        console.print("4. devstral (24B agentic model)")
-        choice = Prompt.ask("Select model", choices=["1", "2", "3", "4"], default="1")
-        model_map = {
-            "1": "ollama/qwen2.5-coder:7b",
-            "2": "ollama/phi4",
-            "3": "ollama/codestral",
-            "4": "ollama/devstral",
-        }
-        model = model_map[choice]
+        models = [
+            {"label": "Qwen 2.5 Coder (7B)", "value": "ollama/qwen2.5-coder:7b", "description": "Best for coding tasks"},
+            {"label": "Phi-4", "value": "ollama/phi4", "description": "Fast execution, lightweight"},
+            {"label": "Codestral (22B)", "value": "ollama/codestral", "description": "Large code model"},
+            {"label": "Devstral (24B)", "value": "ollama/devstral", "description": "Agentic coding model"}
+        ]
+    
+    model = input_handler.prompt_arrow_menu(
+        title=f"Select Model for {provider.title()}",
+        options=models,
+        quit_keys=["escape"]
+    )
+    
+    if model is None:
+        input_handler.show_status("Model selection cancelled", status="warning")
+        return
+    
     os.environ["KATALYST_MODEL"] = model
-    console.print(f"[green]Model set to: {model}[/green]")
+    input_handler.show_status(f"Model set to: {model}", status="success")
