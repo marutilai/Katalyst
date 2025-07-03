@@ -7,7 +7,7 @@ import pytest
 pytestmark = pytest.mark.skip("conversation_summarizer uses llms service which has been removed")
 
 from unittest.mock import MagicMock, patch
-from katalyst.katalyst_core.utils.conversation_summarizer import ConversationSummarizer
+from katalyst.katalyst_core.utils._conversation_summarizer import ConversationSummarizer
 
 
 # pytestmark = pytest.mark.unit
