@@ -6,22 +6,29 @@ pytestmark = pytest.mark.unit
 
 
 def test_request_user_input_valid(monkeypatch):
-    # Simulate user selecting the first suggestion
-    monkeypatch.setattr("builtins.input", lambda _: "1")
+    # Use the legacy user_input_fn parameter to avoid terminal menu issues
+    def mock_input(prompt):
+        return "1"  # Select first option
+    
     question = "What is your favorite color?"
     suggestions = ["Red", "Blue", "Green"]
-    result = request_user_input(question, suggestions)
+    result = request_user_input(question, suggestions, user_input_fn=mock_input)
     data = json.loads(result)
     assert data["question_to_ask_user"] == question
-    assert data["user_final_answer"] in suggestions
+    assert data["user_final_answer"] == "Red"
 
 
 def test_request_user_input_custom(monkeypatch):
-    # Simulate user typing a custom answer
-    monkeypatch.setattr("builtins.input", lambda _: "Purple")
+    # Use the legacy user_input_fn parameter to enter custom answer
+    inputs = ["4", "Purple"]  # Select "Let me enter my own answer", then enter "Purple"
+    input_iter = iter(inputs)
+    
+    def mock_input(prompt):
+        return next(input_iter)
+    
     question = "What is your favorite color?"
     suggestions = ["Red", "Blue", "Green"]
-    result = request_user_input(question, suggestions)
+    result = request_user_input(question, suggestions, user_input_fn=mock_input)
     data = json.loads(result)
     assert data["user_final_answer"] == "Purple"
 

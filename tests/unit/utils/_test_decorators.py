@@ -10,7 +10,7 @@ pytestmark = pytest.mark.skip("decorators use chat_history which has been commen
 from unittest.mock import MagicMock, patch
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from katalyst.katalyst_core.state import KatalystState
-from katalyst.katalyst_core.utils.decorators import compress_chat_history
+from katalyst.katalyst_core.utils._decorators import compress_chat_history
 
 
 # pytestmark = pytest.mark.unit

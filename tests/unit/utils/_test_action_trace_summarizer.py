@@ -7,7 +7,7 @@ import pytest
 pytestmark = pytest.mark.skip("action_trace has been commented out in minimal implementation")
 
 from unittest.mock import Mock, patch
-from katalyst.katalyst_core.utils.action_trace_summarizer import ActionTraceSummarizer
+from katalyst.katalyst_core.utils._action_trace_summarizer import ActionTraceSummarizer
 from langchain_core.agents import AgentAction
 
 
