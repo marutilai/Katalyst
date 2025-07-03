@@ -14,7 +14,7 @@ from katalyst.katalyst_core.utils.error_handling import (
     classify_error,
     format_error_for_llm,
 )
-from katalyst.katalyst_core.utils.decorators import compress_chat_history
+from katalyst.katalyst_core.utils._decorators import compress_chat_history
 
 
 @compress_chat_history()

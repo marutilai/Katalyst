@@ -10,7 +10,7 @@ import functools
 from typing import Callable, Optional
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage, ToolMessage
 from katalyst.katalyst_core.state import KatalystState
-from katalyst.katalyst_core.utils.conversation_summarizer import ConversationSummarizer
+from katalyst.katalyst_core.utils._conversation_summarizer import ConversationSummarizer
 from katalyst.katalyst_core.utils.logger import get_logger
 
 logger = get_logger()

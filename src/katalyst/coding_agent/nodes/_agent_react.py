@@ -18,9 +18,9 @@ from katalyst.katalyst_core.utils.error_handling import (
     classify_error,
     format_error_for_llm,
 )
-from katalyst.katalyst_core.utils.decorators import compress_chat_history
+from katalyst.katalyst_core.utils._decorators import compress_chat_history
 from katalyst.katalyst_core.utils.task_display import get_task_context_for_agent
-from katalyst.katalyst_core.utils.action_trace_summarizer import ActionTraceSummarizer
+from katalyst.katalyst_core.utils._action_trace_summarizer import ActionTraceSummarizer
 
 REGISTERED_TOOL_FUNCTIONS_MAP = get_tool_functions_map()
 
