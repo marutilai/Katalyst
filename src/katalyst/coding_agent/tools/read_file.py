@@ -20,6 +20,7 @@ def read_file(
     Returns a JSON object with keys: 'path', 'start_line', 'end_line', 'content', and optionally 'error' or 'info'.
     """
     logger = get_logger()
+    logger.debug(f"[TOOL] Entering read_file with path='{path}', start_line={start_line}, end_line={end_line}")
 
     # Validate path argument
     if not path or not isinstance(path, str):
@@ -84,7 +85,7 @@ def read_file(
 
     # Join selected lines for output
     file_contents = "".join(selected_lines)
-    return json.dumps(
+    result = json.dumps(
         {
             "path": abs_path,
             "start_line": s_idx + 1,
@@ -92,3 +93,5 @@ def read_file(
             "content": file_contents,
         }
     )
+    logger.debug(f"[TOOL] Exiting read_file successfully, read {len(selected_lines)} lines from {abs_path}")
+    return result

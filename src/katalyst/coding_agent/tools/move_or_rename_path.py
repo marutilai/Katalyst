@@ -47,6 +47,7 @@ def move_or_rename_path(source_path: str, destination_path: str) -> str:
         str: A JSON string with operation details.
     """
     logger = get_logger()
+    logger.debug(f"[TOOL] Entering move_or_rename_path with source_path='{source_path}', destination_path='{destination_path}'")
     logger.debug(
         f"Entered move_or_rename_path with source: {source_path}, destination: {destination_path}"
     )
@@ -112,12 +113,14 @@ def move_or_rename_path(source_path: str, destination_path: str) -> str:
     try:
         shutil.move(source_path, final_destination_path)
         logger.info(f"Successfully moved '{source_path}' to '{final_destination_path}'")
-        return format_move_or_rename_path_response(
+        result = format_move_or_rename_path_response(
             source_path,
             final_destination_path,
             True,
             info=f"Successfully moved '{source_path}' to '{final_destination_path}'",
         )
+        logger.debug(f"[TOOL] Exiting move_or_rename_path successfully")
+        return result
     except Exception as e:
         logger.error(
             f"Error moving '{source_path}' to '{final_destination_path}': {e}",

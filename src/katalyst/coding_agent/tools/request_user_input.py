@@ -132,4 +132,6 @@ def request_user_input(
         return format_response(question_to_ask_user, "[USER_NO_ANSWER_PROVIDED]")
 
     logger.debug(f"User responded with: {actual_answer}")
-    return format_response(question_to_ask_user, actual_answer)
+    result = format_response(question_to_ask_user, actual_answer)
+    logger.debug(f"[TOOL] Exiting request_user_input successfully with user answer")
+    return result

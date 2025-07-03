@@ -28,9 +28,10 @@ def attempt_completion(result: str) -> str:
     Returns a JSON string with keys: 'success', 'result' (optional), and 'error' (optional).
     """
     logger = get_logger()
+    logger.debug(f"[TOOL] Entering attempt_completion with result_length={len(result) if result else 0}")
     logger.debug(f"Entered attempt_completion with result: {result}")
     if not result or not isinstance(result, str):
         logger.error("No valid 'result' provided to attempt_completion.")
         return format_attempt_completion_response(False, error="No result provided.")
-    logger.debug("Exiting attempt_completion")
+    logger.debug("[TOOL] Exiting attempt_completion successfully")
     return format_attempt_completion_response(True, result=result)

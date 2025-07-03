@@ -160,6 +160,7 @@ async def generate_directory_overview(
     provider = llm_config.get_provider()
     timeout = llm_config.get_timeout()
     
+    logger.debug(f"[TOOL] Entering generate_directory_overview with dir_path='{dir_path}', respect_gitignore={respect_gitignore}")
     logger.debug(f"[generate_directory_overview] Analyzing directory: {dir_path}")
 
     # Validate path is a directory
@@ -281,7 +282,9 @@ async def generate_directory_overview(
     }
     result = await app.ainvoke(initial_state)
 
-    return {
+    output = {
         "summaries": result["summaries"],
         **(result.get("final_summary", {})),
     }
+    logger.debug(f"[TOOL] Exiting generate_directory_overview successfully, analyzed {len(files)} files")
+    return output
