@@ -29,9 +29,6 @@ class InputHandler:
             console: Optional Rich Console instance. Creates new one if not provided.
         """
         self.console = console or Console()
-        self._last_esc_time = 0
-        self._esc_count = 0
-        self._double_press_window = 0.5  # 500ms window
     
     def prompt_text(
         self, 
