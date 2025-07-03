@@ -163,6 +163,7 @@ CLAUDE.md
 
 # Cursor rules
 .cursorrules
+.cursorignore
 
 # Katalyst directory
 .katalyst/ 

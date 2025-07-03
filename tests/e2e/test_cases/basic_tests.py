@@ -1,9 +1,9 @@
 import pytest
-from tests.agent_tests.test_framework import KatalystTestCase, KatalystTestRunner
-from tests.agent_tests.test_rubric import KatalystCodingRubric
-from tests.agent_tests.test_utils import run_test_with_report
+from tests.e2e.test_framework import KatalystTestCase, KatalystTestRunner
+from tests.e2e.test_rubric import KatalystCodingRubric
+from tests.e2e.test_utils import run_test_with_report
 
-pytestmark = pytest.mark.agent
+pytestmark = pytest.mark.e2e
 
 runner = KatalystTestRunner()
 

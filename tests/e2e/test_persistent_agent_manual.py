@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
-"""Test the persistent agent implementation."""
+"""Manual e2e test for the persistent agent implementation."""
 import os
 import sys
+import pytest
 from dotenv import load_dotenv
 
 load_dotenv()
 
+pytestmark = pytest.mark.e2e
+
+
+@pytest.mark.skip(reason="Manual e2e test - requires LLM API keys")
 def test_persistent_agent():
     from katalyst.katalyst_core.graph import build_compiled_graph
     from katalyst.katalyst_core.utils.logger import get_logger

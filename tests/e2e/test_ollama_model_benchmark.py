@@ -1,5 +1,5 @@
 """
-Agent tests for benchmarking Ollama models.
+E2E tests for benchmarking Ollama models.
 
 This module evaluates different Ollama models for the Katalyst ReAct agent on:
 1. Latency (response time)
@@ -263,7 +263,7 @@ Consider your specific use case when choosing a model:
         return report
 
 
-@pytest.mark.agent
+@pytest.mark.e2e
 @pytest.mark.skipif(
     os.getenv("SKIP_OLLAMA_BENCHMARK", "true").lower() == "true",
     reason="Ollama benchmark tests are expensive and disabled by default"
@@ -300,7 +300,7 @@ class TestOllamaModelBenchmark:
         assert len(successful_models) > 0, "At least one model should be benchmarked successfully"
 
 
-@pytest.mark.agent  
+@pytest.mark.e2e  
 def test_ollama_integration_smoke_test():
     """Quick smoke test to verify Ollama integration works."""
     # Save existing env vars

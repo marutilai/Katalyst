@@ -4,10 +4,10 @@ from katalyst.coding_agent.tools.generate_directory_overview import (
     generate_directory_overview,
 )
 
-pytestmark = pytest.mark.agent
+pytestmark = pytest.mark.e2e
 
 
-@pytest.mark.agent
+@pytest.mark.e2e
 @pytest.mark.asyncio
 @pytest.mark.skip(reason="Requires active OpenAI API billing")
 async def test_functional_run_on_full_project():

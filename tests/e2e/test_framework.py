@@ -13,9 +13,9 @@ from katalyst.katalyst_core.graph import build_compiled_graph
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
 from katalyst.katalyst_core.config import get_llm_config
-from tests.agent_tests.test_rubric import KatalystCodingRubric, RubricItemResult
+from tests.e2e.test_rubric import KatalystCodingRubric, RubricItemResult
 
-pytestmark = pytest.mark.agent
+pytestmark = pytest.mark.e2e
 
 # Load environment variables from .env file
 load_dotenv()

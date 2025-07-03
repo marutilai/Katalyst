@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from typing import List
-from tests.agent_tests.test_framework import KatalystTestResult
+from tests.e2e.test_framework import KatalystTestResult
 
 
 def generate_and_validate_report(

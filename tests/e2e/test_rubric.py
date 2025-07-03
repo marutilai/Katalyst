@@ -2,7 +2,7 @@ import pytest
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
-pytestmark = pytest.mark.agent
+pytestmark = pytest.mark.e2e
 
 
 class RubricItemResult(BaseModel):
