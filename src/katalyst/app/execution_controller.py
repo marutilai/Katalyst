@@ -11,7 +11,7 @@ import signal
 import sys
 import os
 import time
-from typing import Optional, Callable
+from typing import Callable
 from katalyst.katalyst_core.utils.logger import get_logger
 from rich.console import Console
 
@@ -29,7 +29,6 @@ class ExecutionController:
         self.logger = get_logger()
         self.console = Console()
         self._cancelled = threading.Event()
-        self._execution_thread: Optional[threading.Thread] = None
         self._original_sigint_handler = None
         self._last_interrupt_time = 0
         self._interrupt_count = 0
