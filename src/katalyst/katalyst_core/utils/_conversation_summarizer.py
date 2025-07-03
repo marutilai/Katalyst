@@ -6,7 +6,8 @@ for coding agents. Uses LLM to create detailed summaries that capture all essent
 """
 
 from typing import List, Dict, Optional
-from katalyst.katalyst_core.services.llms import get_llm_client, get_llm_params
+from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
+from katalyst.katalyst_core.config import get_llm_config
 from katalyst.katalyst_core.utils.logger import get_logger
 
 logger = get_logger()
@@ -102,15 +103,26 @@ class ConversationSummarizer:
         prompt = self._build_text_summary_prompt(text, context)
         
         try:
-            llm = get_llm_client(self.component, async_mode=False, use_instructor=False)
-            llm_params = get_llm_params(self.component)
+            # Get configured model from LLM config
+            llm_config = get_llm_config()
+            model_name = llm_config.get_model_for_component(self.component)
+            provider = llm_config.get_provider()
+            timeout = llm_config.get_timeout()
+            api_base = llm_config.get_api_base()
             
-            response = llm(
-                messages=[{"role": "user", "content": prompt}],
-                **llm_params
+            # Get native LangChain model
+            model = get_langchain_chat_model(
+                model_name=model_name,
+                provider=provider,
+                temperature=0.3,  # Low temperature for focused summaries
+                timeout=timeout,
+                api_base=api_base
             )
             
-            summary = response.choices[0].message.content.strip()
+            # Invoke the model
+            response = model.invoke([{"role": "user", "content": prompt}])
+            
+            summary = response.content.strip()
             logger.info(f"[CONVERSATION_SUMMARIZER] Summarized text from {len(text)} to {len(summary)} chars")
             return summary
             
@@ -171,15 +183,26 @@ CONVERSATION TO SUMMARIZE:
 Output only the summary of the conversation so far, without any additional commentary or explanation."""
 
         try:
-            llm = get_llm_client(self.component, async_mode=False, use_instructor=False)
-            llm_params = get_llm_params(self.component)
+            # Get configured model from LLM config
+            llm_config = get_llm_config()
+            model_name = llm_config.get_model_for_component(self.component)
+            provider = llm_config.get_provider()
+            timeout = llm_config.get_timeout()
+            api_base = llm_config.get_api_base()
             
-            response = llm(
-                messages=[{"role": "user", "content": prompt}],
-                **llm_params
+            # Get native LangChain model
+            model = get_langchain_chat_model(
+                model_name=model_name,
+                provider=provider,
+                temperature=0.3,  # Low temperature for focused summaries
+                timeout=timeout,
+                api_base=api_base
             )
             
-            return response.choices[0].message.content.strip()
+            # Invoke the model
+            response = model.invoke([{"role": "user", "content": prompt}])
+            
+            return response.content.strip()
             
         except Exception as e:
             logger.error(f"[CONVERSATION_SUMMARIZER] Failed to create summary: {str(e)}")

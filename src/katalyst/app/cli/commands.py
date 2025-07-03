@@ -160,7 +160,7 @@ def handle_provider_command():
     else:
         provider = "ollama"
     
-    os.environ["KATALYST_LITELLM_PROVIDER"] = provider
+    os.environ["KATALYST_PROVIDER"] = provider
     console.print(f"[green]Provider set to: {provider}[/green]")
     
     if provider == "ollama":
@@ -170,7 +170,7 @@ def handle_provider_command():
 
 
 def handle_model_command():
-    provider = os.getenv("KATALYST_LITELLM_PROVIDER")
+    provider = os.getenv("KATALYST_PROVIDER")
     if not provider:
         console.print("[yellow]Please set the provider first using /provider.[/yellow]")
         return
@@ -199,5 +199,5 @@ def handle_model_command():
             "4": "ollama/devstral",
         }
         model = model_map[choice]
-    os.environ["KATALYST_LITELLM_MODEL"] = model
+    os.environ["KATALYST_MODEL"] = model
     console.print(f"[green]Model set to: {model}[/green]")

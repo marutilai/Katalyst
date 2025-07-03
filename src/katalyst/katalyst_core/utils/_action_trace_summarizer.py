@@ -7,7 +7,8 @@ for the ReAct agent. Uses LLM to create concise summaries of tool interactions.
 
 from typing import List, Tuple, Optional
 from langchain_core.agents import AgentAction
-from katalyst.katalyst_core.services.llms import get_llm_client, get_llm_params
+from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
+from katalyst.katalyst_core.config import get_llm_config
 from katalyst.katalyst_core.utils.logger import get_logger
 
 logger = get_logger()
@@ -178,18 +179,26 @@ TOOL INTERACTIONS:
 ULTRA-CONCISE SUMMARY (max {int(len(actions_text) * (1 - target_reduction))} chars):"""
 
         try:
-            llm = get_llm_client(self.component, async_mode=False, use_instructor=False)
-            llm_params = get_llm_params(self.component)
+            # Get configured model from LLM config
+            llm_config = get_llm_config()
+            model_name = llm_config.get_model_for_component(self.component)
+            provider = llm_config.get_provider()
+            timeout = llm_config.get_timeout()
+            api_base = llm_config.get_api_base()
             
-            # Use lower temperature for more focused summaries
-            llm_params['temperature'] = 0.1
-            
-            response = llm(
-                messages=[{"role": "user", "content": prompt}],
-                **llm_params
+            # Get native LangChain model with lower temperature for more focused summaries
+            model = get_langchain_chat_model(
+                model_name=model_name,
+                provider=provider,
+                temperature=0.1,
+                timeout=timeout,
+                api_base=api_base
             )
             
-            summary = response.choices[0].message.content.strip()
+            # Invoke the model
+            response = model.invoke([{"role": "user", "content": prompt}])
+            
+            summary = response.content.strip()
             
             # If summary is still too long, truncate it
             max_length = int(len(actions_text) * (1 - target_reduction))

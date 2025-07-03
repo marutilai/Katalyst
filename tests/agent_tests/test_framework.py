@@ -11,7 +11,8 @@ from pydantic import BaseModel, Field
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.graph import build_compiled_graph
 from katalyst.katalyst_core.utils.logger import get_logger
-from katalyst.katalyst_core.services.llms import get_llm_client
+from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
+from katalyst.katalyst_core.config import get_llm_config
 from tests.agent_tests.test_rubric import KatalystCodingRubric, RubricItemResult
 
 pytestmark = pytest.mark.agent
@@ -196,21 +197,23 @@ class KatalystTestRunner:
         prompt = build_llm_eval_prompt(test_case, result)
         self.logger.debug(f"LLM evaluation prompt: {prompt}")
         try:
-            # Use new API for structured output
-            llm_client = get_llm_client("test_evaluator", async_mode=False, use_instructor=True)
-
-            llm_result = llm_client.chat.completions.create(
-                model=test_case.llm_model,
-                response_model=LLMEvaluationResult,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a meticulous and strict code project evaluator. Your job is to assess an AI agent's work against a provided rubric.",
-                    },
-                    {"role": "user", "content": prompt},
-                ],
+            # Use LangChain model with structured output
+            llm_config = get_llm_config()
+            model = get_langchain_chat_model(
+                model_name=test_case.llm_model,
+                provider=llm_config.get_provider(),
                 temperature=0,
+                timeout=llm_config.get_timeout()
             )
+            structured_model = model.with_structured_output(LLMEvaluationResult)
+            
+            from langchain_core.messages import SystemMessage, HumanMessage
+            messages = [
+                SystemMessage(content="You are a meticulous and strict code project evaluator. Your job is to assess an AI agent's work against a provided rubric."),
+                HumanMessage(content=prompt)
+            ]
+            
+            llm_result = structured_model.invoke(messages)
 
             result.llm_evaluation = llm_result
             if not llm_result.overall_passed:
