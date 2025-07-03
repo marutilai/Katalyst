@@ -13,6 +13,7 @@ from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.logger import get_logger
+from katalyst.app.execution_controller import check_execution_cancelled
 
 
 def agent_react(state: KatalystState) -> KatalystState:
@@ -55,6 +56,9 @@ When you have fully completed the implementation, respond with "TASK COMPLETED:"
     state.messages.append(task_message)
     
     try:
+        # Check if execution was cancelled
+        check_execution_cancelled("agent_react")
+        
         # Continue the conversation with the persistent agent
         logger.info(f"[AGENT_REACT] Continuing conversation with persistent agent")
         logger.debug(f"[AGENT_REACT] Message count before: {len(state.messages)}")

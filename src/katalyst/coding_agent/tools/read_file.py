@@ -67,12 +67,7 @@ def read_file(
         logger.error(f"Error reading file {abs_path}: {e}")
         return json.dumps({"error": f"Could not read file {abs_path}: {e}"})
 
-    # Print preview for user (not returned to agent)
-    print(f"\n# Katalyst is about to read the following content from '{abs_path}':")
-    print("-" * 80)
-    for idx, line in enumerate(selected_lines, start=s_idx + 1):
-        print(f"{idx:4d} | {line.rstrip()}")
-    print("-" * 80)
+    # No preview needed for file reading - content is returned to agent
 
 
     # If no lines were selected, return an info message
