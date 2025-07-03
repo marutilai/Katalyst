@@ -1,8 +1,9 @@
 """
-Execution controller for handling global ESC key to halt execution.
+Execution controller for handling global Ctrl+C to halt execution.
 
 This module provides a mechanism to gracefully stop Katalyst execution
-when the user presses the ESC key at any time.
+when the user presses Ctrl+C. A single Ctrl+C cancels the current operation,
+while double Ctrl+C (within 0.5 seconds) exits Katalyst completely.
 """
 
 import threading
@@ -17,7 +18,11 @@ from rich.console import Console
 
 class ExecutionController:
     """
-    Manages execution state and provides global ESC handler functionality.
+    Manages execution state and provides global Ctrl+C (SIGINT) handler functionality.
+    
+    Handles:
+    - Single Ctrl+C: Cancels current operation
+    - Double Ctrl+C: Exits Katalyst completely
     """
     
     def __init__(self):
