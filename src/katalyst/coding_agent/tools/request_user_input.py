@@ -2,6 +2,7 @@ from typing import Dict, List
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.tools import katalyst_tool
 from katalyst.app.ui.input_handler import InputHandler
+from rich.console import Console
 import json
 
 
@@ -99,7 +100,6 @@ def request_user_input(
             actual_answer = user_choice_str
     else:
         # Use arrow navigation for normal operation
-        from rich.console import Console
         console = Console()
         
         console.print(f"\n[bold cyan]Katalyst Question:[/bold cyan]")
