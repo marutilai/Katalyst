@@ -5,6 +5,25 @@ All notable changes to Katalyst will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [Unreleased]
+
+### Added
+- **Interactive command palette** - Type `/` to see all available commands in a formatted table
+- **Improved terminal input handling** - Better arrow menu navigation and fallback for non-TTY environments
+
+### Fixed
+- **Double Ctrl+C exit handling** - Now properly exits on double Ctrl+C using `os._exit()` instead of `sys.exit()`
+- **Terminal I/O issues in tests** - Fixed `request_user_input` tests to work in non-TTY environments
+
+### Changed
+- **Replaced litellm with native LangChain chat models** - Created new `llms.py` service module for better compatibility
+- **Simplified help display** - Shows only implemented commands without unnecessary features
+
+### Removed
+- **Legacy litellm dependency** - Fully migrated to LangChain chat models
+- **Unused test files** - Renamed legacy test files with underscore prefix (_test_*.py)
+
+
 ## [0.7.0] - 2025-01-07
 
 ### Added
