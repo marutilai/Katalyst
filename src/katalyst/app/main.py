@@ -87,19 +87,26 @@ def repl(user_input_fn=input):
     }
     while True:
         user_input = user_input_fn("> ").strip()
+        
+        # Skip empty input
+        if not user_input:
+            continue
 
         if user_input == "/help":
             show_help()
+            continue
         elif user_input == "/init":
             handle_init_command(graph, config)
+            continue
         elif user_input == "/provider":
             handle_provider_command()
+            continue
         elif user_input == "/model":
             handle_model_command()
+            continue
         elif user_input == "/exit":
             print("Goodbye!")
             break
-            continue
         logger.info(
             "\n==================== 🚀🚀🚀  KATALYST RUN START  🚀🚀🚀 ===================="
             )

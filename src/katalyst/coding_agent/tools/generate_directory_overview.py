@@ -5,11 +5,10 @@ from katalyst.katalyst_core.utils.file_utils import (
     list_files_recursively,
     should_ignore_path,
 )
-from katalyst.katalyst_core.services.llms import (
-    get_llm_client,
-    get_llm_params,
-)
 from katalyst.katalyst_core.utils.logger import get_logger
+from katalyst.katalyst_core.config import get_llm_config
+from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
+from langchain_core.messages import SystemMessage
 from langgraph.graph import StateGraph, START, END
 from langgraph.constants import Send
 from pydantic import BaseModel
@@ -63,6 +62,17 @@ JSON object with keys:
 """)
 
 logger = get_logger()
+
+
+def _create_structured_model(model_name: str, provider: str, timeout: int, pydantic_model):
+    """Helper function to create a LangChain model with structured output."""
+    model = get_langchain_chat_model(
+        model_name=model_name,
+        provider=provider,
+        temperature=0.2,
+        timeout=timeout
+    )
+    return model.with_structured_output(pydantic_model)
 
 
 # TypedDicts for state
@@ -144,9 +154,12 @@ async def generate_directory_overview(
             "key_functions": ["main", "parse_args"]
         }
     """
-    # Use simplified API
-    llm = get_llm_client("generate_directory_overview", async_mode=True, use_instructor=True)
-    llm_params = get_llm_params("generate_directory_overview")
+    # Get LLM configuration
+    llm_config = get_llm_config()
+    model_name = llm_config.get_model_for_component("generate_directory_overview")
+    provider = llm_config.get_provider()
+    timeout = llm_config.get_timeout()
+    
     logger.debug(f"[generate_directory_overview] Analyzing directory: {dir_path}")
 
     # Validate path is a directory
@@ -186,14 +199,19 @@ async def generate_directory_overview(
         logger.debug(
             f"[generate_directory_overview] Map prompt for {file_path}:\n{prompt[:5000]}"
         )
-        response = await llm.chat.completions.create(
-            model=llm_params["model"],
-            messages=[{"role": "system", "content": prompt}],
-            response_model=FileSummaryModel,
-            temperature=0.2,
-            timeout=llm_params["timeout"],
+        
+        # Create LLM model with structured output using helper
+        structured_model = _create_structured_model(
+            model_name=model_name,
+            provider=provider,
+            timeout=timeout,
+            pydantic_model=FileSummaryModel
         )
-        # Ensure file_path is correctly set from the input, not the LLM's potential hallucination
+        
+        # Get response
+        response = await structured_model.ainvoke([SystemMessage(content=prompt)])
+        
+        # Ensure file_path is correctly set from the input
         summary_data = response.model_dump()
         summary_data["file_path"] = file_path
         return {"summaries": [summary_data]}
@@ -215,13 +233,18 @@ async def generate_directory_overview(
         )
         prompt = GENERATE_DIRECTORY_OVERVIEW_REDUCE_PROMPT.replace("{docs}", docs)
         logger.debug(f"[generate_directory_overview] Reduce prompt:\n{prompt[:5000]}")
-        response = await llm.chat.completions.create(
-            model=llm_params["model"],
-            messages=[{"role": "system", "content": prompt}],
-            response_model=ReduceSummaryModel,
-            temperature=0.2,
-            timeout=llm_params["timeout"],
+        
+        # Create LLM model with structured output using helper
+        structured_model = _create_structured_model(
+            model_name=model_name,
+            provider=provider,
+            timeout=timeout,
+            pydantic_model=ReduceSummaryModel
         )
+        
+        # Get response
+        response = await structured_model.ainvoke([SystemMessage(content=prompt)])
+        
         return {"final_summary": response.model_dump()}
 
     def route_after_summaries(state: OverallState) -> str:
