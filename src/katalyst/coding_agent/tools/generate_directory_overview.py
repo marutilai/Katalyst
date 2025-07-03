@@ -64,6 +64,17 @@ JSON object with keys:
 logger = get_logger()
 
 
+def _create_structured_model(model_name: str, provider: str, timeout: int, pydantic_model):
+    """Helper function to create a LangChain model with structured output."""
+    model = get_langchain_chat_model(
+        model_name=model_name,
+        provider=provider,
+        temperature=0.2,
+        timeout=timeout
+    )
+    return model.with_structured_output(pydantic_model)
+
+
 # TypedDicts for state
 class FileSummaryDict(TypedDict):
     file_path: str
@@ -149,7 +160,6 @@ async def generate_directory_overview(
     provider = llm_config.get_provider()
     timeout = llm_config.get_timeout()
     
-    logger = get_logger()
     logger.debug(f"[generate_directory_overview] Analyzing directory: {dir_path}")
 
     # Validate path is a directory
@@ -190,14 +200,13 @@ async def generate_directory_overview(
             f"[generate_directory_overview] Map prompt for {file_path}:\n{prompt[:5000]}"
         )
         
-        # Create LLM model with structured output
-        model = get_langchain_chat_model(
+        # Create LLM model with structured output using helper
+        structured_model = _create_structured_model(
             model_name=model_name,
             provider=provider,
-            temperature=0.2,
-            timeout=timeout
+            timeout=timeout,
+            pydantic_model=FileSummaryModel
         )
-        structured_model = model.with_structured_output(FileSummaryModel)
         
         # Get response
         response = await structured_model.ainvoke([SystemMessage(content=prompt)])
@@ -225,14 +234,13 @@ async def generate_directory_overview(
         prompt = GENERATE_DIRECTORY_OVERVIEW_REDUCE_PROMPT.replace("{docs}", docs)
         logger.debug(f"[generate_directory_overview] Reduce prompt:\n{prompt[:5000]}")
         
-        # Create LLM model with structured output
-        model = get_langchain_chat_model(
+        # Create LLM model with structured output using helper
+        structured_model = _create_structured_model(
             model_name=model_name,
             provider=provider,
-            temperature=0.2,
-            timeout=timeout
+            timeout=timeout,
+            pydantic_model=ReduceSummaryModel
         )
-        structured_model = model.with_structured_output(ReduceSummaryModel)
         
         # Get response
         response = await structured_model.ainvoke([SystemMessage(content=prompt)])
