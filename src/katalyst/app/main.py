@@ -4,6 +4,7 @@ import warnings
 import signal
 import sys
 import time
+import sqlite3
 from dotenv import load_dotenv
 
 # Suppress tree-sitter deprecation warning
@@ -22,7 +23,8 @@ from katalyst.app.cli.commands import (
 )
 from katalyst.app.ui.input_handler import InputHandler
 from katalyst.app.execution_controller import execution_controller
-from langgraph.checkpoint.memory import MemorySaver
+from katalyst.app.config import CHECKPOINT_DB
+from langgraph.checkpoint.sqlite import SqliteSaver
 from langchain_core.agents import AgentFinish
 from langgraph.errors import GraphRecursionError
 from rich.console import Console
@@ -125,7 +127,13 @@ def repl(user_input_fn=input):
     logger = get_logger()
     console = Console()
     input_handler = InputHandler(console)
-    checkpointer = MemorySaver()
+    
+    # Use persistent SQLite checkpointer
+    checkpointer = SqliteSaver.from_conn_string(str(CHECKPOINT_DB))
+    
+    # Check if we have an existing session
+    has_previous_session = CHECKPOINT_DB.exists()
+    
     graph = build_compiled_graph().with_config(checkpointer=checkpointer)
     conversation_id = "katalyst-main-thread"
     config = {
@@ -137,12 +145,19 @@ def repl(user_input_fn=input):
     interrupt_handler = ReplInterruptHandler(console)
     signal.signal(signal.SIGINT, interrupt_handler)
     
+    # Show session status
+    if has_previous_session:
+        console.print("\n[cyan]Resuming previous session... (use /new to start fresh)[/cyan]\n")
+    else:
+        console.print("\n[green]Starting new session...[/green]\n")
+    
     # Define available commands for interactive selection
     slash_commands = [
         {"label": "/help", "value": "/help", "description": "Show help message"},
         {"label": "/init", "value": "/init", "description": "Generate developer guide (KATALYST.md)"},
         {"label": "/provider", "value": "/provider", "description": "Set LLM provider"},
         {"label": "/model", "value": "/model", "description": "Set LLM model"},
+        {"label": "/new", "value": "/new", "description": "Start a new conversation (clear history)"},
         {"label": "/exit", "value": "/exit", "description": "Exit the agent"},
     ]
     
@@ -211,6 +226,18 @@ def repl(user_input_fn=input):
         elif user_input == "/model":
             handle_model_command()
             continue
+        elif user_input == "/new":
+            # Clear the checkpoint data for current thread
+            try:
+                checkpointer.delete_checkpoint(config)
+                console.print("[green]Conversation history cleared. Starting fresh![/green]")
+            except sqlite3.Error as e:
+                logger.error(f"Database error while clearing checkpoint: {e}")
+                console.print("[red]Error: Could not clear conversation history due to a database issue.[/red]")
+            except Exception as e:
+                logger.warning(f"Failed to clear checkpoint with an unexpected error: {e}")
+                console.print("[yellow]Note: Could not clear previous session data.[/yellow]")
+            continue
         elif user_input == "/exit":
             print("Goodbye!")
             break
@@ -225,6 +252,7 @@ def repl(user_input_fn=input):
             == "true",
             "project_root_cwd": os.getcwd(),
             "user_input_fn": user_input_fn,
+            "checkpointer": checkpointer,
         }
         final_state = None
         try:

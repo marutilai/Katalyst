@@ -39,6 +39,11 @@ class KatalystState(BaseModel):
         exclude=True,  # Don't persist the agent instance
         description="The persistent create_react_agent instance"
     )
+    checkpointer: Optional[Any] = Field(
+        None,
+        exclude=True,  # Don't persist the checkpointer instance
+        description="The checkpointer to use for the agent"
+    )
     messages: List[BaseMessage] = Field(
         default_factory=list,
         description="Accumulated messages for the persistent agent conversation"
