@@ -7,6 +7,7 @@ This node:
 3. Sets AgentFinish when the task is complete
 """
 
+import os
 from typing import Dict, Any
 from langchain_core.agents import AgentFinish
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
@@ -14,6 +15,9 @@ from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.app.execution_controller import check_execution_cancelled
+
+# Control verbose logging of agent reasoning
+VERBOSE_REASONING = os.getenv("KATALYST_VERBOSE_REASONING", "false").lower() == "true"
 
 
 def agent_react(state: KatalystState) -> KatalystState:
@@ -63,11 +67,38 @@ When you have fully completed the implementation, respond with "TASK COMPLETED:"
         logger.info(f"[AGENT_REACT] Continuing conversation with persistent agent")
         logger.debug(f"[AGENT_REACT] Message count before: {len(state.messages)}")
         
+        # Log the full prompt if verbose reasoning is enabled
+        if VERBOSE_REASONING:
+            logger.debug("[AGENT_REACT] === FULL PROMPT TO AGENT ===")
+            for i, msg in enumerate(state.messages):
+                msg_type = type(msg).__name__
+                content_preview = msg.content[:500] + "..." if len(msg.content) > 500 else msg.content
+                # Replace newlines for cleaner logging
+                content_preview = content_preview.replace('\n', ' ')
+                logger.debug(f"[AGENT_REACT] Message {i} ({msg_type}): {content_preview}")
+            logger.debug("[AGENT_REACT] === END PROMPT ===")
+        
         result = state.agent_executor.invoke({"messages": state.messages})
         
         # Update messages with the full conversation
+        original_msg_count = len(state.messages) - 1  # -1 because we added task message
         state.messages = result.get("messages", state.messages)
         logger.debug(f"[AGENT_REACT] Message count after: {len(state.messages)}")
+        
+        # Log the agent's reasoning process if verbose
+        if VERBOSE_REASONING:
+            logger.debug("[AGENT_REACT] === AGENT REASONING ===")
+            new_messages = state.messages[original_msg_count:]
+            for msg in new_messages:
+                if isinstance(msg, HumanMessage):
+                    logger.debug(f"[AGENT_REACT] Human: {msg.content[:200]}...")
+                elif isinstance(msg, AIMessage):
+                    # Log full AI reasoning to understand thought process
+                    logger.debug(f"[AGENT_REACT] AI Thought: {msg.content}")
+                elif isinstance(msg, ToolMessage):
+                    tool_result = msg.content[:200] + "..." if len(msg.content) > 200 else msg.content
+                    logger.debug(f"[AGENT_REACT] Tool Result ({msg.name}): {tool_result}")
+            logger.debug("[AGENT_REACT] === END REASONING ===")
         
         # Look for the last AI message to check if task is complete
         ai_messages = [msg for msg in state.messages if isinstance(msg, AIMessage)]
