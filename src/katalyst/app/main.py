@@ -4,6 +4,7 @@ import warnings
 import signal
 import sys
 import time
+import sqlite3
 from dotenv import load_dotenv
 
 # Suppress tree-sitter deprecation warning
@@ -230,8 +231,11 @@ def repl(user_input_fn=input):
             try:
                 checkpointer.delete_checkpoint(config)
                 console.print("[green]Conversation history cleared. Starting fresh![/green]")
+            except sqlite3.Error as e:
+                logger.error(f"Database error while clearing checkpoint: {e}")
+                console.print("[red]Error: Could not clear conversation history due to a database issue.[/red]")
             except Exception as e:
-                logger.warning(f"Failed to clear checkpoint: {e}")
+                logger.warning(f"Failed to clear checkpoint with an unexpected error: {e}")
                 console.print("[yellow]Note: Could not clear previous session data.[/yellow]")
             continue
         elif user_input == "/exit":
