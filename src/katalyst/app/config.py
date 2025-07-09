@@ -23,8 +23,8 @@ KATALYST_DIR.mkdir(exist_ok=True)
 # Onboarding flag (now inside .katalyst)
 ONBOARDING_FLAG = KATALYST_DIR / "onboarded"
 
-# State file for the agent (now inside .katalyst)
-KATALYST_STATE_FILE = KATALYST_DIR / "katalyst_state.json"
+# Checkpoint database for conversation persistence
+CHECKPOINT_DB = KATALYST_DIR / "checkpoints.db"
 
 # Common directories and files to ignore in addition to .gitignore
 KATALYST_IGNORE_PATTERNS = {

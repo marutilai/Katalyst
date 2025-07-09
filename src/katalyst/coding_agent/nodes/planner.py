@@ -139,11 +139,11 @@ def planner(state: KatalystState) -> KatalystState:
             api_base=api_base
         )
         
-        # Create the agent executor
+        # Create the agent executor with checkpointer if available
         state.agent_executor = create_react_agent(
             model=agent_model,
             tools=tools,
-            checkpointer=False
+            checkpointer=state.checkpointer if hasattr(state, 'checkpointer') else False
         )
         
         # Initialize conversation with the plan
@@ -153,7 +153,12 @@ def planner(state: KatalystState) -> KatalystState:
 
 I'll work through each task in order. Let's start with the first task.""")
         
-        state.messages = [initial_message]
+        # Preserve existing messages if any, otherwise start fresh
+        if not hasattr(state, 'messages') or state.messages is None:
+            state.messages = []
+        
+        # Append the plan message to existing conversation
+        state.messages.append(initial_message)
         
     except Exception as e:
         logger.error(f"[PLANNER] Failed to generate plan: {str(e)}")

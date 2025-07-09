@@ -33,7 +33,7 @@ The `search_files` tool requires [ripgrep](https://github.com/BurntSushi/ripgrep
 
 ## Features
 
-- Automatic project state persistence: Katalyst saves your project state (such as chat history) to `.katalyst_state.json` in your project directory after every command. 
+- Automatic conversation persistence: Katalyst saves your conversation history to a SQLite database in `.katalyst/checkpoints.db`, allowing you to resume conversations across sessions. Use `/new` to start fresh. 
 
 - Modular Node-Based Architecture: Built on a robust DAG (Directed Acyclic Graph) structure that enables flexible and extensible workflows. The system uses a two-level agent structure with an outer planning loop and inner ReAct (Reason-Act) cycles.
 

@@ -14,6 +14,7 @@ Available commands:
 /init      Generate a developer guide for the repository (saved as KATALYST.md)
 /provider  Set LLM provider (openai/anthropic/ollama)
 /model     Set LLM model (gpt4.1 for OpenAI, sonnet4/opus4 for Anthropic)
+/new       Start a new conversation (clear history)
 /exit      Exit the agent
 
 Type / to see available commands or enter your coding task below.
