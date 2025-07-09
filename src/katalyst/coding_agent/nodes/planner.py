@@ -153,10 +153,6 @@ def planner(state: KatalystState) -> KatalystState:
 
 I'll work through each task in order. Let's start with the first task.""")
         
-        # Preserve existing messages if any, otherwise start fresh
-        if not hasattr(state, 'messages') or state.messages is None:
-            state.messages = []
-        
         # Append the plan message to existing conversation
         state.messages.append(initial_message)
         
