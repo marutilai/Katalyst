@@ -18,6 +18,7 @@ PROVIDER_PROFILES = {
         "execution": "gpt-4.1",  # Fast execution tasks (agent_react, tools)
         "fallback": "gpt-4o",  # Fallback model
         "default_timeout": 45,
+       
     },
     "anthropic": {
         "reasoning": "claude-3-opus-20240229",  # High-reasoning tasks
@@ -55,6 +56,7 @@ COMPONENT_MODEL_MAPPING = {
     "tool_runner": "execution",
     # Default for any other component
     "default": "execution",
+    "summarizer": "execution",
 }
 
 

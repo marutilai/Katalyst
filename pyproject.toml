@@ -23,6 +23,7 @@ dependencies = [
     "langchain-anthropic>=0.3.16,<0.4.0",
     "simple-term-menu>=1.6.4",
     "langgraph-checkpoint-sqlite (>=2.0.10,<3.0.0)",
+    "langmem (==0.0.27)",
 ]
 
 [project.scripts]

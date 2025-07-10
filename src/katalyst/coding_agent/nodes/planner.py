@@ -16,7 +16,7 @@ from katalyst.katalyst_core.utils.tools import get_tool_functions_map, extract_t
 from langchain_core.tools import StructuredTool
 from langchain_core.messages import HumanMessage
 from langgraph.prebuilt import create_react_agent
-
+from katalyst.coding_agent.nodes.summarizer import get_summarization_node
 
 # Simple planner prompt - no complex guidelines
 planner_prompt = ChatPromptTemplate.from_messages(
@@ -143,6 +143,7 @@ def planner(state: KatalystState) -> KatalystState:
         state.agent_executor = create_react_agent(
             model=agent_model,
             tools=tools,
+            pre_model_hook=get_summarization_node(),
             checkpointer=state.checkpointer if hasattr(state, 'checkpointer') else False
         )
         
