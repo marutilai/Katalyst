@@ -29,11 +29,19 @@ PLANNING GUIDELINES:
 - Do not add superfluous steps
 - Ensure each step has all information needed
 
+PRODUCTION-READY REQUIREMENTS:
+- Plan for proper project structure (e.g., tests in tests/ folder, not scattered)
+- Include tasks for comprehensive testing with good coverage
+- Plan for proper error handling and validation
+- Consider security, performance, and maintainability
+- No dummy implementations - each task should result in working, production-grade code
+
 ASSUMPTIONS:
 - Developer will handle basic project setup, package installation, folder creation
 - Focus on implementing features, not configuring environments
+- Developer will follow best practices for the chosen technology stack
 
-The result of the final step should be a fully functional solution that meets ALL the user's requirements.""",
+The result of the final step should be a fully functional, production-ready solution that meets ALL the user's requirements.""",
         ),
         ("human", "{task}"),
     ]
