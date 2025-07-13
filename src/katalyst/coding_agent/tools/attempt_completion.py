@@ -1,5 +1,6 @@
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.tools import katalyst_tool
+from katalyst.katalyst_core.utils.todo_manager import todo_aware
 import json
 
 
@@ -20,6 +21,7 @@ def format_attempt_completion_response(
 @katalyst_tool(
     prompt_module="attempt_completion", prompt_var="ATTEMPT_COMPLETION_TOOL_PROMPT"
 )
+@todo_aware(action="complete_all")
 def attempt_completion(result: str) -> str:
     """
     Presents the final result of the task to the user. Only use this after confirming all previous tool uses were successful.

@@ -22,15 +22,12 @@ class KatalystState(BaseModel):
         description="Function to use for user input (not persisted).",
     )
 
-    # ── long-horizon planning ─────────────────────────────────────────────
-    task_queue: List[str] = Field(
-        default_factory=list, description="Remaining tasks produced by the planner."
+    # ── todo list management ──────────────────────────────────────────────
+    todo_list: List[str] = Field(
+        default_factory=list, description="Current todo list managed by agent."
     )
-    task_idx: int = Field(
-        0, description="Index of the task currently being executed (0-based)."
-    )
-    original_plan: Optional[List[str]] = Field(
-        default=None, description="The initial plan created by the planner."
+    completed_todos: List[str] = Field(
+        default_factory=list, description="Completed todo items for tracking."
     )
 
     # ── ReAct dialogue (inner loop) ───────────────────────────────────────
@@ -58,16 +55,11 @@ class KatalystState(BaseModel):
     )
 
     # ── execution trace / audit ───────────────────────────────────────────
-    completed_tasks: List[Tuple[str, str]] = Field(
-        default_factory=list,
-        description="(task, summary) tuples appended after each task finishes.",
-    )
     tool_execution_history: List[Dict[str, str]] = Field(
         default_factory=list,
         description=(
-            "Concise history of all tool executions across all tasks. "
-            "Each entry contains: task, tool_name, status (success/error), summary. "
-            "Used by replanner to understand full execution context."
+            "History of all tool executions. "
+            "Each entry contains: tool_name, status (success/error), summary."
         ),
     )
 
@@ -77,27 +69,20 @@ class KatalystState(BaseModel):
         description="Captured exception text with trace (fed back into LLM for self-repair).",
     )
     response: Optional[str] = Field(
-        None, description="Final deliverable once the outer loop terminates."
+        None, description="Final deliverable from the agent."
     )
-    plan_feedback: Optional[str] = Field(
+    completion_status: Optional[str] = Field(
         None,
-        description="User feedback about the generated plan to be incorporated in replanning.",
+        description="Set to 'completed' when agent finishes via attempt_completion tool.",
     )
 
     # ── loop guardrails ───────────────────────────────────────────────────
-    inner_cycles: int = Field(
-        0, description="Count of agent↔tool cycles in the current task."
+    agent_cycles: int = Field(
+        0, description="Count of agent reasoning cycles."
     )
-    max_inner_cycles: int = Field(
-        default=int(os.getenv("KATALYST_MAX_INNER_CYCLES", 20)),
-        description="Abort inner loop once this many cycles are hit.",
-    )
-    outer_cycles: int = Field(
-        0, description="Count of planner→replanner cycles for the whole run."
-    )
-    max_outer_cycles: int = Field(
-        default=int(os.getenv("KATALYST_MAX_OUTER_CYCLES", 5)),
-        description="Abort outer loop once this many cycles are hit.",
+    max_agent_cycles: int = Field(
+        default=int(os.getenv("KATALYST_MAX_AGENT_CYCLES", 50)),
+        description="Abort agent once this many cycles are hit.",
     )
 
     class Config:
