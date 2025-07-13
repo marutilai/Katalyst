@@ -9,8 +9,9 @@ This node:
 
 import asyncio
 import inspect
+import json
 from typing import Dict, Any
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, ToolMessage
 from langgraph.prebuilt import create_react_agent
 from langchain_core.tools import StructuredTool
 
@@ -120,9 +121,31 @@ Start by creating a todo list for this task, then work through it systematically
         state.messages.append(task_message)
     
     try:
+        # Check if already completed
+        if state.completion_status == "completed":
+            logger.info("[AGENT_REACT] ✅ Task already completed, skipping execution")
+            return state
+            
+        # Detect if agent is stuck with attempt_completion
+        recent_tool_calls = []
+        for msg in reversed(state.messages[-10:]):
+            if isinstance(msg, ToolMessage) and hasattr(msg, 'name'):
+                recent_tool_calls.append(msg.name)
+                if len(recent_tool_calls) >= 3:
+                    break
+        
+        # If last 3 tool calls were all attempt_completion, we might be stuck
+        if recent_tool_calls[:3] == ["attempt_completion"] * 3:
+            logger.warning("[AGENT_REACT] ⚠️ Detected repeated attempt_completion calls - forcing completion")
+            state.completion_status = "completed"
+            state.error_message = "Agent stuck in completion loop - forced exit"
+            return state
+            
         # Run the agent
-        logger.info("[AGENT_REACT] Starting agent execution")
         state.agent_cycles += 1
+        
+        # Log current cycle
+        logger.info(f"[AGENT_REACT] Cycle {state.agent_cycles}/{state.max_agent_cycles}")
         
         # Check cycle limit
         if state.agent_cycles >= state.max_agent_cycles:
@@ -137,13 +160,53 @@ Start by creating a todo list for this task, then work through it systematically
         # Update messages
         state.messages = result.get("messages", state.messages)
         
+        # Check for completion in the latest messages
+        for msg in reversed(state.messages[-5:]):  # Check last 5 messages
+            if hasattr(msg, 'name') and msg.name == "attempt_completion":
+                # Parse the tool response to check success status
+                try:
+                    if isinstance(msg.content, str):
+                        response_data = json.loads(msg.content)
+                        if response_data.get("success", False):
+                            state.completion_status = "completed"
+                            logger.info("[AGENT_REACT] Task completed successfully via attempt_completion tool")
+                            break
+                except (json.JSONDecodeError, TypeError):
+                    # If not valid JSON, check for success pattern
+                    if isinstance(msg.content, str) and '"success": true' in msg.content:
+                        state.completion_status = "completed"
+                        logger.info("[AGENT_REACT] Task completed via attempt_completion tool")
+                        break
+        
+        # Log the last tool call and its result
+        for msg in reversed(state.messages[-6:]):
+            if isinstance(msg, ToolMessage) and hasattr(msg, 'name'):
+                tool_name = msg.name
+                
+                # Try to parse the result for better logging
+                result_summary = "executed"
+                try:
+                    if isinstance(msg.content, str):
+                        result_data = json.loads(msg.content)
+                        if "message" in result_data:
+                            result_summary = result_data["message"][:100] + "..." if len(result_data["message"]) > 100 else result_data["message"]
+                        elif "error" in result_data:
+                            result_summary = f"error: {result_data['error'][:50]}..."
+                except:
+                    # If not JSON, use first line of content
+                    if isinstance(msg.content, str) and msg.content:
+                        result_summary = msg.content.split('\n')[0][:100] + "..." if len(msg.content.split('\n')[0]) > 100 else msg.content.split('\n')[0]
+                
+                logger.info(f"[AGENT_REACT] Tool '{tool_name}' → {result_summary}")
+                break
+        
         # Check if we should continue or stop
-        if state.completion_status != "completed" and state.agent_cycles < state.max_agent_cycles:
-            # Agent will continue in next cycle
-            logger.debug(f"[AGENT_REACT] Agent continuing, cycle {state.agent_cycles}")
+        if state.completion_status == "completed":
+            logger.info("[AGENT_REACT] ✅ Task completed successfully")
+        elif state.agent_cycles >= state.max_agent_cycles:
+            logger.warning(f"[AGENT_REACT] ⚠️ Reached maximum cycles limit ({state.max_agent_cycles})")
         else:
-            # Agent completed or hit limit
-            logger.info(f"[AGENT_REACT] Agent finished with status: {state.completion_status}")
+            logger.debug("[AGENT_REACT] Continuing to next cycle")
             
             # Set final response
             if state.completion_status == "completed":
@@ -153,19 +216,29 @@ Start by creating a todo list for this task, then work through it systematically
                         state.response = msg.content
                         break
                     
-            # Update tool execution history from messages
-            for msg in state.messages:
-                if hasattr(msg, 'name') and hasattr(msg, 'content'):
-                    # This is a tool message
-                    state.tool_execution_history.append({
-                        "tool_name": msg.name,
-                        "status": "success" if "error" not in msg.content.lower() else "error",
-                        "summary": msg.content[:100] + "..." if len(msg.content) > 100 else msg.content
-                    })
+            # Update tool execution history from new messages only
+            existing_tools = {(h['tool_name'], h['summary']) for h in state.tool_execution_history}
+            
+            # Only check recent messages to avoid duplicates
+            for msg in state.messages[-10:]:
+                if isinstance(msg, ToolMessage) and hasattr(msg, 'name') and hasattr(msg, 'content'):
+                    # Create a meaningful summary
+                    summary = msg.content[:100] + "..." if len(msg.content) > 100 else msg.content
+                    tool_key = (msg.name, summary)
                     
-                    # Check if attempt_completion was called
-                    if msg.name == "attempt_completion" and "success" in msg.content:
-                        state.completion_status = "completed"
+                    if tool_key not in existing_tools:
+                        # Determine status from content
+                        status = "success"
+                        if isinstance(msg.content, str):
+                            if "error" in msg.content.lower() or "failed" in msg.content.lower():
+                                status = "error"
+                        
+                        state.tool_execution_history.append({
+                            "tool_name": msg.name,
+                            "status": status,
+                            "summary": summary
+                        })
+                        existing_tools.add(tool_key)
         
     except Exception as e:
         error_msg = str(e)
