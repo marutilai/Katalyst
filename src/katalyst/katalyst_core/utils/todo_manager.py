@@ -41,6 +41,9 @@ class TodoManager:
         self.completed = []
         self.current_task = task_description
         self.start_time = datetime.now()
+        # Reset _last_complete_time to ensure correct duration calculations
+        if hasattr(self, '_last_complete_time'):
+            del self._last_complete_time
         self.logger.info(f"[TodoManager] Created todo list with {len(items)} items")
         self.save_to_file()
         

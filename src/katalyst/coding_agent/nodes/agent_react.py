@@ -202,7 +202,7 @@ Start by creating a todo list for this task, then work through it systematically
                             result_summary = result_data["message"][:100] + "..." if len(result_data["message"]) > 100 else result_data["message"]
                         elif "error" in result_data:
                             result_summary = f"error: {result_data['error'][:50]}..."
-                except:
+                except (json.JSONDecodeError, TypeError):
                     # Fallback: use first line of raw content
                     if isinstance(msg.content, str) and msg.content:
                         result_summary = msg.content.split('\n')[0][:100] + "..." if len(msg.content.split('\n')[0]) > 100 else msg.content.split('\n')[0]
