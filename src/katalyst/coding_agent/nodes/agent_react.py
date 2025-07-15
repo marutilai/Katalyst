@@ -74,7 +74,7 @@ def agent_react(state: KatalystState) -> KatalystState:
         # Convert tools to StructuredTool format for LangGraph
         tools = convert_tools_to_structured(tool_functions, tool_descriptions_map)
         
-        # Create agent with enhanced system prompt
+        # Define system prompt for the agent
         system_prompt = """You are a senior software engineer implementing production-ready solutions.
 
 CRITICAL WORKFLOW:
@@ -100,22 +100,12 @@ COMMON PITFALLS TO AVOID:
 
 Remember: Quality over speed. Take time to implement things properly."""
         
-        # Add system prompt as first message if not already present
-        # This ensures the agent understands its role and workflow
-        system_prompt_exists = False
-        for msg in state.messages:
-            if hasattr(msg, 'content') and "create_todo_list" in msg.content:
-                system_prompt_exists = True
-                break
-                
-        if not state.messages or not system_prompt_exists:
-            state.messages.insert(0, HumanMessage(content=system_prompt))
-        
         # Create the persistent ReAct agent using LangGraph
-        # This agent will maintain conversation state across multiple cycles
+        # Pass system prompt directly to create_react_agent with progress hooks
         state.agent_executor = create_react_agent(
             model=model,
             tools=tools,
+            prompt=system_prompt,
             checkpointer=state.checkpointer if hasattr(state, 'checkpointer') else False
         )
     
