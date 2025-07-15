@@ -1,6 +1,5 @@
-from typing import List, Tuple, Optional, Union, Callable, Dict, Any
+from typing import List, Optional, Callable, Dict, Any
 from pydantic import BaseModel, Field
-from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.messages import BaseMessage
 import os
 
@@ -22,15 +21,7 @@ class KatalystState(BaseModel):
         description="Function to use for user input (not persisted).",
     )
 
-    # ── todo list management ──────────────────────────────────────────────
-    todo_list: List[str] = Field(
-        default_factory=list, description="Current todo list managed by agent."
-    )
-    completed_todos: List[str] = Field(
-        default_factory=list, description="Completed todo items for tracking."
-    )
-
-    # ── ReAct dialogue (inner loop) ───────────────────────────────────────
+    # ── ReAct dialogue ────────────────────────────────────────────────────
     agent_executor: Optional[Any] = Field(
         None,
         exclude=True,  # Don't persist the agent instance
@@ -44,14 +35,6 @@ class KatalystState(BaseModel):
     messages: List[BaseMessage] = Field(
         default_factory=list,
         description="Accumulated messages for the persistent agent conversation"
-    )
-    agent_outcome: Optional[Union[AgentAction, AgentFinish]] = Field(
-        None,
-        description=(
-            "Output of the latest LLM call: "
-            "• AgentAction → invoke tool\n"
-            "• AgentFinish → task completed"
-        ),
     )
 
     # ── execution trace / audit ───────────────────────────────────────────
@@ -86,4 +69,4 @@ class KatalystState(BaseModel):
     )
 
     class Config:
-        arbitrary_types_allowed = True  # Enables AgentAction / AgentFinish
+        arbitrary_types_allowed = True  # Enables Any types for agent_executor, checkpointer

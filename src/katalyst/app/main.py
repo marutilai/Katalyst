@@ -25,7 +25,6 @@ from katalyst.app.ui.input_handler import InputHandler
 from katalyst.app.execution_controller import execution_controller
 from katalyst.app.config import CHECKPOINT_DB
 from langgraph.checkpoint.sqlite import SqliteSaver
-from langchain_core.agents import AgentFinish
 from langgraph.errors import GraphRecursionError
 from rich.console import Console
 from rich.table import Table
@@ -72,20 +71,6 @@ def print_run_summary(final_state: dict, input_handler: InputHandler = None):
             )
     else:
         console.print("\n[bold]KATALYST RUN FINISHED[/bold] (No explicit overall response message)")
-        completed_tasks = final_state.get("completed_tasks", [])
-        if completed_tasks:
-            console.print("\n[bold]Summary of completed sub-tasks:[/bold]")
-            for i, (task_desc, summary) in enumerate(completed_tasks):
-                console.print(f"  [cyan]{i+1}.[/cyan] '{task_desc}': {summary}")
-        else:
-            console.print("[dim]No sub-tasks were marked as completed with a summary.[/dim]")
-        last_agent_outcome = final_state.get("agent_outcome")
-        if isinstance(last_agent_outcome, AgentFinish):
-            console.print(
-                f"[dim]Last agent step was a finish with output: {last_agent_outcome.return_values.get('output')}[/dim]"
-            )
-        elif last_agent_outcome:
-            console.print(f"[dim]Last agent step was an action: {last_agent_outcome.tool}[/dim]")
     
     console.print(f"\n[blue]Full logs are available in: {_LOG_FILE}[/blue]")
     console.print("\n[green]Katalyst Agent is now ready for a new task![/green]")
