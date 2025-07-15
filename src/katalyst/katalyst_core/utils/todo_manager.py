@@ -47,7 +47,7 @@ class TodoManager:
         # Reset _last_complete_time to ensure correct duration calculations
         if hasattr(self, '_last_complete_time'):
             del self._last_complete_time
-        self.logger.info(f"[TodoManager] Created todo list with {len(items)} items")
+        self.logger.info(f"[TodoManager] 📋 Created todo list with {len(items)} items (0/{len(items)} completed)")
         self.save_to_file()
         
     def add_item(self, item: str):
@@ -72,7 +72,9 @@ class TodoManager:
                 "completed_at": datetime.now().strftime("%H:%M"),
                 "duration_mins": self._calculate_duration()
             })
-            self.logger.info(f"[TodoManager] Completed: {item}")
+            # Get progress info for logging
+            progress = self.get_progress_info()
+            self.logger.info(f"[TodoManager] ✓ Completed ({progress['completed']}/{progress['total']}): {item}")
             self.save_to_file()
             
     def reorder_item(self, old_index: int, new_index: int):
@@ -93,6 +95,19 @@ class TodoManager:
     def get_current_list(self) -> List[str]:
         """Get the current todo list."""
         return self.todos.copy()
+    
+    def get_progress_info(self):
+        """Get current progress information."""
+        completed_count = len(self.completed)
+        total_count = completed_count + len(self.todos)
+        current_task = self.todos[0] if self.todos else None
+        
+        return {
+            "completed": completed_count,
+            "total": total_count,
+            "current_task": current_task,
+            "percentage": int((completed_count / total_count * 100)) if total_count > 0 else 0
+        }
         
     def _calculate_duration(self) -> int:
         """Calculate duration in minutes since start."""

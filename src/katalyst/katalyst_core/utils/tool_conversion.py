@@ -73,5 +73,5 @@ def convert_tools_to_structured(
             
         tools.append(structured_tool)
     
-    logger.info(f"Converted {len(tools)} tools to StructuredTool format")
+    logger.debug(f"Converted {len(tools)} tools to StructuredTool format")
     return tools

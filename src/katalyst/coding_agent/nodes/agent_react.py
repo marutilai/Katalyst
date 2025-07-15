@@ -26,7 +26,6 @@ from katalyst.app.execution_controller import check_execution_cancelled
 
 
 
-
 def agent_react(state: KatalystState) -> KatalystState:
     """
     Main entry point for the ReAct agent node.
@@ -157,7 +156,7 @@ Start by creating a todo list for this task, then work through it systematically
         # ===== EXECUTE ONE AGENT CYCLE =====
         state.agent_cycles += 1
         
-        # Log progress for visibility
+        # Log cycle number
         logger.info(f"[AGENT_REACT] Cycle {state.agent_cycles}/{state.max_agent_cycles}")
         
         # Check if we've hit the maximum allowed cycles
@@ -187,8 +186,8 @@ Start by creating a todo list for this task, then work through it systematically
                     # Tool response wasn't valid JSON, let the agent retry
                     pass
         
-        # ===== LOG TOOL EXECUTION FOR DEBUGGING =====
-        # Find and log the most recent tool call to help with debugging
+        # ===== LOG TOOL EXECUTION =====
+        # Find and log the most recent tool call
         for msg in reversed(state.messages[-6:]):
             if isinstance(msg, ToolMessage) and hasattr(msg, 'name'):
                 tool_name = msg.name
@@ -209,6 +208,7 @@ Start by creating a todo list for this task, then work through it systematically
                         result_summary = msg.content.split('\n')[0][:100] + "..." if len(msg.content.split('\n')[0]) > 100 else msg.content.split('\n')[0]
                 
                 logger.info(f"[AGENT_REACT] Tool '{tool_name}' → {result_summary}")
+                
                 break
         
         # ===== UPDATE TOOL EXECUTION HISTORY =====

@@ -99,23 +99,24 @@ def update_todo_list(
                 error="Invalid new_position"
             )
     
-    # Log the request (actual modification happens in tool_runner)
-    log_message = f"[UPDATE_TODO_LIST] Request to {action}"
-    if task_description:
-        log_message += f" task: '{task_description}'"
-    if task_index:
-        log_message += f" at index {task_index}"
-    if new_position:
-        log_message += f" to position {new_position}"
-    if reason:
-        log_message += f" (Reason: {reason})"
+    # Log the request (actual modification happens in the @todo_aware decorator)
+    if action != "show":  # Don't log "show" requests as they're just status checks
+        log_message = f"[UPDATE_TODO_LIST] Request to {action}"
+        if task_description:
+            log_message += f" task: '{task_description}'"
+        if task_index:
+            log_message += f" at index {task_index}"
+        if new_position:
+            log_message += f" to position {new_position}"
+        if reason:
+            log_message += f" (Reason: {reason})"
+        
+        logger.info(log_message)
     
-    logger.info(log_message)
-    
-    # Return success - the tool_runner will handle the actual state modification
-    # and populate the updated_list
+    # Return success - the @todo_aware decorator will handle the actual modification
+    # and populate the updated_list for "show" action
     return format_update_response(
         True,
         f"Todo list update request processed: {action}",
-        updated_list=None  # Will be populated by tool_runner
+        updated_list=None  # Will be populated by @todo_aware decorator for "show"
     )
