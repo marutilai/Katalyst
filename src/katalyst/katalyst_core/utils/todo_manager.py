@@ -35,6 +35,9 @@ class TodoManager:
         # Ensure directory exists
         os.makedirs(os.path.dirname(self.file_path), exist_ok=True)
         
+        # Load existing todos if file exists
+        self.load_from_file()
+        
     def create_list(self, items: List[str], task_description: str = ""):
         """Create a new todo list."""
         self.todos = items.copy()
@@ -136,6 +139,67 @@ class TodoManager:
             
         except Exception as e:
             self.logger.error(f"[TodoManager] Failed to save todo list: {e}")
+    
+    def load_from_file(self):
+        """Load todo list from markdown file if it exists."""
+        if not os.path.exists(self.file_path):
+            self.logger.debug(f"[TodoManager] No existing todo file found at {self.file_path}")
+            return
+            
+        try:
+            with open(self.file_path, 'r') as f:
+                content = f.read()
+                
+            # Parse the markdown content
+            lines = content.split('\n')
+            parsing_todos = False
+            
+            for line in lines:
+                line = line.strip()
+                
+                # Extract task description
+                if line.startswith("**Task**:"):
+                    self.current_task = line.split(":", 1)[1].strip()
+                    if self.current_task == "General Development":
+                        self.current_task = None
+                        
+                # Look for the todo section
+                if line.startswith("## Current ToDos"):
+                    parsing_todos = True
+                    continue
+                    
+                # Parse todo items
+                if parsing_todos and line.startswith("-"):
+                    if line.startswith("- [x]"):
+                        # Completed task
+                        task_match = line[6:].strip()
+                        # Remove duration info
+                        if " *(" in task_match:
+                            task_text = task_match.split(" *(")[0]
+                            duration_str = task_match.split(" *(")[1].rstrip(")*")
+                            duration_mins = int(duration_str.split()[0])
+                        else:
+                            task_text = task_match
+                            duration_mins = 0
+                            
+                        self.completed.append({
+                            "task": task_text,
+                            "duration_mins": duration_mins,
+                            "completed_at": datetime.now()  # Approximate
+                        })
+                    elif line.startswith("- [→]") or line.startswith("- [ ]"):
+                        # Pending task
+                        task_text = line[6:].strip()
+                        self.todos.append(task_text)
+                        
+            self.logger.info(f"[TodoManager] Loaded {len(self.todos)} pending and {len(self.completed)} completed todos from disk")
+            
+        except Exception as e:
+            self.logger.error(f"[TodoManager] Failed to load todo list: {e}")
+            # Reset to empty state on error
+            self.todos = []
+            self.completed = []
+            self.current_task = None
 
 
 def todo_aware(action: str = "update"):

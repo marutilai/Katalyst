@@ -13,7 +13,6 @@ build context and work through complex tasks systematically.
 """
 
 import json
-from typing import Dict, Any
 from langchain_core.messages import HumanMessage, ToolMessage
 from langgraph.prebuilt import create_react_agent
 
@@ -80,10 +79,12 @@ def agent_react(state: KatalystState) -> KatalystState:
         system_prompt = """You are a senior software engineer implementing production-ready solutions.
 
 CRITICAL WORKFLOW:
-1. ALWAYS start with 'create_todo_list' to plan your implementation
-2. Work through todos systematically - complete one before starting the next
-3. Mark todos complete with 'update_todo_list' as you finish them
-4. Only use 'attempt_completion' when ALL todos are done
+1. Start by checking existing todos with 'update_todo_list' action='show'
+2. If no todos exist, use 'create_todo_list' to plan your implementation
+3. If todos already exist, add new tasks with 'update_todo_list' action='add'
+4. Work through todos systematically - complete one before starting the next
+5. Mark todos complete with 'update_todo_list' as you finish them
+6. Only use 'attempt_completion' when ALL todos are done
 
 KEY PRINCIPLES:
 - Implement complete, working solutions (no placeholders or TODOs)
@@ -93,7 +94,7 @@ KEY PRINCIPLES:
 - If you discover additional work, add it to your todo list
 
 COMMON PITFALLS TO AVOID:
-- Don't skip the planning phase - always create a todo list first
+- Don't create a new todo list without checking existing ones first
 - Don't mark tasks complete until they're fully implemented
 - Don't use attempt_completion if any todos remain incomplete
 - Don't create files unless necessary for the task
