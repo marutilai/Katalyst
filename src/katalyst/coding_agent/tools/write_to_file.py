@@ -122,20 +122,28 @@ def write_to_file(
             logger.debug(f"[TOOL] Exiting write_to_file: user declined")
             return result
     else:
-        # Even with auto_approve, show a brief preview for logging
+        # Even with auto_approve, show a meaningful preview for logging
         lines = content.split("\n")
         print(f"\n# Writing to '{abs_path}' ({len(lines)} lines)")
-        if len(lines) <= 10:
+        print("─" * 80)  # Horizontal separator
+        
+        # Show more content: up to 50 lines total
+        if len(lines) <= 50:
+            # Show all lines if 50 or fewer
             for line_num, line in enumerate(lines, 1):
                 print(f"{line_num:4d} | {line}")
         else:
-            # Show first 5 and last 5 lines
-            for line_num, line in enumerate(lines[:5], 1):
+            # Show first 35 and last 15 lines for longer files
+            for line_num, line in enumerate(lines[:35], 1):
                 print(f"{line_num:4d} | {line}")
             print("     | ...")
-            start_num = len(lines) - 4
-            for idx, line in enumerate(lines[-5:]):
+            print(f"     | [{len(lines) - 50} lines omitted]")
+            print("     | ...")
+            start_num = len(lines) - 14
+            for idx, line in enumerate(lines[-15:]):
                 print(f"{start_num + idx:4d} | {line}")
+        
+        print("─" * 80)  # Horizontal separator
 
     try:
         
