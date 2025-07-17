@@ -65,6 +65,9 @@ langchain-ollama = "^0.3.3"
 langchain-anthropic = "^0.3.16"
 simple-term-menu = "^1.6.4"
 
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.12.4"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
