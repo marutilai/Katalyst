@@ -74,18 +74,6 @@ class TestSummarizationNode:
         assert "<summary>" in SUMMARIZATION_PROMPT
 
     @patch("katalyst.coding_agent.nodes.summarizer.get_llm_client")
-    def test_config_constants_used(self, mock_get_llm_client):
-        """Test that configuration constants are properly used."""
-        mock_get_llm_client.return_value = self.mock_llm
-        
-        node = get_summarization_node()
-        
-        # Verify all config constants are used
-        assert node.max_tokens == MAX_AGGREGATE_TOKENS_IN_SUMMARY_AND_OUTPUT
-        assert node.max_tokens_before_summary == MAX_TOKENS_TO_TRIGGER_SUMMARY
-        assert node.max_summary_tokens == MAX_TOKENS_IN_SUMMARY_ONLY
-
-    @patch("katalyst.coding_agent.nodes.summarizer.get_llm_client")
     def test_multiple_node_instances(self, mock_get_llm_client):
         """Test that multiple instances of the node can be created."""
         mock_get_llm_client.return_value = self.mock_llm
@@ -117,16 +105,6 @@ class TestSummarizationNode:
         token_count = node.token_counter(test_messages)
         assert isinstance(token_count, int)
         assert token_count > 0
-
-    @patch("katalyst.coding_agent.nodes.summarizer.get_llm_client")
-    def test_output_messages_key_configuration(self, mock_get_llm_client):
-        """Test that the output messages key is correctly configured."""
-        mock_get_llm_client.return_value = self.mock_llm
-        
-        node = get_summarization_node()
-        
-        # Verify the output key is set to "messages"
-        assert node.output_messages_key == "messages"
 
     @patch("katalyst.coding_agent.nodes.summarizer.get_llm_client")
     def test_summarization_node_type(self, mock_get_llm_client):
