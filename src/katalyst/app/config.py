@@ -56,3 +56,11 @@ KATALYST_IGNORE_PATTERNS = {
     # Project specific
     ".katalyst",
 }
+
+#TODO: Explanatory Variable Names (Config Variables)
+# Maximum number of tokens to return in the final output. Will be enforced only after summarization.
+MAX_AGGREGATE_TOKENS_IN_SUMMARY_AND_OUTPUT = 50000 # 50k
+# Maximum number of tokens to accumulate before triggering summarization.
+MAX_TOKENS_TO_TRIGGER_SUMMARY = 40000 # 40k
+# Maximum number of tokens to budget for the summary.
+MAX_TOKENS_IN_SUMMARY_ONLY = 8000 # 8k

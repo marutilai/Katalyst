@@ -17,6 +17,15 @@ from langchain_core.tools import StructuredTool
 from langchain_core.messages import HumanMessage
 from langgraph.prebuilt import create_react_agent
 from katalyst.coding_agent.nodes.summarizer import get_summarization_node
+from langgraph.prebuilt.chat_agent_executor import AgentState as LangGraphAgentState
+from typing import Any
+
+class ReactAgentState(LangGraphAgentState):
+    """
+    Custom state for the ReactAgent.
+    """
+    context: dict[str, Any]
+
 
 # Simple planner prompt - no complex guidelines
 planner_prompt = ChatPromptTemplate.from_messages(
@@ -138,13 +147,16 @@ def planner(state: KatalystState) -> KatalystState:
             timeout=timeout,
             api_base=api_base
         )
-        
+        summarization_node = get_summarization_node()
         # Create the agent executor with checkpointer if available
         state.agent_executor = create_react_agent(
             model=agent_model,
             tools=tools,
-            pre_model_hook=get_summarization_node(),
-            checkpointer=state.checkpointer if hasattr(state, 'checkpointer') else False
+            pre_model_hook=summarization_node,
+            state_schema=ReactAgentState,
+            checkpointer=state.checkpointer if hasattr(state, 'checkpointer') else False,
+            # uncomment for debugging
+            debug=False,
         )
         
         # Initialize conversation with the plan
