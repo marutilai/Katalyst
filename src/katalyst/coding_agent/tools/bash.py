@@ -5,7 +5,7 @@ import os
 import json
 
 
-def format_execute_command_response(
+def format_bash_response(
     success: bool,
     command: str,
     cwd: str,
@@ -29,8 +29,8 @@ def format_execute_command_response(
     return json.dumps(resp)
 
 
-@katalyst_tool(prompt_module="execute_command", prompt_var="EXECUTE_COMMAND_TOOL_PROMPT")
-def execute_command(
+@katalyst_tool(prompt_module="bash", prompt_var="BASH_TOOL_PROMPT")
+def bash(
     command: str,
     cwd: str = None,
     timeout: int = 30,
@@ -43,18 +43,18 @@ def execute_command(
       - command: str (the CLI command to execute)
       - cwd: str (optional, working directory)
       - timeout: int (optional, seconds to wait before killing the process)
-      - auto_approve: bool (default False)
+      - auto_approve: bool (default True)
     Returns a JSON string detailing the command output, error, or user denial with feedback.
     """
     logger = get_logger()
     logger.debug(
-        f"Entered execute_command with command={command}, cwd={cwd}, timeout={timeout}, auto_approve={auto_approve}"
+        f"Entered bash with command={command}, cwd={cwd}, timeout={timeout}, auto_approve={auto_approve}"
     )
 
     # Validate command
     if not command or not isinstance(command, str):
-        logger.error("No valid 'command' provided to execute_command.")
-        return format_execute_command_response(
+        logger.error("No valid 'command' provided to bash.")
+        return format_bash_response(
             False,
             command or "",
             cwd or os.getcwd(),
@@ -66,7 +66,7 @@ def execute_command(
         absolute_cwd = os.path.abspath(cwd)
         if not os.path.isdir(absolute_cwd):
             logger.error(f"The specified 'cwd': '{cwd}' is not a valid directory.")
-            return format_execute_command_response(
+            return format_bash_response(
                 False,
                 command,
                 cwd,
@@ -101,7 +101,7 @@ def execute_command(
                 "Instruct Katalyst on what to do instead as you have rejected the command execution: "
             ).strip()
             logger.info("User denied permission to execute command.")
-            return format_execute_command_response(
+            return format_bash_response(
                 False, command, absolute_cwd, user_instruction=feedback
             )
 
@@ -123,14 +123,14 @@ def execute_command(
         stdout = result.stdout.strip() if result.stdout else None
         stderr = result.stderr.strip() if result.stderr else None
         if result.returncode == 0:
-            logger.debug(f"[TOOL] Exiting execute_command successfully, executed '{command}'")
-            return format_execute_command_response(
+            logger.debug(f"[TOOL] Exiting bash successfully, executed '{command}'")
+            return format_bash_response(
                 True, command, absolute_cwd, stdout=stdout, stderr=stderr
             )
         else:
             error_message = f"Command '{command}' failed with code {result.returncode}."
             logger.error(error_message)
-            return format_execute_command_response(
+            return format_bash_response(
                 False,
                 command,
                 absolute_cwd,
@@ -140,7 +140,7 @@ def execute_command(
             )
     except subprocess.TimeoutExpired:
         logger.error(f"Command '{command}' timed out after {timeout} seconds.")
-        return format_execute_command_response(
+        return format_bash_response(
             False,
             command,
             absolute_cwd,
@@ -148,7 +148,7 @@ def execute_command(
         )
     except FileNotFoundError:
         logger.error(f"Command not found: {command.split()[0]}")
-        return format_execute_command_response(
+        return format_bash_response(
             False,
             command,
             absolute_cwd,
@@ -156,11 +156,11 @@ def execute_command(
         )
     except Exception as e:
         logger.exception(f"Error executing command '{command}'.")
-        return format_execute_command_response(
+        return format_bash_response(
             False,
             command,
             absolute_cwd,
             error=f"An unexpected error occurred while executing command '{command}': {e}",
         )
     finally:
-        logger.debug("Exiting execute_command")
+        logger.debug("Exiting bash")

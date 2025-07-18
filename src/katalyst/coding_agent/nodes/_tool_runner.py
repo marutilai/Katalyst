@@ -958,9 +958,9 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 except json.JSONDecodeError:
                     pass
             
-            # Invalidate directory cache on execute_command
-            if tool_name == "execute_command" and state.directory_cache:
-                logger.info("[TOOL_RUNNER][DIR_CACHE] Invalidating directory cache due to execute_command")
+            # Invalidate directory cache on bash
+            if tool_name == "bash" and state.directory_cache:
+                logger.info("[TOOL_RUNNER][DIR_CACHE] Invalidating directory cache due to bash")
                 cache = DirectoryCache.from_dict(state.directory_cache)
                 cache.invalidate()
                 state.directory_cache = cache.to_dict()

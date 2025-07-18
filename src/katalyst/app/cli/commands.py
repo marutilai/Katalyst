@@ -124,8 +124,8 @@ After completing KATALYST.md, you MUST delete ONLY the temporary documentation f
 1. Check for temporary files in BOTH the root directory AND docs/ directory
 2. Look for files YOU created with patterns like: _*.md, *_temp*.md, *_analysis*.md, *_notes*.md, tree.txt, project_tree.txt
 3. Do NOT delete: KATALYST.md, README.md, or any existing project documentation
-4. Use execute_command to remove ONLY your temporary files
-5. Example: execute_command("rm _project_analysis.md docs/tree.txt _tech_notes.md")""",
+4. Use bash to remove ONLY your temporary files
+5. Example: bash("rm _project_analysis.md docs/tree.txt _tech_notes.md")""",
         "auto_approve": True,  # Auto-approve file creation for the init process
         "project_root_cwd": os.getcwd(),
     }
