@@ -115,7 +115,7 @@ Description: This comprehensive playbook provides a systematic approach to safel
 
 ### Type-Specific Considerations:
 - **Files/Directories:** Use `bash` tool with `mv` command
-- **Code elements:** Use `apply_source_code_diff` for precise replacements
+- **Code elements:** Use `edit` or `multiedit` for replacements
 - **Import ordering:** Maintain PEP 8 import order
 
 ## Step 5: Execute Rename - Target Definition

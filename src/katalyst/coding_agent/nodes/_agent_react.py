@@ -137,7 +137,7 @@ Remember: Tasks should represent meaningful work units, not individual file oper
 
 ### 2. **BEFORE write - MANDATORY CHECK**:
    - Check "Recent File Operations" for the file path
-   - If file shows as "created" → MUST use apply_source_code_diff to modify
+   - If file shows as "created" → MUST use edit or multiedit to modify
    - Creating a file that already exists will FAIL
    - Trust the context - it never lies about file existence
 

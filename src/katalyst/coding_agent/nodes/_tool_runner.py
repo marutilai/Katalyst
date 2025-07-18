@@ -177,7 +177,7 @@ def _validate_file_path(tool_name: str, tool_input: Dict[str, Any], agent_action
     Returns:
         True if path is invalid (should block), False otherwise
     """
-    if tool_name not in ["write", "apply_source_code_diff"] or "path" not in tool_input:
+    if tool_name not in ["write"] or "path" not in tool_input:
         return False
     
     path = tool_input.get("path", "")
@@ -926,12 +926,12 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 except json.JSONDecodeError:
                     pass
             
-            # Track apply_source_code_diff operations and update cache
-            if tool_name == "apply_source_code_diff" and isinstance(observation, str):
+            # Track edit/multiedit operations and update cache
+            if tool_name in ["edit", "multiedit"] and isinstance(observation, str):
                 try:
                     obs_data = json.loads(observation)
-                    if obs_data.get("success") and "path" in obs_data:
-                        file_path = obs_data["path"]
+                    if obs_data.get("success") and "file_path" in obs_data:
+                        file_path = obs_data["file_path"]
                         state.operation_context.add_file_operation(
                             file_path=file_path,
                             operation="modified"
