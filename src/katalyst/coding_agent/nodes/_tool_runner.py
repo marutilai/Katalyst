@@ -135,7 +135,7 @@ def _check_redundant_operation(tool_name: str, tool_input: Dict[str, Any], agent
         True if redundant (should block), False otherwise
     """
     # Only check for read/query operations (not writes)
-    read_operations = ["read_file", "list_files", "search_in_file", "search_in_directory"]
+    read_operations = ["read_file", "ls", "search_in_file", "search_in_directory"]
     if tool_name not in read_operations:
         return False
     
@@ -626,7 +626,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
     # Log tool execution (important for debugging)
     logger.info(f"[TOOL_RUNNER] Executing tool: {tool_name}")
     
-    # ========== STEP 2: Check Cache for read_file and list_files ==========
+    # ========== STEP 2: Check Cache for read_file and ls ==========
     # STRIPPED DOWN: Caching logic commented out for lean implementation
     # # This must come before repetition checks to avoid blocking cached reads
     if tool_name == "read_file":
@@ -687,8 +687,8 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 state.agent_outcome = None
                 return state
     
-    # Check Cache for list_files
-    if tool_name == "list_files":
+    # Check Cache for ls
+    if tool_name == "ls":
         # Initialize directory cache if needed
         if state.directory_cache is None:
             state.directory_cache = DirectoryCache(state.project_root_cwd).to_dict()
@@ -714,7 +714,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
             cached_files = cache.get_listing(resolved_path, recursive)
             
             if cached_files is not None:
-                # Create observation in list_files format
+                # Create observation in ls format
                 observation = {
                     "path": resolved_path,
                     "files": cached_files,
@@ -749,7 +749,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 logger.debug(f"[TOOL_RUNNER][CACHE_MISS] Path {path} not in cache")
         else:
             # First call - will trigger full scan below
-            logger.info("[TOOL_RUNNER][CACHE] First list_files call, will trigger full scan")
+            logger.info("[TOOL_RUNNER][CACHE] First ls call, will trigger full scan")
             # Store original parameters for later
             original_path = tool_input.get("path", ".")
             original_recursive = tool_input.get("recursive", False)
@@ -839,13 +839,13 @@ def tool_runner(state: KatalystState) -> KatalystState:
             elif isinstance(observation, dict):
                 observation = json.dumps(observation, indent=2)
             
-            # Handle list_files first scan and cache update
-            if tool_name == "list_files" and isinstance(observation, str):
+            # Handle ls first scan and cache update
+            if tool_name == "ls" and isinstance(observation, str):
                 try:
                     obs_data = json.loads(observation)
                     if "_first_call" in tool_input and obs_data.get("files"):
                         # This was the first call - we did a full root scan
-                        logger.info("[TOOL_RUNNER][CACHE] Processing first list_files scan")
+                        logger.info("[TOOL_RUNNER][CACHE] Processing first ls scan")
                         
                         # Update the directory cache with the full scan
                         cache = DirectoryCache.from_dict(state.directory_cache)
@@ -965,17 +965,17 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 cache.invalidate()
                 state.directory_cache = cache.to_dict()
                 
-                # Also clear operation context for list_files to allow re-scanning
-                # Remove list_files operations from operation context
+                # Also clear operation context for ls to allow re-scanning
+                # Remove ls operations from operation context
                 filtered_ops = [
                     op for op in state.operation_context.tool_operations
-                    if op.tool_name != "list_files"
+                    if op.tool_name != "ls"
                 ]
                 state.operation_context.tool_operations = deque(
                     filtered_ops, 
                     maxlen=state.operation_context._operations_history_limit
                 )
-                logger.debug("[TOOL_RUNNER][DIR_CACHE] Cleared list_files from operation context")
+                logger.debug("[TOOL_RUNNER][DIR_CACHE] Cleared ls from operation context")
             
             # Track all tool operations
             success = True
