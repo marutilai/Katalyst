@@ -6,24 +6,21 @@ GREP_TOOL_PROMPT = dedent("""
 Description: Search for patterns in files using regular expressions.
 
 Parameters:
-- pattern: (string, required) Regular expression pattern to search for
-- path: (string, optional) Directory or file to search in (default: current directory)
-- file_pattern: (string, optional) Glob pattern to filter files (e.g., "*.py", "*.js")
-- case_insensitive: (boolean, optional) Perform case-insensitive search (default: False)
-- show_line_numbers: (boolean, optional) Include line numbers in results (default: True)
-- max_results: (integer, optional) Maximum number of results to return
+- pattern: (string, required) Regular expression pattern to search
+- path: (string, optional) Directory or file to search (default: current)
+- file_pattern: (string, optional) Glob pattern to filter files (e.g., "*.py")
+- case_insensitive: (boolean, optional) Case-insensitive search (default: False)
+- show_line_numbers: (boolean, optional) Include line numbers (default: True)
+- max_results: (integer, optional) Limit results
 
-Output: JSON with keys: 'matches' (list of match objects with 'file', 'line', 'content'), 'info', 'error'
+Output: JSON with 'matches' list (file, line, content), 'info', 'error'
 
 Examples:
-- grep("TODO")  # Search for TODO in current directory
-- grep("class.*Model", path="src/", file_pattern="*.py")  # Search Python files for class definitions
-- grep("error", case_insensitive=True)  # Case-insensitive search for "error"
-- grep("import React", file_pattern="*.jsx")  # Search JSX files for React imports
+- grep("TODO")                                    # Search for TODO
+- grep("class.*Model", path="src/", file_pattern="*.py")  # Find class definitions
+- grep("error", case_insensitive=True)           # Case-insensitive search
 
 Notes:
-- Uses ripgrep (rg) for fast searching
-- Automatically excludes: node_modules/, __pycache__/, .git/, .env, *.pyc, venv/
-- Shows 2 lines of context around matches
-- Supports full regex syntax
+- Uses ripgrep for fast searching
+- Auto-excludes common directories (node_modules, .git, etc.)
 """)
