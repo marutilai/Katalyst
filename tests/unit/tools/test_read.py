@@ -2,7 +2,7 @@
 
 import pytest
 import json
-from unittest.mock import patch, mock_open, MagicMock
+from unittest.mock import patch, mock_open, MagicMock, Mock
 from katalyst.coding_agent.tools.read import read
 import os
 os.environ['KATALYST_LOG_LEVEL'] = 'ERROR'  # Disable debug logging for tests
@@ -125,3 +125,66 @@ class TestReadTool:
         
         assert "error" in result_dict
         assert "Error reading file" in result_dict["error"]
+
+    @patch('katalyst.coding_agent.tools.read.load_gitignore_patterns')
+    @patch('katalyst.coding_agent.tools.read.open', new_callable=mock_open, read_data='test content')
+    @patch('katalyst.coding_agent.tools.read.os.path.isfile')
+    @patch('katalyst.coding_agent.tools.read.os.path.exists')
+    def test_read_respects_gitignore(self, mock_exists, mock_isfile, mock_file, mock_load_gitignore):
+        """Test that read respects gitignore by default"""
+        mock_exists.return_value = True
+        mock_isfile.return_value = True
+        
+        # Mock gitignore spec that matches our file
+        mock_spec = Mock()
+        mock_spec.match_file.return_value = True
+        mock_load_gitignore.return_value = mock_spec
+        
+        result = read(".env")
+        result_dict = json.loads(result)
+        
+        assert "error" in result_dict
+        assert ".gitignore" in result_dict["error"]
+        assert "respect_gitignore=False" in result_dict["error"]
+
+    @patch('katalyst.coding_agent.tools.read.load_gitignore_patterns')
+    @patch('katalyst.coding_agent.tools.read.open', new_callable=mock_open, read_data='secret content')
+    @patch('katalyst.coding_agent.tools.read.os.path.isfile')
+    @patch('katalyst.coding_agent.tools.read.os.path.exists')
+    def test_read_ignores_gitignore_when_requested(self, mock_exists, mock_isfile, mock_file, mock_load_gitignore):
+        """Test that read can bypass gitignore when respect_gitignore=False"""
+        mock_exists.return_value = True
+        mock_isfile.return_value = True
+        
+        # Mock gitignore spec that matches our file
+        mock_spec = Mock()
+        mock_spec.match_file.return_value = True
+        mock_load_gitignore.return_value = mock_spec
+        
+        result = read(".env", respect_gitignore=False)
+        result_dict = json.loads(result)
+        
+        assert "content" in result_dict
+        assert result_dict["content"] == "secret content"
+        # Should not call gitignore check
+        mock_load_gitignore.assert_not_called()
+
+    @patch('katalyst.coding_agent.tools.read.load_gitignore_patterns')
+    @patch('katalyst.coding_agent.tools.read.open', new_callable=mock_open, read_data='allowed content')
+    @patch('katalyst.coding_agent.tools.read.os.path.isfile')
+    @patch('katalyst.coding_agent.tools.read.os.path.exists')
+    def test_read_non_gitignored_file(self, mock_exists, mock_isfile, mock_file, mock_load_gitignore):
+        """Test that read works normally for non-gitignored files"""
+        mock_exists.return_value = True
+        mock_isfile.return_value = True
+        
+        # Mock gitignore spec that doesn't match our file
+        mock_spec = Mock()
+        mock_spec.match_file.return_value = False
+        mock_load_gitignore.return_value = mock_spec
+        
+        result = read("allowed.txt")
+        result_dict = json.loads(result)
+        
+        assert "content" in result_dict
+        assert result_dict["content"] == "allowed content"

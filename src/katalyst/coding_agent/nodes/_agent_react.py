@@ -102,7 +102,7 @@ Remember: Tasks should represent meaningful work units, not individual file oper
 - Project root shown as "Project Root Directory" at message start
 - ALWAYS use paths relative to project root (where 'katalyst' command was run)
 - Include the full path from project root, not partial paths
-- write_to_file auto-creates parent directories
+- write auto-creates parent directories
 
 # IMPORT STATEMENTS
 - Use relative imports within same package: from .models import User
@@ -135,7 +135,7 @@ Remember: Tasks should represent meaningful work units, not individual file oper
    - Reading the same file again is WASTEFUL and will be BLOCKED
    - Example: If you see "✓ read: backend/app.py" → DO NOT call read on backend/app.py again
 
-### 2. **BEFORE write_to_file - MANDATORY CHECK**:
+### 2. **BEFORE write - MANDATORY CHECK**:
    - Check "Recent File Operations" for the file path
    - If file shows as "created" → MUST use apply_source_code_diff to modify
    - Creating a file that already exists will FAIL

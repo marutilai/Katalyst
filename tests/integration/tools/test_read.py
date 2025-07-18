@@ -166,3 +166,54 @@ def test_read_large_file_with_range(tmp_path):
     # Verify we only got 11 lines
     content_lines = result_dict["content"].strip().split('\n')
     assert len(content_lines) == 11
+
+
+def test_read_respects_gitignore(tmp_path):
+    """Test that read respects gitignore patterns"""
+    # Create a .gitignore file
+    gitignore_file = tmp_path / ".gitignore"
+    gitignore_file.write_text("secrets.txt\n*.env\nconfig/private/*\n")
+    
+    # Create files that should be ignored
+    secret_file = tmp_path / "secrets.txt"
+    secret_file.write_text("secret data")
+    
+    env_file = tmp_path / "production.env"
+    env_file.write_text("API_KEY=secret")
+    
+    # Create a file that should be readable
+    normal_file = tmp_path / "readme.txt"
+    normal_file.write_text("public content")
+    
+    # Test reading gitignored file (should fail)
+    result = read(str(secret_file))
+    result_dict = json.loads(result)
+    assert "error" in result_dict
+    assert ".gitignore" in result_dict["error"]
+    
+    # Test reading gitignored pattern file (should fail)
+    result = read(str(env_file))
+    result_dict = json.loads(result)
+    assert "error" in result_dict
+    assert ".gitignore" in result_dict["error"]
+    
+    # Test reading non-gitignored file (should succeed)
+    result = read(str(normal_file))
+    result_dict = json.loads(result)
+    assert result_dict["content"] == "public content"
+    
+    # Test reading gitignored file with respect_gitignore=False (should succeed)
+    result = read(str(secret_file), respect_gitignore=False)
+    result_dict = json.loads(result)
+    assert result_dict["content"] == "secret data"
+
+
+def test_read_no_gitignore_file(tmp_path):
+    """Test that read works normally when there's no .gitignore"""
+    test_file = tmp_path / ".env"
+    test_file.write_text("DATA=value")
+    
+    # Should read successfully when no .gitignore exists
+    result = read(str(test_file))
+    result_dict = json.loads(result)
+    assert result_dict["content"] == "DATA=value"

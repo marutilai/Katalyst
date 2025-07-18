@@ -168,7 +168,7 @@ Avoid vague instructions - provide concrete requirements:
 - ✅ "Add input validation: title required (max 200 chars), description optional (max 1000)"
 - ✅ "Handle database connection errors with retry logic and appropriate HTTP responses"
 - ❌ "Add validation and error handling" (what validation? which errors?)
-- ❌ "Use write_to_file to create app.py" (prescribes tools, not outcomes)
+- ❌ "Use write to create app.py" (prescribes tools, not outcomes)
 
 ## 3. Logical Ordering & Dependencies
 Order tasks to build on each other:

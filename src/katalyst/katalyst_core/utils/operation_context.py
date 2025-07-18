@@ -228,7 +228,7 @@ class OperationContext:
                 line = f"{status} {op.tool_name}"
                 
                 # Add key parameters for context
-                if op.tool_name == "write_to_file" and "path" in op.tool_input:
+                if op.tool_name == "write" and "path" in op.tool_input:
                     line += f": {op.tool_input['path']}"
                 elif op.tool_name == "read" and "path" in op.tool_input:
                     line += f": {op.tool_input['path']}"

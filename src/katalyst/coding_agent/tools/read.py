@@ -2,6 +2,7 @@ import os
 import json
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.tools import katalyst_tool
+from katalyst.katalyst_core.utils.file_utils import load_gitignore_patterns
 
 
 @katalyst_tool(prompt_module="read", prompt_var="READ_TOOL_PROMPT")
@@ -9,6 +10,7 @@ def read(
     path: str,
     start_line: int = None,
     end_line: int = None,
+    respect_gitignore: bool = True,
     auto_approve: bool = True
 ) -> str:
     """
@@ -18,6 +20,7 @@ def read(
         path: File path to read
         start_line: Starting line number (1-based, inclusive)
         end_line: Ending line number (1-based, inclusive)
+        respect_gitignore: Whether to respect .gitignore patterns (default: True)
         
     Returns:
         JSON with 'content' and optionally 'error' or 'info'
@@ -35,6 +38,21 @@ def read(
     
     if not os.path.isfile(path):
         return json.dumps({"error": f"Path is not a file: {path}"})
+    
+    # Check gitignore if requested
+    if respect_gitignore:
+        # Get the directory containing the file for gitignore loading
+        file_dir = os.path.dirname(os.path.abspath(path))
+        spec = load_gitignore_patterns(file_dir or ".")
+        
+        if spec:
+            # Check if file matches gitignore patterns
+            rel_path = os.path.relpath(path, file_dir or ".")
+            if spec.match_file(rel_path):
+                logger.warning(f"[TOOL] File {path} is gitignored and respect_gitignore=True")
+                return json.dumps({
+                    "error": f"File '{path}' is ignored by .gitignore. Use respect_gitignore=False to read it anyway."
+                })
     
     # Read file with optional line range
     try:

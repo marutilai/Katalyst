@@ -27,7 +27,7 @@ from katalyst.katalyst_core.utils.error_handling import (
     format_error_for_llm,
 )
 from langgraph.errors import GraphRecursionError
-from katalyst.coding_agent.tools.write_to_file import format_write_to_file_response
+from katalyst.coding_agent.tools.write import write as write_tool
 from katalyst.katalyst_core.utils.directory_cache import DirectoryCache
 
 # Global registry of available tools
@@ -177,7 +177,7 @@ def _validate_file_path(tool_name: str, tool_input: Dict[str, Any], agent_action
     Returns:
         True if path is invalid (should block), False otherwise
     """
-    if tool_name not in ["write_to_file", "apply_source_code_diff"] or "path" not in tool_input:
+    if tool_name not in ["write", "apply_source_code_diff"] or "path" not in tool_input:
         return False
     
     path = tool_input.get("path", "")
@@ -344,7 +344,7 @@ def _prepare_tool_input(tool_fn, tool_input: Dict[str, Any], state: KatalystStat
 def _handle_write_file_content_ref(tool_input_resolved: Dict[str, Any], agent_action: AgentAction,
                                   state: KatalystState, logger) -> Optional[str]:
     """
-    Handle content reference resolution for write_to_file tool.
+    Handle content reference resolution for write tool.
     
     Returns:
         Error observation if content ref is invalid, None otherwise
@@ -352,10 +352,10 @@ def _handle_write_file_content_ref(tool_input_resolved: Dict[str, Any], agent_ac
     content_ref = tool_input_resolved.get("content_ref")
     
     if not content_ref:
-        logger.warning("[TOOL_RUNNER][CONTENT_REF] write_to_file has empty content_ref")
+        logger.warning("[TOOL_RUNNER][CONTENT_REF] write has empty content_ref")
         return None
     
-    logger.info(f"[TOOL_RUNNER][CONTENT_REF] write_to_file requested with content_ref: '{content_ref}'")
+    logger.info(f"[TOOL_RUNNER][CONTENT_REF] write requested with content_ref: '{content_ref}'")
     
     # Try to find the reference in content store
     if content_ref in state.content_store:
@@ -405,7 +405,8 @@ def _handle_write_file_content_ref(tool_input_resolved: Dict[str, Any], agent_ac
         return None
     
     # No correction possible - return error
-    return format_write_to_file_response(
+    # Return error in write tool format
+    return json.dumps({
         False,
         tool_input_resolved.get("path", ""),
         error=f"Invalid content reference: {content_ref}"
@@ -491,8 +492,8 @@ def _process_observation_for_trace(observation: str, tool_name: str) -> str:
             obs_data["content_summary"] = f"{content_len} chars, {lines} lines"
             logger.debug(f"[PROCESS_OBS] Removed content from read observation, saved {content_len} chars")
             
-        # For write_to_file: truncate long content
-        elif tool_name == "write_to_file" and "content" in obs_data:
+        # For write: truncate long content
+        elif tool_name == "write" and "content" in obs_data:
             content = obs_data.get("content", "")
             content_len = len(content)
             if content_len > 200:
@@ -500,7 +501,7 @@ def _process_observation_for_trace(observation: str, tool_name: str) -> str:
                 obs_data["content"] = content[:100] + f"\n...[{content_len-200} chars omitted]...\n" + content[-100:]
                 obs_data["content_truncated"] = True
                 obs_data["original_length"] = content_len
-                logger.debug(f"[PROCESS_OBS] Truncated write_to_file content from {content_len} to ~200 chars")
+                logger.debug(f"[PROCESS_OBS] Truncated write content from {content_len} to ~200 chars")
                 
         return json.dumps(obs_data, indent=2)
     except (json.JSONDecodeError, KeyError, TypeError) as e:
@@ -799,10 +800,10 @@ def tool_runner(state: KatalystState) -> KatalystState:
             # Prepare tool input
             tool_input_resolved = _prepare_tool_input(tool_fn, tool_input, state)
             
-            # Special handling for write_to_file content references
-            if tool_name == "write_to_file":
+            # Special handling for write content references
+            if tool_name == "write":
                 if "content_ref" in tool_input_resolved:
-                    logger.info("[TOOL_RUNNER][CONTENT_REF] LLM chose to use content reference for write_to_file")
+                    logger.info("[TOOL_RUNNER][CONTENT_REF] LLM chose to use content reference for write")
                     error_obs = _handle_write_file_content_ref(tool_input_resolved, agent_action, state, logger)
                     if error_obs:
                         state.action_trace.append((agent_action, str(error_obs)))
@@ -810,7 +811,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
                         return state
                 else:
                     content_len = len(tool_input_resolved.get("content", ""))
-                    logger.info(f"[TOOL_RUNNER][CONTENT_REF] LLM provided content directly ({content_len} chars) for write_to_file")
+                    logger.info(f"[TOOL_RUNNER][CONTENT_REF] LLM provided content directly ({content_len} chars) for write")
             
             # Execute the tool (handle both sync and async)
             if inspect.iscoroutinefunction(tool_fn):
@@ -880,7 +881,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 observation = _handle_create_subtask(observation, tool_input_resolved, state, logger)
             
             # Track file write operations and update cache
-            if tool_name == "write_to_file" and isinstance(observation, str):
+            if tool_name == "write" and isinstance(observation, str):
                 try:
                     obs_data = json.loads(observation)
                     if obs_data.get("success") and "path" in obs_data:
@@ -985,7 +986,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
                     obs_data = json.loads(observation)
                     success = obs_data.get("success", True)
                     # Extract meaningful summary based on tool type
-                    if tool_name == "write_to_file":
+                    if tool_name == "write":
                         summary = f"{obs_data.get('path', 'unknown')}"
                     elif tool_name == "read":
                         summary = f"{obs_data.get('path', 'unknown')}"
