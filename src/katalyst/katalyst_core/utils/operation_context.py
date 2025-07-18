@@ -133,7 +133,7 @@ class OperationContext:
             True if the operation was recently performed, False otherwise
         """
         # For read operations, check if the file was recently read
-        if tool_name == "read_file" and "path" in tool_input:
+        if tool_name == "read" and "path" in tool_input:
             target_path = tool_input["path"]
             # Normalize the path for comparison
             if not os.path.isabs(target_path):
@@ -141,7 +141,7 @@ class OperationContext:
             
             # Check in tool operations for successful reads
             for op in self.tool_operations:
-                if (op.tool_name == "read_file" and 
+                if (op.tool_name == "read" and 
                     op.success and 
                     "path" in op.tool_input):
                     op_path = op.tool_input["path"]
@@ -230,7 +230,7 @@ class OperationContext:
                 # Add key parameters for context
                 if op.tool_name == "write_to_file" and "path" in op.tool_input:
                     line += f": {op.tool_input['path']}"
-                elif op.tool_name == "read_file" and "path" in op.tool_input:
+                elif op.tool_name == "read" and "path" in op.tool_input:
                     line += f": {op.tool_input['path']}"
                 elif op.tool_name == "create_subtask" and "task_description" in op.tool_input:
                     task_desc = op.tool_input['task_description']

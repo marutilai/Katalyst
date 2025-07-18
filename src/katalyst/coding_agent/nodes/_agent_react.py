@@ -129,11 +129,11 @@ Remember: Tasks should represent meaningful work units, not individual file oper
 
 ## STRICT OPERATION CONTEXT RULES - VIOLATIONS WILL BE BLOCKED:
 
-### 1. **BEFORE read_file - MANDATORY CHECK**:
-   - If a file appears in "Recent Tool Operations" with "✓ read_file", you MUST NOT read it again
+### 1. **BEFORE read - MANDATORY CHECK**:
+   - If a file appears in "Recent Tool Operations" with "✓ read", you MUST NOT read it again
    - The content is already in your scratchpad from the previous read
    - Reading the same file again is WASTEFUL and will be BLOCKED
-   - Example: If you see "✓ read_file: backend/app.py" → DO NOT call read_file on backend/app.py again
+   - Example: If you see "✓ read: backend/app.py" → DO NOT call read on backend/app.py again
 
 ### 2. **BEFORE write_to_file - MANDATORY CHECK**:
    - Check "Recent File Operations" for the file path

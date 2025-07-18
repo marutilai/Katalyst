@@ -139,7 +139,7 @@ def apply_source_code_diff(
                     error=f"Search block does not match file at line {start_line} (exact match failed). "
                           f"Fuzzy search within +/- {fuzzy_buffer_size} lines also failed "
                           f"(no match with >= {fuzzy_threshold}% similarity). "
-                          f"Please use read_file to get the exact content and line numbers.",
+                          f"Please use read to get the exact content and line numbers.",
                 )
             
             # Update the index to the fuzzy match location

@@ -135,7 +135,7 @@ def _check_redundant_operation(tool_name: str, tool_input: Dict[str, Any], agent
         True if redundant (should block), False otherwise
     """
     # Only check for read/query operations (not writes)
-    read_operations = ["read_file", "ls", "search_in_file", "search_in_directory"]
+    read_operations = ["read", "ls", "search_in_file", "search_in_directory"]
     if tool_name not in read_operations:
         return False
     
@@ -442,7 +442,7 @@ def _try_autocorrect_content_ref(content_ref: str, state: KatalystState, logger)
 
 def _create_read_file_content_ref(observation: str, state: KatalystState, logger) -> str:
     """
-    Create a content reference for read_file output.
+    Create a content reference for read output.
     """
     try:
         obs_data = json.loads(observation)
@@ -461,7 +461,7 @@ def _create_read_file_content_ref(observation: str, state: KatalystState, logger
             logger.info(f"[TOOL_RUNNER][CONTENT_REF] Stored content for '{file_path}'")
             return observation
     except (json.JSONDecodeError, KeyError) as e:
-        logger.warning(f"[TOOL_RUNNER][CONTENT_REF] Could not process read_file observation: {e}")
+        logger.warning(f"[TOOL_RUNNER][CONTENT_REF] Could not process read observation: {e}")
     
     return observation
 
@@ -483,13 +483,13 @@ def _process_observation_for_trace(observation: str, tool_name: str) -> str:
     try:
         obs_data = json.loads(observation)
         
-        # For read_file: remove content if content_ref exists
-        if tool_name == "read_file" and "content_ref" in obs_data and "content" in obs_data:
+        # For read: remove content if content_ref exists
+        if tool_name == "read" and "content_ref" in obs_data and "content" in obs_data:
             content_len = len(obs_data.get("content", ""))
             lines = obs_data.get("content", "").count('\n') + 1
             del obs_data["content"]
             obs_data["content_summary"] = f"{content_len} chars, {lines} lines"
-            logger.debug(f"[PROCESS_OBS] Removed content from read_file observation, saved {content_len} chars")
+            logger.debug(f"[PROCESS_OBS] Removed content from read observation, saved {content_len} chars")
             
         # For write_to_file: truncate long content
         elif tool_name == "write_to_file" and "content" in obs_data:
@@ -626,10 +626,10 @@ def tool_runner(state: KatalystState) -> KatalystState:
     # Log tool execution (important for debugging)
     logger.info(f"[TOOL_RUNNER] Executing tool: {tool_name}")
     
-    # ========== STEP 2: Check Cache for read_file and ls ==========
+    # ========== STEP 2: Check Cache for read and ls ==========
     # STRIPPED DOWN: Caching logic commented out for lean implementation
     # # This must come before repetition checks to avoid blocking cached reads
-    if tool_name == "read_file":
+    if tool_name == "read":
         file_path = tool_input.get("path")
         if file_path:
             # Prepare the resolved path
@@ -643,7 +643,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 # Retrieve cached content
                 _, cached_content = state.content_store[resolved_path]
                 
-                # Create observation in the same format as read_file tool
+                # Create observation in the same format as read tool
                 observation = {
                     "path": resolved_path,
                     "content": cached_content,
@@ -820,8 +820,8 @@ def tool_runner(state: KatalystState) -> KatalystState:
             
             # ========== STEP 5: Post-execution Processing ==========
             
-            # Create content reference for read_file
-            if tool_name == "read_file" and isinstance(observation, str):
+            # Create content reference for read
+            if tool_name == "read" and isinstance(observation, str):
                 observation = _create_read_file_content_ref(observation, state, logger)
                 # Track file read operation
                 try:
@@ -987,7 +987,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
                     # Extract meaningful summary based on tool type
                     if tool_name == "write_to_file":
                         summary = f"{obs_data.get('path', 'unknown')}"
-                    elif tool_name == "read_file":
+                    elif tool_name == "read":
                         summary = f"{obs_data.get('path', 'unknown')}"
                     elif tool_name == "create_subtask":
                         summary = f"Added subtask to queue"
