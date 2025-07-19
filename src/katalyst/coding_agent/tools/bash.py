@@ -29,7 +29,7 @@ def format_bash_response(
     return json.dumps(resp)
 
 
-@katalyst_tool(prompt_module="bash", prompt_var="BASH_TOOL_PROMPT", categories=["planner", "executor"])
+@katalyst_tool(prompt_module="bash", prompt_var="BASH_TOOL_PROMPT", categories=["planner", "executor", "replanner"])
 def bash(
     command: str,
     cwd: str = None,

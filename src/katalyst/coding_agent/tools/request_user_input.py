@@ -20,7 +20,7 @@ def format_response(question_to_ask_user: str, user_final_answer: str) -> str:
 
 @katalyst_tool(
     prompt_module="request_user_input", prompt_var="REQUEST_USER_INPUT_TOOL_PROMPT",
-    categories=["planner", "executor"]
+    categories=["planner", "executor", "replanner"]
 )
 def request_user_input(
     question_to_ask_user: str, suggested_responses: List[str] = None, user_input_fn=None
