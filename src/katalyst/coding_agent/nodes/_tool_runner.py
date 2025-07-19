@@ -27,7 +27,7 @@ from katalyst.katalyst_core.utils.error_handling import (
     format_error_for_llm,
 )
 from langgraph.errors import GraphRecursionError
-from katalyst.coding_agent.tools.write_to_file import format_write_to_file_response
+from katalyst.coding_agent.tools.write import write as write_tool
 from katalyst.katalyst_core.utils.directory_cache import DirectoryCache
 
 # Global registry of available tools
@@ -135,7 +135,7 @@ def _check_redundant_operation(tool_name: str, tool_input: Dict[str, Any], agent
         True if redundant (should block), False otherwise
     """
     # Only check for read/query operations (not writes)
-    read_operations = ["read_file", "list_files", "search_in_file", "search_in_directory"]
+    read_operations = ["read", "ls", "search_in_file", "search_in_directory"]
     if tool_name not in read_operations:
         return False
     
@@ -177,7 +177,7 @@ def _validate_file_path(tool_name: str, tool_input: Dict[str, Any], agent_action
     Returns:
         True if path is invalid (should block), False otherwise
     """
-    if tool_name not in ["write_to_file", "apply_source_code_diff"] or "path" not in tool_input:
+    if tool_name not in ["write"] or "path" not in tool_input:
         return False
     
     path = tool_input.get("path", "")
@@ -344,7 +344,7 @@ def _prepare_tool_input(tool_fn, tool_input: Dict[str, Any], state: KatalystStat
 def _handle_write_file_content_ref(tool_input_resolved: Dict[str, Any], agent_action: AgentAction,
                                   state: KatalystState, logger) -> Optional[str]:
     """
-    Handle content reference resolution for write_to_file tool.
+    Handle content reference resolution for write tool.
     
     Returns:
         Error observation if content ref is invalid, None otherwise
@@ -352,10 +352,10 @@ def _handle_write_file_content_ref(tool_input_resolved: Dict[str, Any], agent_ac
     content_ref = tool_input_resolved.get("content_ref")
     
     if not content_ref:
-        logger.warning("[TOOL_RUNNER][CONTENT_REF] write_to_file has empty content_ref")
+        logger.warning("[TOOL_RUNNER][CONTENT_REF] write has empty content_ref")
         return None
     
-    logger.info(f"[TOOL_RUNNER][CONTENT_REF] write_to_file requested with content_ref: '{content_ref}'")
+    logger.info(f"[TOOL_RUNNER][CONTENT_REF] write requested with content_ref: '{content_ref}'")
     
     # Try to find the reference in content store
     if content_ref in state.content_store:
@@ -405,7 +405,8 @@ def _handle_write_file_content_ref(tool_input_resolved: Dict[str, Any], agent_ac
         return None
     
     # No correction possible - return error
-    return format_write_to_file_response(
+    # Return error in write tool format
+    return json.dumps({
         False,
         tool_input_resolved.get("path", ""),
         error=f"Invalid content reference: {content_ref}"
@@ -442,7 +443,7 @@ def _try_autocorrect_content_ref(content_ref: str, state: KatalystState, logger)
 
 def _create_read_file_content_ref(observation: str, state: KatalystState, logger) -> str:
     """
-    Create a content reference for read_file output.
+    Create a content reference for read output.
     """
     try:
         obs_data = json.loads(observation)
@@ -461,7 +462,7 @@ def _create_read_file_content_ref(observation: str, state: KatalystState, logger
             logger.info(f"[TOOL_RUNNER][CONTENT_REF] Stored content for '{file_path}'")
             return observation
     except (json.JSONDecodeError, KeyError) as e:
-        logger.warning(f"[TOOL_RUNNER][CONTENT_REF] Could not process read_file observation: {e}")
+        logger.warning(f"[TOOL_RUNNER][CONTENT_REF] Could not process read observation: {e}")
     
     return observation
 
@@ -483,16 +484,16 @@ def _process_observation_for_trace(observation: str, tool_name: str) -> str:
     try:
         obs_data = json.loads(observation)
         
-        # For read_file: remove content if content_ref exists
-        if tool_name == "read_file" and "content_ref" in obs_data and "content" in obs_data:
+        # For read: remove content if content_ref exists
+        if tool_name == "read" and "content_ref" in obs_data and "content" in obs_data:
             content_len = len(obs_data.get("content", ""))
             lines = obs_data.get("content", "").count('\n') + 1
             del obs_data["content"]
             obs_data["content_summary"] = f"{content_len} chars, {lines} lines"
-            logger.debug(f"[PROCESS_OBS] Removed content from read_file observation, saved {content_len} chars")
+            logger.debug(f"[PROCESS_OBS] Removed content from read observation, saved {content_len} chars")
             
-        # For write_to_file: truncate long content
-        elif tool_name == "write_to_file" and "content" in obs_data:
+        # For write: truncate long content
+        elif tool_name == "write" and "content" in obs_data:
             content = obs_data.get("content", "")
             content_len = len(content)
             if content_len > 200:
@@ -500,7 +501,7 @@ def _process_observation_for_trace(observation: str, tool_name: str) -> str:
                 obs_data["content"] = content[:100] + f"\n...[{content_len-200} chars omitted]...\n" + content[-100:]
                 obs_data["content_truncated"] = True
                 obs_data["original_length"] = content_len
-                logger.debug(f"[PROCESS_OBS] Truncated write_to_file content from {content_len} to ~200 chars")
+                logger.debug(f"[PROCESS_OBS] Truncated write content from {content_len} to ~200 chars")
                 
         return json.dumps(obs_data, indent=2)
     except (json.JSONDecodeError, KeyError, TypeError) as e:
@@ -626,10 +627,10 @@ def tool_runner(state: KatalystState) -> KatalystState:
     # Log tool execution (important for debugging)
     logger.info(f"[TOOL_RUNNER] Executing tool: {tool_name}")
     
-    # ========== STEP 2: Check Cache for read_file and list_files ==========
+    # ========== STEP 2: Check Cache for read and ls ==========
     # STRIPPED DOWN: Caching logic commented out for lean implementation
     # # This must come before repetition checks to avoid blocking cached reads
-    if tool_name == "read_file":
+    if tool_name == "read":
         file_path = tool_input.get("path")
         if file_path:
             # Prepare the resolved path
@@ -643,7 +644,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 # Retrieve cached content
                 _, cached_content = state.content_store[resolved_path]
                 
-                # Create observation in the same format as read_file tool
+                # Create observation in the same format as read tool
                 observation = {
                     "path": resolved_path,
                     "content": cached_content,
@@ -687,8 +688,8 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 state.agent_outcome = None
                 return state
     
-    # Check Cache for list_files
-    if tool_name == "list_files":
+    # Check Cache for ls
+    if tool_name == "ls":
         # Initialize directory cache if needed
         if state.directory_cache is None:
             state.directory_cache = DirectoryCache(state.project_root_cwd).to_dict()
@@ -714,7 +715,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
             cached_files = cache.get_listing(resolved_path, recursive)
             
             if cached_files is not None:
-                # Create observation in list_files format
+                # Create observation in ls format
                 observation = {
                     "path": resolved_path,
                     "files": cached_files,
@@ -749,7 +750,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 logger.debug(f"[TOOL_RUNNER][CACHE_MISS] Path {path} not in cache")
         else:
             # First call - will trigger full scan below
-            logger.info("[TOOL_RUNNER][CACHE] First list_files call, will trigger full scan")
+            logger.info("[TOOL_RUNNER][CACHE] First ls call, will trigger full scan")
             # Store original parameters for later
             original_path = tool_input.get("path", ".")
             original_recursive = tool_input.get("recursive", False)
@@ -799,10 +800,10 @@ def tool_runner(state: KatalystState) -> KatalystState:
             # Prepare tool input
             tool_input_resolved = _prepare_tool_input(tool_fn, tool_input, state)
             
-            # Special handling for write_to_file content references
-            if tool_name == "write_to_file":
+            # Special handling for write content references
+            if tool_name == "write":
                 if "content_ref" in tool_input_resolved:
-                    logger.info("[TOOL_RUNNER][CONTENT_REF] LLM chose to use content reference for write_to_file")
+                    logger.info("[TOOL_RUNNER][CONTENT_REF] LLM chose to use content reference for write")
                     error_obs = _handle_write_file_content_ref(tool_input_resolved, agent_action, state, logger)
                     if error_obs:
                         state.action_trace.append((agent_action, str(error_obs)))
@@ -810,7 +811,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
                         return state
                 else:
                     content_len = len(tool_input_resolved.get("content", ""))
-                    logger.info(f"[TOOL_RUNNER][CONTENT_REF] LLM provided content directly ({content_len} chars) for write_to_file")
+                    logger.info(f"[TOOL_RUNNER][CONTENT_REF] LLM provided content directly ({content_len} chars) for write")
             
             # Execute the tool (handle both sync and async)
             if inspect.iscoroutinefunction(tool_fn):
@@ -820,8 +821,8 @@ def tool_runner(state: KatalystState) -> KatalystState:
             
             # ========== STEP 5: Post-execution Processing ==========
             
-            # Create content reference for read_file
-            if tool_name == "read_file" and isinstance(observation, str):
+            # Create content reference for read
+            if tool_name == "read" and isinstance(observation, str):
                 observation = _create_read_file_content_ref(observation, state, logger)
                 # Track file read operation
                 try:
@@ -839,13 +840,13 @@ def tool_runner(state: KatalystState) -> KatalystState:
             elif isinstance(observation, dict):
                 observation = json.dumps(observation, indent=2)
             
-            # Handle list_files first scan and cache update
-            if tool_name == "list_files" and isinstance(observation, str):
+            # Handle ls first scan and cache update
+            if tool_name == "ls" and isinstance(observation, str):
                 try:
                     obs_data = json.loads(observation)
                     if "_first_call" in tool_input and obs_data.get("files"):
                         # This was the first call - we did a full root scan
-                        logger.info("[TOOL_RUNNER][CACHE] Processing first list_files scan")
+                        logger.info("[TOOL_RUNNER][CACHE] Processing first ls scan")
                         
                         # Update the directory cache with the full scan
                         cache = DirectoryCache.from_dict(state.directory_cache)
@@ -880,7 +881,7 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 observation = _handle_create_subtask(observation, tool_input_resolved, state, logger)
             
             # Track file write operations and update cache
-            if tool_name == "write_to_file" and isinstance(observation, str):
+            if tool_name == "write" and isinstance(observation, str):
                 try:
                     obs_data = json.loads(observation)
                     if obs_data.get("success") and "path" in obs_data:
@@ -925,12 +926,12 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 except json.JSONDecodeError:
                     pass
             
-            # Track apply_source_code_diff operations and update cache
-            if tool_name == "apply_source_code_diff" and isinstance(observation, str):
+            # Track edit/multiedit operations and update cache
+            if tool_name in ["edit", "multiedit"] and isinstance(observation, str):
                 try:
                     obs_data = json.loads(observation)
-                    if obs_data.get("success") and "path" in obs_data:
-                        file_path = obs_data["path"]
+                    if obs_data.get("success") and "file_path" in obs_data:
+                        file_path = obs_data["file_path"]
                         state.operation_context.add_file_operation(
                             file_path=file_path,
                             operation="modified"
@@ -958,24 +959,24 @@ def tool_runner(state: KatalystState) -> KatalystState:
                 except json.JSONDecodeError:
                     pass
             
-            # Invalidate directory cache on execute_command
-            if tool_name == "execute_command" and state.directory_cache:
-                logger.info("[TOOL_RUNNER][DIR_CACHE] Invalidating directory cache due to execute_command")
+            # Invalidate directory cache on bash
+            if tool_name == "bash" and state.directory_cache:
+                logger.info("[TOOL_RUNNER][DIR_CACHE] Invalidating directory cache due to bash")
                 cache = DirectoryCache.from_dict(state.directory_cache)
                 cache.invalidate()
                 state.directory_cache = cache.to_dict()
                 
-                # Also clear operation context for list_files to allow re-scanning
-                # Remove list_files operations from operation context
+                # Also clear operation context for ls to allow re-scanning
+                # Remove ls operations from operation context
                 filtered_ops = [
                     op for op in state.operation_context.tool_operations
-                    if op.tool_name != "list_files"
+                    if op.tool_name != "ls"
                 ]
                 state.operation_context.tool_operations = deque(
                     filtered_ops, 
                     maxlen=state.operation_context._operations_history_limit
                 )
-                logger.debug("[TOOL_RUNNER][DIR_CACHE] Cleared list_files from operation context")
+                logger.debug("[TOOL_RUNNER][DIR_CACHE] Cleared ls from operation context")
             
             # Track all tool operations
             success = True
@@ -985,9 +986,9 @@ def tool_runner(state: KatalystState) -> KatalystState:
                     obs_data = json.loads(observation)
                     success = obs_data.get("success", True)
                     # Extract meaningful summary based on tool type
-                    if tool_name == "write_to_file":
+                    if tool_name == "write":
                         summary = f"{obs_data.get('path', 'unknown')}"
-                    elif tool_name == "read_file":
+                    elif tool_name == "read":
                         summary = f"{obs_data.get('path', 'unknown')}"
                     elif tool_name == "create_subtask":
                         summary = f"Added subtask to queue"

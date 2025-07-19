@@ -114,8 +114,8 @@ Description: This comprehensive playbook provides a systematic approach to safel
 6. **Update documentation** (comments, docstrings, markdown)
 
 ### Type-Specific Considerations:
-- **Files/Directories:** Use `move_or_rename_path` tool
-- **Code elements:** Use `apply_source_code_diff` for precise replacements
+- **Files/Directories:** Use `bash` tool with `mv` command
+- **Code elements:** Use `edit` or `multiedit` for replacements
 - **Import ordering:** Maintain PEP 8 import order
 
 ## Step 5: Execute Rename - Target Definition
@@ -146,9 +146,8 @@ Description: This comprehensive playbook provides a systematic approach to safel
 
 #### Files/Directories:
 ```bash
-# Use move_or_rename_path tool
-# From: path/to/{old_name}.py
-# To: path/to/{new_name}.py
+# Use bash tool with mv command
+# Example: bash("mv path/to/{old_name}.py path/to/{new_name}.py")
 ```
 
 ## Step 6: Update All Import Statements

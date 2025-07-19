@@ -133,7 +133,7 @@ class OperationContext:
             True if the operation was recently performed, False otherwise
         """
         # For read operations, check if the file was recently read
-        if tool_name == "read_file" and "path" in tool_input:
+        if tool_name == "read" and "path" in tool_input:
             target_path = tool_input["path"]
             # Normalize the path for comparison
             if not os.path.isabs(target_path):
@@ -141,7 +141,7 @@ class OperationContext:
             
             # Check in tool operations for successful reads
             for op in self.tool_operations:
-                if (op.tool_name == "read_file" and 
+                if (op.tool_name == "read" and 
                     op.success and 
                     "path" in op.tool_input):
                     op_path = op.tool_input["path"]
@@ -150,14 +150,14 @@ class OperationContext:
                     if op_path == target_path:
                         return True
         
-        # For list_files, check if same directory was recently listed
-        elif tool_name == "list_files" and "path" in tool_input:
+        # For ls, check if same directory was recently listed
+        elif tool_name == "ls" and "path" in tool_input:
             target_path = tool_input["path"]
             if not os.path.isabs(target_path):
                 target_path = os.path.abspath(target_path)
             
             for op in self.tool_operations:
-                if (op.tool_name == "list_files" and 
+                if (op.tool_name == "ls" and 
                     op.success and 
                     "path" in op.tool_input):
                     op_path = op.tool_input["path"]
@@ -228,9 +228,9 @@ class OperationContext:
                 line = f"{status} {op.tool_name}"
                 
                 # Add key parameters for context
-                if op.tool_name == "write_to_file" and "path" in op.tool_input:
+                if op.tool_name == "write" and "path" in op.tool_input:
                     line += f": {op.tool_input['path']}"
-                elif op.tool_name == "read_file" and "path" in op.tool_input:
+                elif op.tool_name == "read" and "path" in op.tool_input:
                     line += f": {op.tool_input['path']}"
                 elif op.tool_name == "create_subtask" and "task_description" in op.tool_input:
                     task_desc = op.tool_input['task_description']

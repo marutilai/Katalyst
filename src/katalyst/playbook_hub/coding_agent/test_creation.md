@@ -64,7 +64,7 @@ Description: This playbook provides a systematic approach to creating comprehens
   - Fully tested elements
   - Partially tested elements
   - Untested elements
-- Use `execute_command` with coverage tool if available:
+- Use `bash` with coverage tool if available:
   ```bash
   pytest --cov={target_module} --cov-report=term-missing
   ```
