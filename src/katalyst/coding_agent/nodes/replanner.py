@@ -1,56 +1,64 @@
 """
-Minimal Replanner using LangChain's approach with tool execution history.
+Replanner Node - Uses create_react_agent for verification and replanning.
+
+This node:
+1. Creates a replanner agent with verification tools
+2. Uses the agent to verify completed work  
+3. Decides if the objective is complete or if more work is needed
+4. Creates new tasks if needed
 """
 
-from langchain_core.prompts import ChatPromptTemplate
-# MINIMAL: AIMessage import not needed when chat_history is commented out
-# from langchain_core.messages import AIMessage
-from typing import Dict
+from typing import List
+from langchain_core.messages import HumanMessage, AIMessage
+from langgraph.prebuilt import create_react_agent
 
 from katalyst.katalyst_core.state import KatalystState
-from katalyst.katalyst_core.utils.models import ReplannerOutput
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.config import get_llm_config
 from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
+from katalyst.katalyst_core.utils.tools import get_tool_functions_map, create_tools_with_context
 
 
-# Minimal replanner prompt inspired by LangChain but using our execution history
-replanner_prompt = ChatPromptTemplate.from_template(
-    """You are a replanner for a coding agent. Analyze what has been done and determine if the goal is complete.
+# Replanner prompt focused on verification and decision-making
+replanner_prompt = """You are a senior software architect verifying completed work and deciding next steps.
 
-OBJECTIVE: {objective}
+Your role is to:
+1. Review what has been implemented so far
+2. Verify the work meets the original objective
+3. Decide if the task is complete or if more work is needed
+4. Create new tasks if needed to complete the objective
 
-ORIGINAL PLAN:
-{original_plan}
+Use your tools to:
+- Check files that were created or modified (ls, read)
+- Verify the implementation works (bash - run tests, check functionality)
+- Get user confirmation if unsure (request_user_input)
 
-COMPLETED TASKS:
-{completed_tasks}
+VERIFICATION GUIDELINES:
+- Actually check that files exist and contain expected code
+- Run simple commands to verify functionality if applicable
+- Don't assume work is complete - verify it
+- Consider edge cases and error handling
 
-TOOL EXECUTION HISTORY (all tools used across all tasks):
-{execution_history}
+When you have thoroughly verified the work, respond with one of:
 
-CURRENT STATUS:
-- Tasks completed: {num_completed}/{num_total}
-- Current task: {current_task}
+1. If objective is FULLY COMPLETE:
+"OBJECTIVE COMPLETE: [Brief summary of what was accomplished]"
 
-DECISION REQUIRED:
-1. If the objective is FULLY ACHIEVED based on the execution history, set is_complete=true
-2. If more work is needed, set is_complete=false and provide ONLY the remaining tasks
-
-IMPORTANT:
-- Review the tool executions to verify work was actually done (files created, tests passed, etc.)
-- Do NOT repeat tasks that have been successfully completed
-- If you see errors in execution history, include tasks to fix them
-- Each new task should be concrete and implementable"""
-)
+2. If more work is needed:
+"MORE WORK NEEDED:"
+Followed by a numbered list of remaining tasks, like:
+1. Add error handling to the authentication module
+2. Create unit tests for the new endpoints
+3. Update documentation with API examples
+"""
 
 
 def replanner(state: KatalystState) -> KatalystState:
     """
-    Minimal replanner that uses tool execution history for better decisions.
+    Use a replanner agent to verify work and decide next steps.
     """
     logger = get_logger()
-    logger.debug("[REPLANNER] Starting minimal replanner node...")
+    logger.debug("[REPLANNER] Starting replanner node...")
     
     # Skip if response already set
     if state.response:
@@ -58,112 +66,155 @@ def replanner(state: KatalystState) -> KatalystState:
         state.task_queue = []
         return state
     
-    # Format execution history - this is the key improvement!
-    execution_history_str = ""
-    if hasattr(state, 'tool_execution_history') and state.tool_execution_history:
-        current_task = None
-        for record in state.tool_execution_history:
-            # Add task header when it changes
-            if record['task'] != current_task:
-                current_task = record['task']
-                execution_history_str += f"\n=== Task: {current_task} ===\n"
-            execution_history_str += f"- {record['tool_name']}: {record['status']}\n"
-            if record['status'] == 'error':
-                execution_history_str += f"  Error: {record['summary']}\n"
-    else:
-        execution_history_str = "No tool executions recorded yet."
+    # Check if we have a checkpointer
+    if not state.checkpointer:
+        logger.error("[REPLANNER] No checkpointer found in state")
+        state.error_message = "No checkpointer available for conversation"
+        state.response = "Failed to initialize replanner. Please try again."
+        return state
     
-    # Format completed tasks
-    completed_tasks_str = ""
-    if state.completed_tasks:
-        for task, summary in state.completed_tasks:
-            completed_tasks_str += f"✓ {task}\n  Result: {summary}\n"
-    else:
-        completed_tasks_str = "No tasks marked as completed yet."
-    
-    # Format original plan
-    original_plan_str = "\n".join(
-        f"{i+1}. {task}" for i, task in enumerate(state.original_plan)
-    ) if state.original_plan else "No original plan provided."
-    
-    # Current task info
-    current_task_str = (
-        state.task_queue[state.task_idx] 
-        if state.task_idx < len(state.task_queue) 
-        else "No current task"
-    )
-    
-    # Get configured model from LLM config
+    # Get configured model
     llm_config = get_llm_config()
     model_name = llm_config.get_model_for_component("replanner")
+    provider = llm_config.get_provider()
     timeout = llm_config.get_timeout()
     api_base = llm_config.get_api_base()
     
-    logger.debug(f"[REPLANNER] Using model: {model_name} (provider: {llm_config.get_provider()})")
+    logger.debug(f"[REPLANNER] Using model: {model_name} (provider: {provider})")
     
-    # Get native LangChain model
-    model = get_langchain_chat_model(
+    # Get replanner model
+    replanner_model = get_langchain_chat_model(
         model_name=model_name,
-        provider=llm_config.get_provider(),
+        provider=provider,
         temperature=0,
         timeout=timeout,
         api_base=api_base
     )
-    replanner_chain = replanner_prompt | model.with_structured_output(ReplannerOutput)
+    
+    # Get replanner tools with logging context (verification tools)
+    tool_functions = get_tool_functions_map(category="replanner")
+    tools = create_tools_with_context(tool_functions, "REPLANNER")
+    
+    # Create replanner agent
+    replanner_agent = create_react_agent(
+        model=replanner_model,
+        tools=tools,
+        checkpointer=state.checkpointer
+    )
+    
+    # Format context about what has been done
+    context = f"""
+OBJECTIVE: {state.task}
+
+ORIGINAL PLAN:
+{chr(10).join(f"{i+1}. {task}" for i, task in enumerate(state.original_plan)) if state.original_plan else "No original plan provided."}
+
+COMPLETED TASKS:
+{chr(10).join(f"✓ {task}: {summary}" for task, summary in state.completed_tasks) if state.completed_tasks else "No tasks marked as completed yet."}
+
+TOOL EXECUTION HISTORY:
+"""
+    
+    # Add execution history
+    if hasattr(state, 'tool_execution_history') and state.tool_execution_history:
+        current_task = None
+        for record in state.tool_execution_history:
+            if record['task'] != current_task:
+                current_task = record['task']
+                context += f"\n=== Task: {current_task} ===\n"
+            context += f"- {record['tool_name']}: {record['status']}"
+            if record['status'] == 'error':
+                context += f" (Error: {record['summary']})"
+            context += "\n"
+    else:
+        context += "No tool executions recorded yet.\n"
+    
+    # Create verification message
+    verification_message = HumanMessage(content=f"""{replanner_prompt}
+
+{context}
+
+Please verify what has been implemented and decide if the objective is complete or if more work is needed.""")
+    
+    # Add to messages
+    state.messages.append(verification_message)
     
     try:
-        # Get structured decision
-        result = replanner_chain.invoke({
-            "objective": state.task,
-            "original_plan": original_plan_str,
-            "completed_tasks": completed_tasks_str,
-            "execution_history": execution_history_str,
-            "num_completed": len(state.completed_tasks),
-            "num_total": len(state.original_plan) if state.original_plan else 0,
-            "current_task": current_task_str
-        })
+        # Use the replanner agent to verify and decide
+        logger.info("[REPLANNER] Invoking replanner agent to verify work")
+        result = replanner_agent.invoke({"messages": state.messages})
         
-        logger.debug(f"[REPLANNER] Decision: is_complete={result.is_complete}, "
-                    f"new_subtasks={len(result.subtasks)}")
+        # Update messages
+        state.messages = result.get("messages", state.messages)
         
-        if result.is_complete:
-            # Goal achieved
-            logger.info("[REPLANNER] Goal achieved - marking complete")
-            state.task_queue = []
-            state.task_idx = 0
+        # Extract decision from the last AI message
+        ai_messages = [msg for msg in state.messages if isinstance(msg, AIMessage)]
+        
+        if ai_messages:
+            last_message = ai_messages[-1]
             
-            # Generate final summary based on completed work
-            if state.completed_tasks:
-                summary = "Successfully completed the following:\n"
-                summary += "\n".join(f"- {task}: {result}" 
-                                   for task, result in state.completed_tasks)
+            # Check if objective is complete
+            if "OBJECTIVE COMPLETE:" in last_message.content:
+                # Extract summary
+                complete_parts = last_message.content.split("OBJECTIVE COMPLETE:", 1)
+                summary = complete_parts[1].strip() if len(complete_parts) > 1 else "Task completed successfully."
+                
+                # Set final response
+                logger.info("[REPLANNER] Objective complete")
+                state.task_queue = []
+                state.task_idx = 0
                 state.response = summary
+                
+            elif "MORE WORK NEEDED:" in last_message.content:
+                # Extract new tasks
+                work_parts = last_message.content.split("MORE WORK NEEDED:", 1)
+                if len(work_parts) > 1:
+                    tasks_text = work_parts[1].strip()
+                    
+                    # Parse numbered tasks
+                    new_tasks = []
+                    lines = tasks_text.split('\n')
+                    for line in lines:
+                        line = line.strip()
+                        # Match patterns like "1.", "2.", etc.
+                        if line and line[0].isdigit() and '.' in line:
+                            # Extract task after the number
+                            task_parts = line.split('.', 1)
+                            if len(task_parts) > 1:
+                                task = task_parts[1].strip()
+                                if task:
+                                    new_tasks.append(task)
+                    
+                    if new_tasks:
+                        # Update state with new plan
+                        logger.info(f"[REPLANNER] Creating new plan with {len(new_tasks)} tasks")
+                        state.task_queue = new_tasks
+                        state.task_idx = 0
+                        state.error_message = None
+                        state.response = None
+                        
+                        # Log new plan
+                        plan_message = "Continuing with updated plan:\n" + "\n".join(
+                            f"{i+1}. {task}" for i, task in enumerate(new_tasks)
+                        )
+                        logger.info(f"[REPLANNER] {plan_message}")
+                    else:
+                        logger.error("[REPLANNER] Could not parse new tasks")
+                        state.error_message = "Failed to parse new tasks from replanner"
+                        state.response = "Unable to determine next steps."
+                else:
+                    logger.error("[REPLANNER] No tasks provided after MORE WORK NEEDED")
+                    state.error_message = "Replanner indicated more work needed but provided no tasks"
+                    state.response = "Unable to determine next steps."
             else:
-                state.response = "Task completed as requested."
-            
-            # MINIMAL: chat_history is commented out (LangGraph tracks messages internally)
-            # state.chat_history.append(
-            #     AIMessage(content=f"[REPLANNER] Goal achieved. {state.response}")
-            # )
-            
+                # Unclear response
+                logger.error("[REPLANNER] Agent response unclear - no decision marker found")
+                state.error_message = "Replanner did not provide clear decision"
+                state.response = "Unable to determine if task is complete. Please try again."
         else:
-            # More work needed
-            logger.info(f"[REPLANNER] Creating new plan with {len(result.subtasks)} tasks")
-            
-            # Reset for new plan
-            state.task_queue = result.subtasks
-            state.task_idx = 0
-            # Reset for new plan
-            state.error_message = None
-            state.response = None
-            
-            # Log new plan
-            plan_msg = "Continuing with updated plan:\n" + "\n".join(
-                f"{i+1}. {task}" for i, task in enumerate(result.subtasks)
-            )
-            # MINIMAL: chat_history is commented out (LangGraph tracks messages internally)
-            # state.chat_history.append(AIMessage(content=f"[REPLANNER] {plan_msg}"))
-            logger.info(f"[REPLANNER] {plan_msg}")
+            logger.error("[REPLANNER] No AI response from replanner agent")
+            state.error_message = "No response from replanner"
+            state.response = "Failed to get response from replanner. Please try again."
             
     except Exception as e:
         logger.error(f"[REPLANNER] Failed to replan: {str(e)}")

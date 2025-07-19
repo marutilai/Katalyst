@@ -1,62 +1,73 @@
 """
-Minimal Planner Node - Uses LangChain's simple prompt approach.
+Planner Node - Uses create_react_agent for intelligent planning.
+
+This node:
+1. Creates a planner agent with exploration tools
+2. Uses the agent to explore the codebase and create a plan
+3. Extracts subtasks from the agent's response
+4. Updates state with the plan
 """
 
-import asyncio
-import inspect
-from langchain_core.prompts import ChatPromptTemplate
-# MINIMAL: AIMessage import not needed when chat_history is commented out
-# from langchain_core.messages import AIMessage
+from typing import List
+from langchain_core.messages import HumanMessage, AIMessage
+from langgraph.prebuilt import create_react_agent
+
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.models import SubtaskList
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.config import get_llm_config
 from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
-from katalyst.katalyst_core.utils.tools import get_tool_functions_map, extract_tool_descriptions
-from langchain_core.tools import StructuredTool
-from langchain_core.messages import HumanMessage
-from langgraph.prebuilt import create_react_agent
+from katalyst.katalyst_core.utils.tools import get_tool_functions_map, create_tools_with_context
 
 
-# Simple planner prompt - no complex guidelines
-planner_prompt = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            """You are a senior staff software engineer planning implementation tasks for a junior software engineer.
+# Planning-focused prompt
+planner_prompt = """You are a senior software architect creating implementation plans.
 
-ANALYSIS PHASE:
-1. Read the user's request carefully and identify ALL requirements (explicit and implicit)
-2. If user asks for an "app" - plan for a complete, usable application with UI
-3. Note any specific: technologies mentioned, folder structures, quality requirements in the user's request
-4. Consider what would make this a production-ready solution
+Your role is to:
+1. Explore and understand the codebase/project structure
+2. Break down the user's request into clear, implementable tasks
+3. Create a step-by-step plan that another developer can follow
+
+Use your tools to:
+- Explore directory structure (ls, generate_directory_overview)
+- Search for relevant code patterns (grep, glob)
+- Read key files to understand architecture (read)
+- Find existing implementations (list_code_definitions)
+- Ask for clarification if needed (request_user_input)
 
 PLANNING GUIDELINES:
-- Come up with a simple step-by-step plan that delivers the COMPLETE solution
-- Each task should be a significant feature or component (not setup steps)
-- Make tasks roughly equal in scope and effort
-- Do not add superfluous steps
-- Ensure each step has all information needed
+- Each task should be concrete and specific
+- Tasks should be roughly equal in scope
+- Include all necessary implementation details
+- Consider dependencies between tasks
+- Don't include trivial setup steps
 
-ASSUMPTIONS:
-- Developer will handle basic project setup, package installation, folder creation
-- Focus on implementing features, not configuring environments
+After thoroughly exploring and understanding what needs to be done, provide your plan as a list of subtasks.
+Each subtask should be a complete, actionable instruction that can be executed independently.
 
-The result of the final step should be a fully functional solution that meets ALL the user's requirements.""",
-        ),
-        ("human", "{task}"),
-    ]
-)
+Example subtasks:
+- Create the user authentication module with JWT token support in backend/auth/
+- Implement login and registration endpoints in backend/api/auth.py
+- Add authentication middleware to validate JWT tokens
+- Create comprehensive unit tests for authentication flow
+"""
 
 
 def planner(state: KatalystState) -> KatalystState:
     """
-    Minimal planner - generates a simple task list using LangChain's approach.
+    Use a planning agent to explore the codebase and create an implementation plan.
     """
     logger = get_logger()
-    logger.debug("[PLANNER] Starting minimal planner node...")
+    logger.debug("[PLANNER] Starting planner node...")
     
-    # Get configured model from LLM config
+    # Check if we have a checkpointer
+    if not state.checkpointer:
+        logger.error("[PLANNER] No checkpointer found in state")
+        state.error_message = "No checkpointer available for conversation"
+        state.response = "Failed to initialize planner. Please try again."
+        return state
+    
+    # Get configured model
     llm_config = get_llm_config()
     model_name = llm_config.get_model_for_component("planner")
     provider = llm_config.get_provider()
@@ -65,97 +76,87 @@ def planner(state: KatalystState) -> KatalystState:
     
     logger.debug(f"[PLANNER] Using model: {model_name} (provider: {provider})")
     
-    # Get native LangChain model
-    model = get_langchain_chat_model(
+    # Get planner model
+    planner_model = get_langchain_chat_model(
         model_name=model_name,
         provider=provider,
         temperature=0,
         timeout=timeout,
         api_base=api_base
     )
-    planner_chain = planner_prompt | model.with_structured_output(SubtaskList)
+    
+    # Get planner tools with logging context
+    tool_functions = get_tool_functions_map(category="planner")
+    tools = create_tools_with_context(tool_functions, "PLANNER")
+    
+    # Create planner agent with structured output
+    planner_agent = create_react_agent(
+        model=planner_model,
+        tools=tools,
+        checkpointer=state.checkpointer,
+        response_format=SubtaskList  # Use structured output
+    )
+    
+    # Create planning message
+    planning_message = HumanMessage(content=f"""{planner_prompt}
+
+User Request: {state.task}
+
+Please explore the codebase as needed and create a detailed implementation plan.
+Provide your final plan as a list of subtasks that can be executed to complete the request.""")
+    
+    # Initialize messages if needed
+    if not state.messages:
+        state.messages = []
+    
+    # Add planning message
+    state.messages.append(planning_message)
     
     try:
-        # Generate plan
-        result = planner_chain.invoke({"task": state.task})
-        subtasks = result.subtasks
+        # Use the planner agent to create a plan
+        logger.info("[PLANNER] Invoking planner agent to create plan")
+        result = planner_agent.invoke({"messages": state.messages})
         
-        logger.debug(f"[PLANNER] Generated subtasks: {subtasks}")
+        # Update messages
+        state.messages = result.get("messages", state.messages)
         
-        # Update state
-        state.task_queue = subtasks
-        state.original_plan = subtasks
-        state.task_idx = 0
-        state.outer_cycles = 0
-        state.completed_tasks = []
-        state.response = None
-        state.error_message = None
-        state.plan_feedback = None
+        # Extract structured response
+        structured_response = result.get("structured_response")
         
-        # Log the plan
-        plan_message = f"Generated plan:\n" + "\n".join(
-            f"{i+1}. {s}" for i, s in enumerate(subtasks)
-        )
-        logger.info(f"[PLANNER] {plan_message}")
-        
-        # Create the persistent agent executor that will handle all tasks
-        logger.info("[PLANNER] Creating persistent agent executor")
-        
-        # Get tools
-        tool_functions = get_tool_functions_map()
-        tool_descriptions_map = dict(extract_tool_descriptions())
-        tools = []
-        
-        for tool_name, tool_func in tool_functions.items():
-            description = tool_descriptions_map.get(tool_name, f"Tool: {tool_name}")
+        if structured_response and isinstance(structured_response, SubtaskList):
+            subtasks = structured_response.subtasks
             
-            if inspect.iscoroutinefunction(tool_func):
-                # For async functions, create a sync wrapper
-                def make_sync_wrapper(async_func):
-                    def sync_wrapper(**kwargs):
-                        return asyncio.run(async_func(**kwargs))
-                    return sync_wrapper
+            if subtasks:
+                # Update state with the plan
+                state.task_queue = subtasks
+                state.original_plan = subtasks
+                state.task_idx = 0
+                state.outer_cycles = 0
+                state.completed_tasks = []
+                state.response = None
+                state.error_message = None
+                state.plan_feedback = None
                 
-                structured_tool = StructuredTool.from_function(
-                    func=make_sync_wrapper(tool_func),  # Sync wrapper
-                    coroutine=tool_func,  # Async version
-                    name=tool_name,
-                    description=description
+                # Log the plan
+                plan_message = f"Generated plan:\n" + "\n".join(
+                    f"{i+1}. {s}" for i, s in enumerate(subtasks)
                 )
+                logger.info(f"[PLANNER] {plan_message}")
             else:
-                structured_tool = StructuredTool.from_function(
-                    func=tool_func,
-                    name=tool_name,
-                    description=description
-                )
-            tools.append(structured_tool)
-        
-        # Get model for agent
-        agent_model = get_langchain_chat_model(
-            model_name=llm_config.get_model_for_component("agent_react"),
-            provider=provider,
-            temperature=0,
-            timeout=timeout,
-            api_base=api_base
-        )
-        
-        # Create the agent executor with checkpointer if available
-        state.agent_executor = create_react_agent(
-            model=agent_model,
-            tools=tools,
-            checkpointer=state.checkpointer if hasattr(state, 'checkpointer') else False
-        )
-        
-        # Initialize conversation with the plan
-        initial_message = HumanMessage(content=f"""I have the following plan to complete:
-
-{plan_message}
-
-I'll work through each task in order. Let's start with the first task.""")
-        
-        # Append the plan message to existing conversation
-        state.messages.append(initial_message)
-        
+                logger.error("[PLANNER] Structured response contained no subtasks")
+                state.error_message = "Plan was empty"
+                state.response = "Failed to create a plan. Please try again."
+        else:
+            # Fallback: check if there's an error message in the result
+            logger.error(f"[PLANNER] No structured response received. Result keys: {list(result.keys())}")
+            state.error_message = "Failed to get structured plan from agent"
+            state.response = "Failed to create a plan. Please try again."
+            
+            # Log any AI messages for debugging
+            ai_messages = [msg for msg in state.messages if isinstance(msg, AIMessage)]
+            if ai_messages:
+                logger.debug(f"[PLANNER] Last AI message: {ai_messages[-1].content[:200]}...")
+            
     except Exception as e:
         logger.error(f"[PLANNER] Failed to generate plan: {str(e)}")
         state.error_message = f"Failed to generate plan: {str(e)}"

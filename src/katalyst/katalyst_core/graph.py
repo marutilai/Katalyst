@@ -8,7 +8,7 @@ from katalyst.katalyst_core.routing import (
     route_after_verification,
 )
 from katalyst.coding_agent.nodes.planner import planner
-from katalyst.coding_agent.nodes.agent_react import agent_react
+from katalyst.coding_agent.nodes.executor import executor
 from katalyst.coding_agent.nodes.advance_pointer import advance_pointer
 from katalyst.coding_agent.nodes.replanner import replanner
 from katalyst.coding_agent.nodes.human_plan_verification import human_plan_verification
@@ -18,7 +18,7 @@ from katalyst.coding_agent.nodes.human_plan_verification import human_plan_verif
 # ------------------------------------------------------------------
 # • planner                    – produces an ordered list of sub‑tasks in ``state.task_queue``
 # • human_plan_verification    – allows user to approve/reject plan with feedback
-# • agent_react                – Uses create_react_agent to complete the task (handles tool execution internally)
+# • executor                   – Uses create_react_agent to complete the task (handles tool execution internally)
 # • advance_pointer            – increments ``state.task_idx`` when task is complete
 # • replanner                  – builds a fresh plan or final answer when current plan exhausted
 # ------------------------------------------------------------------
@@ -34,7 +34,7 @@ from katalyst.coding_agent.nodes.human_plan_verification import human_plan_verif
 #                                                         human_verification → END
 #
 # 2. INNER LOOP  (ReAct over a single task)
-#    agent_react (handles full tool execution loop internally via create_react_agent)
+#    executor (handles full tool execution loop internally via create_react_agent)
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -48,7 +48,7 @@ def build_compiled_graph():
     g.add_node("human_plan_verification", human_plan_verification)
 
     # ── INNER LOOP nodes ─────────────────────────────────────────────────────────
-    g.add_node("agent_react", agent_react)  # Uses create_react_agent to complete the task
+    g.add_node("executor", executor)  # Uses create_react_agent to complete the task
     g.add_node("advance_pointer", advance_pointer)  # Marks task complete
 
     # ── replanner: invoked when plan is exhausted or needs adjustment ────────────
@@ -62,12 +62,12 @@ def build_compiled_graph():
     g.add_conditional_edges(
         "human_plan_verification",
         route_after_verification,
-        ["agent_react", "planner", END],
+        ["executor", "planner", END],
     )
 
     # ── routing after agent completes the task ───────────────────────────────────
     g.add_conditional_edges(
-        "agent_react",
+        "executor",
         route_after_agent,  # returns "advance_pointer" or END
         ["advance_pointer", "replanner", END],
     )
@@ -75,8 +75,8 @@ def build_compiled_graph():
     # ── decide whether to re‑plan or continue with next sub‑task ─────────────────
     g.add_conditional_edges(
         "advance_pointer",
-        route_after_pointer,  # may return "agent_react", "replanner", or END
-        ["agent_react", "replanner", END],
+        route_after_pointer,  # may return "executor", "replanner", or END
+        ["executor", "replanner", END],
     )
 
     # ── replanner output: new plan → verification, or final answer → END ─────────

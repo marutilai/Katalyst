@@ -6,6 +6,10 @@ import inspect
 import tempfile
 from typing import Callable
 import re
+import asyncio
+import functools
+from langchain_core.tools import StructuredTool
+from katalyst.katalyst_core.utils.logger import get_logger
 
 # Directory containing all tool modules
 TOOLS_IMPLEMENTATION_DIR = os.path.join(
@@ -213,3 +217,54 @@ if __name__ == "__main__":
     tool_descs = extract_tool_descriptions()
     for name, desc in tool_descs:
         print(f"- {name}: {desc}")
+
+
+def create_tools_with_context(tool_functions_map: Dict[str, callable], agent_name: str) -> List[StructuredTool]:
+    """
+    Create StructuredTool instances with agent context logging.
+    
+    Args:
+        tool_functions_map: Dictionary mapping tool names to their functions
+        agent_name: Name of the agent (e.g., "PLANNER", "EXECUTOR", "REPLANNER")
+    
+    Returns:
+        List of StructuredTool instances with logging wrappers
+    """
+    logger = get_logger()
+    tools = []
+    tool_descriptions_map = dict(extract_tool_descriptions())
+    
+    for tool_name, tool_func in tool_functions_map.items():
+        description = tool_descriptions_map.get(tool_name, f"Tool: {tool_name}")
+        
+        # Create a wrapper that logs which agent is using the tool
+        def make_logging_wrapper(func, t_name):
+            @functools.wraps(func)
+            def wrapper(**kwargs):
+                logger.info(f"[{agent_name}] Calling tool: {t_name}")
+                return func(**kwargs)
+            return wrapper
+        
+        if inspect.iscoroutinefunction(tool_func):
+            # For async functions, create a sync wrapper with logging
+            def make_sync_wrapper(async_func, t_name):
+                def sync_wrapper(**kwargs):
+                    logger.info(f"[{agent_name}] Calling tool: {t_name}")
+                    return asyncio.run(async_func(**kwargs))
+                return sync_wrapper
+            
+            structured_tool = StructuredTool.from_function(
+                func=make_sync_wrapper(tool_func, tool_name),  # Sync wrapper with logging
+                coroutine=tool_func,  # Async version
+                name=tool_name,
+                description=description
+            )
+        else:
+            structured_tool = StructuredTool.from_function(
+                func=make_logging_wrapper(tool_func, tool_name),
+                name=tool_name,
+                description=description
+            )
+        tools.append(structured_tool)
+    
+    return tools
