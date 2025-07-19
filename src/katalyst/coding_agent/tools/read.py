@@ -5,7 +5,7 @@ from katalyst.katalyst_core.utils.tools import katalyst_tool
 from katalyst.katalyst_core.utils.file_utils import load_gitignore_patterns
 
 
-@katalyst_tool(prompt_module="read", prompt_var="READ_TOOL_PROMPT")
+@katalyst_tool(prompt_module="read", prompt_var="READ_TOOL_PROMPT", categories=["planner", "executor"])
 def read(
     path: str,
     start_line: int = None,

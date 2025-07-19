@@ -7,7 +7,7 @@ from katalyst.app.config import SEARCH_FILES_MAX_RESULTS  # Centralized config
 import json
 
 
-@katalyst_tool(prompt_module="grep", prompt_var="GREP_TOOL_PROMPT")
+@katalyst_tool(prompt_module="grep", prompt_var="GREP_TOOL_PROMPT", categories=["planner", "executor"])
 def grep(
     pattern: str, 
     path: str = ".",

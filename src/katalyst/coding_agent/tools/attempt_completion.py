@@ -18,7 +18,8 @@ def format_attempt_completion_response(
 
 
 @katalyst_tool(
-    prompt_module="attempt_completion", prompt_var="ATTEMPT_COMPLETION_TOOL_PROMPT"
+    prompt_module="attempt_completion", prompt_var="ATTEMPT_COMPLETION_TOOL_PROMPT",
+    categories=["executor"]
 )
 def attempt_completion(result: str) -> str:
     """

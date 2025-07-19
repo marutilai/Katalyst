@@ -6,7 +6,7 @@ from katalyst.katalyst_core.utils.tools import katalyst_tool
 from katalyst.katalyst_core.utils.file_utils import should_ignore_path
 
 
-@katalyst_tool(prompt_module="glob", prompt_var="GLOB_TOOL_PROMPT")
+@katalyst_tool(prompt_module="glob", prompt_var="GLOB_TOOL_PROMPT", categories=["planner", "executor"])
 def glob(
     pattern: str,
     path: str = ".",

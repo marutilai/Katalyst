@@ -5,7 +5,7 @@ from katalyst.katalyst_core.utils.tools import katalyst_tool
 from katalyst.katalyst_core.utils.syntax_checker import check_syntax
 
 
-@katalyst_tool(prompt_module="edit", prompt_var="EDIT_TOOL_PROMPT")
+@katalyst_tool(prompt_module="edit", prompt_var="EDIT_TOOL_PROMPT", categories=["executor"])
 def edit(
     file_path: str,
     old_string: str,

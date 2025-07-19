@@ -15,14 +15,14 @@ TOOLS_IMPLEMENTATION_DIR = os.path.join(
 )
 
 
-def katalyst_tool(func=None, *, prompt_module=None, prompt_var=None):
+def katalyst_tool(func=None, *, prompt_module=None, prompt_var=None, categories=None):
     """
     Decorator to mark a function as a Katalyst tool, with optional prompt module/variable metadata.
     Usage:
         @katalyst_tool
         def foo(...): ...
     or
-        @katalyst_tool(prompt_module="bar", prompt_var="BAR_PROMPT")
+        @katalyst_tool(prompt_module="bar", prompt_var="BAR_PROMPT", categories=["planner", "executor"])
         def foo(...): ...
     """
 
@@ -32,6 +32,8 @@ def katalyst_tool(func=None, *, prompt_module=None, prompt_var=None):
             f._prompt_module = prompt_module
         if prompt_var:
             f._prompt_var = prompt_var
+        # Default to ["executor"] for backward compatibility
+        f._categories = categories if categories else ["executor"]
         return f
 
     if func is None:
@@ -71,10 +73,14 @@ def get_tool_names_and_params() -> Tuple[List[str], List[str], Dict[str, List[st
     return tool_names, list(tool_param_names), tool_param_map
 
 
-def get_tool_functions_map() -> Dict[str, callable]:
+def get_tool_functions_map(category=None) -> Dict[str, callable]:
     """
     Returns a mapping of tool function names to their function objects.
     Only includes functions decorated with @katalyst_tool.
+    
+    Args:
+        category: Optional category to filter tools by (e.g., "planner", "executor").
+                 If None, returns all tools.
     """
     tool_functions = {}
     if not os.path.exists(TOOLS_IMPLEMENTATION_DIR):
@@ -93,6 +99,12 @@ def get_tool_functions_map() -> Dict[str, callable]:
                     if callable(func_candidate) and getattr(
                         func_candidate, "_is_katalyst_tool", False
                     ):
+                        # Check category filter if provided
+                        if category:
+                            tool_categories = getattr(func_candidate, "_categories", ["executor"])
+                            if category not in tool_categories:
+                                continue
+                        
                         # Use the stored LLM-facing tool name if available, else func name
                         tool_key = getattr(
                             func_candidate,

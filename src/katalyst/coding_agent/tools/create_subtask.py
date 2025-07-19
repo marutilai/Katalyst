@@ -22,7 +22,7 @@ def format_create_subtask_response(
     return json.dumps(resp)
 
 
-@katalyst_tool(prompt_module="create_subtask", prompt_var="CREATE_SUBTASK_TOOL_PROMPT")
+@katalyst_tool(prompt_module="create_subtask", prompt_var="CREATE_SUBTASK_TOOL_PROMPT", categories=["executor"])
 def create_subtask(
     task_description: str,
     reason: str,

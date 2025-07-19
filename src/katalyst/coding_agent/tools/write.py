@@ -7,7 +7,7 @@ from katalyst.app.ui.input_handler import InputHandler
 from katalyst.app.execution_controller import check_execution_cancelled
 
 
-@katalyst_tool(prompt_module="write", prompt_var="WRITE_TOOL_PROMPT")
+@katalyst_tool(prompt_module="write", prompt_var="WRITE_TOOL_PROMPT", categories=["executor"])
 def write(path: str, content: str, auto_approve: bool = True) -> str:
     """
     Write content to a file, creating it if it doesn't exist.

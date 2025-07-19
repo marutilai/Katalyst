@@ -6,7 +6,7 @@ from katalyst.katalyst_core.utils.tools import katalyst_tool
 from katalyst.katalyst_core.utils.syntax_checker import check_syntax
 
 
-@katalyst_tool(prompt_module="multiedit", prompt_var="MULTIEDIT_TOOL_PROMPT")
+@katalyst_tool(prompt_module="multiedit", prompt_var="MULTIEDIT_TOOL_PROMPT", categories=["executor"])
 def multiedit(
     file_path: str,
     edits: List[Dict[str, str]],

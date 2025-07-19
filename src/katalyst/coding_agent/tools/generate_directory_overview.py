@@ -110,6 +110,7 @@ class ReduceSummaryModel(BaseModel):
 @katalyst_tool(
     prompt_module="generate_directory_overview",
     prompt_var="GENERATE_DIRECTORY_OVERVIEW_TOOL_PROMPT",
+    categories=["planner", "executor"]
 )
 async def generate_directory_overview(
     dir_path: str, respect_gitignore: bool = True
