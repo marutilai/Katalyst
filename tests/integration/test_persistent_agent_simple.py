@@ -143,19 +143,22 @@ def test_state_persistence_through_planning():
         
         # Configure responses based on agent type
         if agent_type == 'planner':
-            # Import SubtaskList to create structured response
-            from katalyst.katalyst_core.utils.models import SubtaskList
+            # Import PlannerOutput to create structured response
+            from katalyst.katalyst_core.utils.models import PlannerOutput
             mock_agent.invoke.return_value = {
                 "messages": [AIMessage(content="I've created a plan for the todo app")],
-                "structured_response": SubtaskList(subtasks=["Create index.html", "Add styling"])
+                "structured_response": PlannerOutput(subtasks=["Create index.html", "Add styling"])
             }
         elif agent_type == 'executor':
             mock_agent.invoke.return_value = {
                 "messages": [AIMessage(content="TASK COMPLETED: Created file")]
             }
         else:  # replanner
+            # Import ReplannerOutput to create structured response
+            from katalyst.katalyst_core.utils.models import ReplannerOutput
             mock_agent.invoke.return_value = {
-                "messages": [AIMessage(content="OBJECTIVE COMPLETE: Todo app built")]
+                "messages": [AIMessage(content="Todo app has been successfully built with all required features")],
+                "structured_response": ReplannerOutput(is_complete=True, subtasks=[])
             }
         
         return mock_agent

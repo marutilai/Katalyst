@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch, Mock
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.graph import build_compiled_graph
 from katalyst.katalyst_core.utils.error_handling import ErrorType
-from katalyst.katalyst_core.utils.models import SubtaskList
+from katalyst.katalyst_core.utils.models import PlannerOutput
 from langchain_core.messages import HumanMessage
 
 # pytestmark = pytest.mark.integration

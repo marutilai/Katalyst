@@ -181,7 +181,7 @@ class TestRoutingAfterVerification:
             task_queue=["Task 1", "Task 2"]
         )
         
-        assert route_after_verification(state) == "agent_react"
+        assert route_after_verification(state) == "executor"
     
     def test_route_to_end_fallback(self):
         """Test fallback routing to END."""

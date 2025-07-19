@@ -14,9 +14,9 @@ import pytest
 
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.coding_agent.nodes.tool_runner import tool_runner
-from katalyst.coding_agent.tools.list_files import list_files
-from katalyst.coding_agent.tools.write_to_file import write_to_file
-from katalyst.coding_agent.tools.execute_command import execute_command
+from katalyst.coding_agent.tools.ls import ls as list_files
+from katalyst.coding_agent.tools.write import write as write_to_file
+from katalyst.coding_agent.tools.bash import bash as execute_command
 from katalyst.katalyst_core.utils.directory_cache import DirectoryCache
 from langchain_core.agents import AgentAction
 

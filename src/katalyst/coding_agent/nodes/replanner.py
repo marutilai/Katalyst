@@ -13,6 +13,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.prebuilt import create_react_agent
 
 from katalyst.katalyst_core.state import KatalystState
+from katalyst.katalyst_core.utils.models import ReplannerOutput
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.config import get_llm_config
 from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
@@ -39,17 +40,14 @@ VERIFICATION GUIDELINES:
 - Don't assume work is complete - verify it
 - Consider edge cases and error handling
 
-When you have thoroughly verified the work, respond with one of:
+After thoroughly verifying the work:
+- Set is_complete to true if the objective is fully achieved
+- Set is_complete to false and provide subtasks if more work is needed
 
-1. If objective is FULLY COMPLETE:
-"OBJECTIVE COMPLETE: [Brief summary of what was accomplished]"
-
-2. If more work is needed:
-"MORE WORK NEEDED:"
-Followed by a numbered list of remaining tasks, like:
-1. Add error handling to the authentication module
-2. Create unit tests for the new endpoints
-3. Update documentation with API examples
+Example subtasks for incomplete work:
+- Add error handling to the authentication module
+- Create unit tests for the new endpoints
+- Update documentation with API examples
 """
 
 
@@ -95,11 +93,12 @@ def replanner(state: KatalystState) -> KatalystState:
     tool_functions = get_tool_functions_map(category="replanner")
     tools = create_tools_with_context(tool_functions, "REPLANNER")
     
-    # Create replanner agent
+    # Create replanner agent with structured output
     replanner_agent = create_react_agent(
         model=replanner_model,
         tools=tools,
-        checkpointer=state.checkpointer
+        checkpointer=state.checkpointer,
+        response_format=ReplannerOutput  # Use structured output
     )
     
     # Format context about what has been done
@@ -147,74 +146,53 @@ Please verify what has been implemented and decide if the objective is complete 
         # Update messages
         state.messages = result.get("messages", state.messages)
         
-        # Extract decision from the last AI message
-        ai_messages = [msg for msg in state.messages if isinstance(msg, AIMessage)]
+        # Extract structured response
+        structured_response = result.get("structured_response")
         
-        if ai_messages:
-            last_message = ai_messages[-1]
-            
-            # Check if objective is complete
-            if "OBJECTIVE COMPLETE:" in last_message.content:
-                # Extract summary
-                complete_parts = last_message.content.split("OBJECTIVE COMPLETE:", 1)
-                summary = complete_parts[1].strip() if len(complete_parts) > 1 else "Task completed successfully."
-                
-                # Set final response
+        if structured_response and isinstance(structured_response, ReplannerOutput):
+            if structured_response.is_complete:
+                # Objective is complete
                 logger.info("[REPLANNER] Objective complete")
                 state.task_queue = []
                 state.task_idx = 0
-                state.response = summary
                 
-            elif "MORE WORK NEEDED:" in last_message.content:
-                # Extract new tasks
-                work_parts = last_message.content.split("MORE WORK NEEDED:", 1)
-                if len(work_parts) > 1:
-                    tasks_text = work_parts[1].strip()
-                    
-                    # Parse numbered tasks
-                    new_tasks = []
-                    lines = tasks_text.split('\n')
-                    for line in lines:
-                        line = line.strip()
-                        # Match patterns like "1.", "2.", etc.
-                        if line and line[0].isdigit() and '.' in line:
-                            # Extract task after the number
-                            task_parts = line.split('.', 1)
-                            if len(task_parts) > 1:
-                                task = task_parts[1].strip()
-                                if task:
-                                    new_tasks.append(task)
-                    
-                    if new_tasks:
-                        # Update state with new plan
-                        logger.info(f"[REPLANNER] Creating new plan with {len(new_tasks)} tasks")
-                        state.task_queue = new_tasks
-                        state.task_idx = 0
-                        state.error_message = None
-                        state.response = None
-                        
-                        # Log new plan
-                        plan_message = "Continuing with updated plan:\n" + "\n".join(
-                            f"{i+1}. {task}" for i, task in enumerate(new_tasks)
-                        )
-                        logger.info(f"[REPLANNER] {plan_message}")
-                    else:
-                        logger.error("[REPLANNER] Could not parse new tasks")
-                        state.error_message = "Failed to parse new tasks from replanner"
-                        state.response = "Unable to determine next steps."
+                # Extract summary from AI message
+                ai_messages = [msg for msg in state.messages if isinstance(msg, AIMessage)]
+                if ai_messages:
+                    # Use the last AI message content as summary
+                    state.response = ai_messages[-1].content
                 else:
-                    logger.error("[REPLANNER] No tasks provided after MORE WORK NEEDED")
+                    state.response = "Task completed successfully."
+                
+            else:
+                # More work needed
+                if structured_response.subtasks:
+                    # Update state with new plan
+                    logger.info(f"[REPLANNER] Creating new plan with {len(structured_response.subtasks)} tasks")
+                    state.task_queue = structured_response.subtasks
+                    state.task_idx = 0
+                    state.error_message = None
+                    state.response = None
+                    
+                    # Log new plan
+                    plan_message = "Continuing with updated plan:\n" + "\n".join(
+                        f"{i+1}. {task}" for i, task in enumerate(structured_response.subtasks)
+                    )
+                    logger.info(f"[REPLANNER] {plan_message}")
+                else:
+                    logger.error("[REPLANNER] Structured response indicates more work needed but no subtasks provided")
                     state.error_message = "Replanner indicated more work needed but provided no tasks"
                     state.response = "Unable to determine next steps."
-            else:
-                # Unclear response
-                logger.error("[REPLANNER] Agent response unclear - no decision marker found")
-                state.error_message = "Replanner did not provide clear decision"
-                state.response = "Unable to determine if task is complete. Please try again."
         else:
-            logger.error("[REPLANNER] No AI response from replanner agent")
-            state.error_message = "No response from replanner"
-            state.response = "Failed to get response from replanner. Please try again."
+            # Fallback: check if there's an error message in the result
+            logger.error(f"[REPLANNER] No structured response received. Result keys: {list(result.keys())}")
+            state.error_message = "Failed to get structured response from replanner"
+            state.response = "Failed to determine next steps. Please try again."
+            
+            # Log any AI messages for debugging
+            ai_messages = [msg for msg in state.messages if isinstance(msg, AIMessage)]
+            if ai_messages:
+                logger.debug(f"[REPLANNER] Last AI message: {ai_messages[-1].content[:200]}...")
             
     except Exception as e:
         logger.error(f"[REPLANNER] Failed to replan: {str(e)}")

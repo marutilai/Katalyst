@@ -14,9 +14,9 @@ import pytest
 
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.coding_agent.nodes.tool_runner import tool_runner
-from katalyst.coding_agent.tools.read_file import read_file
-from katalyst.coding_agent.tools.write_to_file import write_to_file
-from katalyst.coding_agent.tools.apply_source_code_diff import apply_source_code_diff
+from katalyst.coding_agent.tools.read import read as read_file
+from katalyst.coding_agent.tools.write import write as write_to_file
+from katalyst.coding_agent.tools.edit import edit as apply_source_code_diff
 from langchain_core.agents import AgentAction
 
 

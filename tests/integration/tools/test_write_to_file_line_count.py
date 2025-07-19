@@ -1,7 +1,7 @@
 import os
 import json
 import pytest
-from katalyst.coding_agent.tools.write_to_file import write_to_file
+from katalyst.coding_agent.tools.write import write as write_to_file
 
 pytestmark = pytest.mark.integration
 

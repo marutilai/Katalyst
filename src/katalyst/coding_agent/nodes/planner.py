@@ -13,7 +13,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.prebuilt import create_react_agent
 
 from katalyst.katalyst_core.state import KatalystState
-from katalyst.katalyst_core.utils.models import SubtaskList
+from katalyst.katalyst_core.utils.models import PlannerOutput
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.config import get_llm_config
 from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
@@ -94,7 +94,7 @@ def planner(state: KatalystState) -> KatalystState:
         model=planner_model,
         tools=tools,
         checkpointer=state.checkpointer,
-        response_format=SubtaskList  # Use structured output
+        response_format=PlannerOutput  # Use structured output
     )
     
     # Create planning message
@@ -123,7 +123,7 @@ Provide your final plan as a list of subtasks that can be executed to complete t
         # Extract structured response
         structured_response = result.get("structured_response")
         
-        if structured_response and isinstance(structured_response, SubtaskList):
+        if structured_response and isinstance(structured_response, PlannerOutput):
             subtasks = structured_response.subtasks
             
             if subtasks:

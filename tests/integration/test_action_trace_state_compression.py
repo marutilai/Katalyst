@@ -4,7 +4,7 @@
 import pytest
 from unittest.mock import Mock, patch
 from katalyst.katalyst_core.state import KatalystState
-from katalyst.coding_agent.nodes.agent_react import agent_react
+from katalyst.coding_agent.nodes.executor import executor
 from langchain_core.agents import AgentAction, AgentFinish
 import json
 
@@ -59,7 +59,7 @@ def test_action_trace_compression_reduces_state_size():
     mock_response.action_input = {"path": "/"}
     
     # Mock the LLM client
-    with patch('katalyst.coding_agent.nodes.agent_react.get_llm_client') as mock_get_llm:
+    with patch('katalyst.coding_agent.nodes.executor.get_llm_client') as mock_get_llm:
         mock_llm = Mock()
         mock_llm.chat.completions.create.return_value = mock_response
         mock_get_llm.return_value = mock_llm
@@ -68,8 +68,8 @@ def test_action_trace_compression_reduces_state_size():
         with patch('katalyst.katalyst_core.utils.action_trace_summarizer.ActionTraceSummarizer._create_summary') as mock_create_summary:
             mock_create_summary.return_value = "Summary of first 7 actions: Read multiple files"
             
-            # Run agent_react which should trigger compression
-            state = agent_react(state)
+            # Run executor which should trigger compression
+            state = executor(state)
     
     # Check compressed size
     compressed_entries = len(state.action_trace)
@@ -113,12 +113,12 @@ def test_action_trace_no_compression_under_threshold():
     mock_response.action = "list_files"
     mock_response.action_input = {"path": "/"}
     
-    with patch('katalyst.coding_agent.nodes.agent_react.get_llm_client') as mock_get_llm:
+    with patch('katalyst.coding_agent.nodes.executor.get_llm_client') as mock_get_llm:
         mock_llm = Mock()
         mock_llm.chat.completions.create.return_value = mock_response
         mock_get_llm.return_value = mock_llm
         
-        state = agent_react(state)
+        state = executor(state)
     
     # Should not compress
     assert len(state.action_trace) == initial_entries
