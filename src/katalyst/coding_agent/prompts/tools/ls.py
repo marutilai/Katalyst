@@ -17,7 +17,7 @@ Output: JSON with keys:
 - path: The directory being listed
 - entries: List of entries, each containing:
   - name: File/directory name (directories end with /)
-  - type: "file" or "dir"
+  - type: "file", "dir", or "header" (recursive mode)
   - size: File size (only in long format)
   - permissions: Unix permissions (only in long format)
   - modified: Last modification time (only in long format)
