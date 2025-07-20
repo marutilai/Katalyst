@@ -51,7 +51,6 @@ def create_test_ollama_config(
             "replanner": "reasoning",
             "agent_react": "execution",
             "generate_directory_overview": "execution",
-            "tool_runner": "execution",
         }.get(component.lower(), "execution")
         
         if model_type in config._custom_models:

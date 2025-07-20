@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import Mock, patch
 from katalyst.katalyst_core.state import KatalystState
-from katalyst.coding_agent.nodes.tool_runner import tool_runner
 from katalyst.coding_agent.nodes.planner import planner
 from langchain_core.agents import AgentAction
 import json

@@ -1,6 +1,6 @@
 import os
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
+from typing import List
 
 
 class PlannerOutput(BaseModel):
@@ -10,10 +10,6 @@ class PlannerOutput(BaseModel):
     )
 
 
-# Backward compatibility alias
-SubtaskList = PlannerOutput
-
-
 class ReplannerOutput(BaseModel):
     is_complete: bool = Field(
         ..., description="True if the overall goal is achieved, False otherwise."
@@ -21,27 +17,6 @@ class ReplannerOutput(BaseModel):
     subtasks: List[str] = Field(
         default_factory=list,
         description="New list of subtasks if not complete. Empty if is_complete is True.",
-    )
-
-
-class AgentReactOutput(BaseModel):
-    thought: str = Field(
-        ...,
-        description="The agent's reasoning or thought process for the current step.",
-    )
-    action: Optional[str] = Field(
-        None,
-        description="The name of the tool/action the agent wants to invoke, if any.",
-    )
-    action_input: Optional[Dict[str, Any]] = Field(
-        None, description="Arguments for the tool/action, as a dictionary."
-    )
-    final_answer: Optional[str] = Field(
-        None,
-        description="The agent's final answer for the current subtask, if the task is complete.",
-    )
-    replan_requested: bool = Field(
-        False, description="If true, signals the agent to trigger replanning."
     )
 
 

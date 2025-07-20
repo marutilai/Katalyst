@@ -12,7 +12,6 @@ import inspect
 
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.directory_cache import DirectoryCache
-from katalyst.coding_agent.nodes.tool_runner import tool_runner
 from langchain_core.agents import AgentAction
 
 
