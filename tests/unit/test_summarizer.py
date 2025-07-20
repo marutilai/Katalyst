@@ -2,7 +2,6 @@
 
 import pytest
 from unittest.mock import MagicMock, patch
-from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.messages.utils import count_tokens_approximately
 
 from katalyst.coding_agent.nodes.summarizer import (
@@ -66,14 +65,6 @@ class TestSummarizationNode:
         mock_get_llm_client.return_value = self.mock_llm
         
         node = get_summarization_node()
-        
-        # Create test messages
-        messages = [
-            HumanMessage(content="Create a TODO app"),
-            AIMessage(content="I'll help you create a TODO app."),
-            HumanMessage(content="Add user authentication"),
-            AIMessage(content="I'll add authentication to the TODO app.")
-        ]
         
         # Verify node can process messages
         # Note: We're not testing the actual summarization behavior
