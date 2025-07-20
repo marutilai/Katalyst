@@ -1,6 +1,7 @@
-from typing import Dict, List
+from typing import List
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.tools import katalyst_tool
+from katalyst.katalyst_core.utils.error_handling import create_error_message, ErrorType
 from katalyst.app.ui.input_handler import InputHandler
 from rich.console import Console
 import json
@@ -23,7 +24,7 @@ def format_response(question_to_ask_user: str, user_final_answer: str) -> str:
     categories=["planner", "executor", "replanner"]
 )
 def request_user_input(
-    question_to_ask_user: str, suggested_responses: List[str] = None, user_input_fn=None
+    question_to_ask_user: str, suggested_responses: List[str], user_input_fn=None
 ) -> str:
     """
     Asks the user a question to gather more information, providing suggested answers.
@@ -45,25 +46,38 @@ def request_user_input(
         logger.debug(f"Using provided user_input_fn: {user_input_fn}")
 
     if not isinstance(question_to_ask_user, str) or not question_to_ask_user.strip():
-        logger.error("No valid 'question_to_ask_user' provided to request_user_input.")
-        return format_response(
-            question_to_ask_user
-            if isinstance(question_to_ask_user, str)
-            else "[No Question]",
-            "[ERROR] No valid question provided to tool.",
+        error_msg = create_error_message(
+            ErrorType.TOOL_ERROR,
+            "No valid 'question_to_ask_user' provided to request_user_input.",
+            "request_user_input"
         )
+        logger.error(error_msg)
+        return error_msg
 
     if not isinstance(suggested_responses, list) or not suggested_responses:
-        logger.error(
-            "No 'suggested_responses' list provided by LLM for request_user_input."
+        error_msg = create_error_message(
+            ErrorType.TOOL_ERROR,
+            "The 'suggested_responses' parameter is required and must be a non-empty list. "
+            f"When asking '{question_to_ask_user}', you must provide appropriate answer options for the user to choose from.",
+            "request_user_input"
         )
-        return format_response(
-            question_to_ask_user, "[ERROR] No suggested_responses list provided by LLM."
-        )
+        logger.error(error_msg)
+        return error_msg
 
     suggestions_for_user = [
         s.strip() for s in suggested_responses if isinstance(s, str) and s.strip()
     ]
+    
+    # Ensure we have at least some valid options after filtering
+    if not suggestions_for_user:
+        error_msg = create_error_message(
+            ErrorType.TOOL_ERROR,
+            "All provided suggestions were empty or invalid. "
+            f"When asking '{question_to_ask_user}', you must provide valid, non-empty answer options.",
+            "request_user_input"
+        )
+        logger.error(error_msg)
+        return error_msg
     
     # Use enhanced input handler for better UI
     input_handler = InputHandler()
