@@ -30,7 +30,7 @@ def get_llm_client(component: str, async_mode: bool = False, use_instructor: boo
     This is the recommended API that handles both client and model selection.
     
     Args:
-        component: Component name (e.g., 'planner', 'agent_react')
+        component: Component name (e.g., 'planner', 'executor')
         async_mode: Whether to return async client
         use_instructor: Whether to wrap with instructor
         

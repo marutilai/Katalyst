@@ -30,9 +30,11 @@ Description: This playbook outlines the comprehensive strategy for creating a st
 ## Step 4: Analyze All Source Code Components
 **Goal:** Create a detailed, file-by-file analysis of the entire codebase. This is the most critical step.  
 **Method:**
-- Use the `generate_directory_overview` tool on the primary source directory (e.g., `src/` or the project root `.`).
-- This tool performs a map-reduce analysis internally, returning a detailed summary for every file, including its purpose, key functions, and key classes.
-- The list of individual file summaries returned by this tool will be the value for the `component_details` key.
+- Use `ls` with recursive option to explore the source directory structure (e.g., `src/` or the project root `.`).
+- Use `list_code_definitions` to identify key classes and functions in each source file.
+- Use `read` to examine important files and understand their purpose and implementation.
+- For each significant source file, create a summary including its purpose, key functions, and key classes.
+- The list of individual file summaries you create will be the value for the `component_details` key.
 
 ## Step 5: Final Assembly and Persistent Storage
 **Goal:** Combine all gathered information into a single JSON object and save it to disk.  

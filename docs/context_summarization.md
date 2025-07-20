@@ -149,13 +149,13 @@ Observation: Successfully fixed import statements
 Conversation summarization is applied automatically via decorator:
 ```python
 @compress_chat_history()
-def agent_react(state: KatalystState) -> KatalystState:
+def executor(state: KatalystState) -> KatalystState:
     # Chat history automatically compressed if needed
     ...
 ```
 
 ### For Action Traces
-Integrated directly in agent_react.py:
+Integrated directly in executor.py:
 ```python
 summarizer = ActionTraceSummarizer(component="execution")
 scratchpad_content = summarizer.summarize_action_trace(

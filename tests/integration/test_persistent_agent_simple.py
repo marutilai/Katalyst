@@ -133,7 +133,7 @@ def test_state_persistence_through_planning():
         
         if 'write' in tool_names:
             agent_type = 'executor'
-        elif 'generate_directory_overview' in tool_names:
+        elif 'list_code_definitions' in tool_names:
             agent_type = 'planner'
         else:
             agent_type = 'replanner'

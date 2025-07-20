@@ -25,7 +25,7 @@ def human_plan_verification(state: KatalystState) -> KatalystState:
     Primary Task: Get human verification for the generated plan.
     
     State Changes:
-    - If approved: No changes, continues to agent_react
+    - If approved: No changes, continues to executor
     - If feedback provided: Sets plan_feedback and triggers replanning
     - If cancelled: Sets response and clears task_queue
     

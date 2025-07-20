@@ -15,7 +15,7 @@ logger = get_logger()
 PROVIDER_PROFILES = {
     "openai": {
         "reasoning": "gpt-4.1",  # High-reasoning tasks (planner, replanner)
-        "execution": "gpt-4.1",  # Fast execution tasks (agent_react, tools)
+        "execution": "gpt-4.1",  # Fast execution tasks (executor, tools)
         "fallback": "gpt-4o",  # Fallback model
         "default_timeout": 45,
     },
@@ -50,8 +50,7 @@ PROVIDER_PROFILES = {
 COMPONENT_MODEL_MAPPING = {
     "planner": "reasoning",
     "replanner": "reasoning",
-    "agent_react": "execution",
-    "generate_directory_overview": "execution",
+    "executor": "execution",
     # Default for any other component
     "default": "execution",
 }
@@ -116,7 +115,7 @@ class LLMConfig:
         Get the appropriate model for a given component.
 
         Args:
-            component: Component name (e.g., 'planner', 'agent_react')
+            component: Component name (e.g., 'planner', 'executor')
 
         Returns:
             Model identifier string
@@ -171,7 +170,7 @@ class LLMConfig:
             "timeout": self.get_timeout(),
             "models": {
                 "reasoning": self.get_model_for_component("planner"),
-                "execution": self.get_model_for_component("agent_react"),
+                "execution": self.get_model_for_component("executor"),
                 "fallback": self.get_fallback_models()[0],
             },
             "custom_overrides": self._custom_models,

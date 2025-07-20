@@ -30,7 +30,7 @@ class TestLLMConfig:
             assert config.get_provider() == "openai"
             assert config.get_timeout() == 45
             assert config.get_model_for_component("planner") == "gpt-4.1"
-            assert config.get_model_for_component("agent_react") == "gpt-4.1"
+            assert config.get_model_for_component("executor") == "gpt-4.1"
 
     def test_provider_profiles(self):
         """Test different provider profiles."""
@@ -44,7 +44,7 @@ class TestLLMConfig:
             config = get_llm_config()
             assert config.get_provider() == "anthropic"
             assert config.get_model_for_component("planner") == "claude-3-opus-20240229"
-            assert config.get_model_for_component("agent_react") == "claude-3-haiku-20240307"
+            assert config.get_model_for_component("executor") == "claude-3-haiku-20240307"
 
         # Test Gemini profile
         with patch.dict(
@@ -56,7 +56,7 @@ class TestLLMConfig:
             config = get_llm_config()
             assert config.get_provider() == "gemini"
             assert config.get_model_for_component("planner") == "gemini-1.5-pro"
-            assert config.get_model_for_component("agent_react") == "gemini-1.5-flash"
+            assert config.get_model_for_component("executor") == "gemini-1.5-flash"
 
     def test_custom_model_overrides(self):
         """Test custom model overrides via environment variables."""
@@ -73,7 +73,7 @@ class TestLLMConfig:
             reset_config()
             config = get_llm_config()
             assert config.get_model_for_component("planner") == "custom-reasoning-model"
-            assert config.get_model_for_component("agent_react") == "custom-execution-model"
+            assert config.get_model_for_component("executor") == "custom-execution-model"
             assert config.get_fallback_models() == ["custom-fallback-model"]
 
     def test_component_model_mapping(self):
@@ -84,8 +84,7 @@ class TestLLMConfig:
             assert config.get_model_for_component("planner") == "gpt-4.1"
             assert config.get_model_for_component("replanner") == "gpt-4.1"
             # Execution components
-            assert config.get_model_for_component("agent_react") == "gpt-4.1"
-            assert config.get_model_for_component("generate_directory_overview") == "gpt-4.1"
+            assert config.get_model_for_component("executor") == "gpt-4.1"
             # Unknown component defaults to execution
             assert config.get_model_for_component("unknown_component") == "gpt-4.1"
 

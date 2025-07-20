@@ -38,7 +38,7 @@ class TestLLMService:
             reset_config()
             assert get_llm_params("planner")["model"] == "test-reasoning"
             assert get_llm_params("replanner")["model"] == "test-reasoning"
-            assert get_llm_params("agent_react")["model"] == "test-execution"
+            assert get_llm_params("executor")["model"] == "test-execution"
 
     def test_get_llm_client_sync_instructor(self):
         """Test getting synchronous instructor client."""
@@ -48,7 +48,7 @@ class TestLLMService:
 
     def test_get_llm_client_async_instructor(self):
         """Test getting asynchronous instructor client."""
-        client = get_llm_client("agent_react", async_mode=True, use_instructor=True)
+        client = get_llm_client("executor", async_mode=True, use_instructor=True)
         # Should return instructor-wrapped async client
         assert hasattr(client, "chat")
 
@@ -61,7 +61,7 @@ class TestLLMService:
     def test_get_llm_client_async_raw(self):
         """Test getting asynchronous raw litellm client."""
         with patch("katalyst.katalyst_core.services.llms.acompletion") as mock_acompletion:
-            client = get_llm_client("agent_react", async_mode=True, use_instructor=False)
+            client = get_llm_client("executor", async_mode=True, use_instructor=False)
             assert client == mock_acompletion
 
     def test_get_llm_params(self):
@@ -92,7 +92,7 @@ class TestLLMService:
         ):
             reset_config()
             planner_params = get_llm_params("planner")
-            agent_params = get_llm_params("agent_react")
+            agent_params = get_llm_params("executor")
             
             assert planner_params["model"] == "reasoning-model"
             assert agent_params["model"] == "execution-model"

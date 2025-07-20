@@ -171,8 +171,8 @@ class TestRoutingAfterVerification:
         
         assert route_after_verification(state) == "planner"
     
-    def test_route_to_agent_react_when_approved(self):
-        """Test routing to agent_react when plan approved."""
+    def test_route_to_executor_when_approved(self):
+        """Test routing to executor when plan approved."""
         from katalyst.katalyst_core.routing import route_after_verification
         
         state = KatalystState(

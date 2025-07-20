@@ -70,7 +70,7 @@ katalyst
 Katalyst uses different models for different components:
 
 - **Reasoning tasks** (planner, replanner): `ollama/qwen2.5-coder:7b`
-- **Execution tasks** (agent_react): `ollama/phi4`
+- **Execution tasks** (executor): `ollama/phi4`
 - **Fallback model**: `ollama/codestral`
 
 These defaults are optimized for a balance of quality and performance.

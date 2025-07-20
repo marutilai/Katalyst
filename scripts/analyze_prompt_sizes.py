@@ -103,7 +103,7 @@ def main():
                             'src/katalyst/coding_agent/nodes')
     
     node_files = {
-        'agent_react': 'agent_react.py',
+        'executor': 'executor.py',
         'planner': 'planner.py',
         'replanner': 'replanner.py',
         'human_plan_verification': 'human_plan_verification.py'
@@ -128,13 +128,13 @@ def main():
     print(f"{'TOTAL NODE PROMPTS':<35} {format_size(total_node_size):>10} chars")
     print()
     
-    # Special analysis for agent_react
-    print("AGENT_REACT BREAKDOWN")
+    # Special analysis for executor
+    print("EXECUTOR BREAKDOWN")
     print_separator()
     
     # Get base prompt size (without tools)
-    agent_react_path = os.path.join(nodes_dir, 'agent_react.py')
-    base_size = extract_system_prompt_from_node(agent_react_path, 'agent_react')
+    executor_path = os.path.join(nodes_dir, 'executor.py')
+    base_size = extract_system_prompt_from_node(executor_path, 'executor')
     
     print(f"{'Base instructions':<35} {format_size(base_size):>10} chars")
     print(f"{'Tool descriptions':<35} {format_size(total_tool_size):>10} chars")
@@ -151,8 +151,8 @@ def main():
     print()
     print("SUMMARY")
     print_separator()
-    print(f"The agent_react node has the largest prompt at ~{format_size(base_size + total_tool_size)} chars")
-    print(f"Tool descriptions account for {tools_pct:.1f}% of the agent_react prompt")
+    print(f"The executor node has the largest prompt at ~{format_size(base_size + total_tool_size)} chars")
+    print(f"Tool descriptions account for {tools_pct:.1f}% of the executor prompt")
     print(f"This leaves limited space for task context and conversation history")
     
 

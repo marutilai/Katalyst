@@ -49,8 +49,7 @@ def create_test_ollama_config(
         model_type = {
             "planner": "reasoning",
             "replanner": "reasoning",
-            "agent_react": "execution",
-            "generate_directory_overview": "execution",
+            "executor": "execution",
         }.get(component.lower(), "execution")
         
         if model_type in config._custom_models:
@@ -89,7 +88,7 @@ def create_test_ollama_config(
             "timeout": config.get_timeout(),
             "models": {
                 "reasoning": config.get_model_for_component("planner"),
-                "execution": config.get_model_for_component("agent_react"),
+                "execution": config.get_model_for_component("executor"),
                 "fallback": config.get_fallback_models()[0],
             },
             "custom_overrides": config._custom_models,
@@ -119,7 +118,7 @@ class TestOllamaProvider:
         
         assert config.get_provider() == "ollama"
         assert config.get_model_for_component("planner") == "ollama/qwen2.5-coder:7b"
-        assert config.get_model_for_component("agent_react") == "ollama/phi4"
+        assert config.get_model_for_component("executor") == "ollama/phi4"
         assert config.get_fallback_models() == ["ollama/codestral"]
         assert config.get_timeout() == 60
         assert config.get_api_base() == "http://localhost:11434"
@@ -149,7 +148,7 @@ class TestOllamaProvider:
         config = mock_get_config()
         
         assert config.get_model_for_component("planner") == "ollama/devstral"
-        assert config.get_model_for_component("agent_react") == "ollama/codestral"
+        assert config.get_model_for_component("executor") == "ollama/codestral"
     
     @patch('katalyst.katalyst_core.services.llms.get_llm_config')
     @patch('katalyst.katalyst_core.config.get_llm_config')

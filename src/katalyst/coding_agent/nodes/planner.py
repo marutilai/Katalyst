@@ -29,7 +29,7 @@ Your role is to:
 3. Create a step-by-step plan that another developer can follow
 
 Use your tools to:
-- Explore directory structure (ls, generate_directory_overview)
+- Explore directory structure (ls)
 - Search for relevant code patterns (grep, glob)
 - Read key files to understand architecture (read)
 - Find existing implementations (list_code_definitions)

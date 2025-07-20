@@ -13,7 +13,7 @@ def _display_task_progress(state: KatalystState, logger) -> None:
 
 def advance_pointer(state: KatalystState) -> KatalystState:
     """
-    Called when agent_react completes a task with AgentFinish.
+    Called when executor completes a task with AgentFinish.
     
     1) Log completed subtask & summary
     2) Increment state.task_idx
