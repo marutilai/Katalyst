@@ -56,3 +56,13 @@ KATALYST_IGNORE_PATTERNS = {
     # Project specific
     ".katalyst",
 }
+
+# Conversation summarization thresholds
+# Maximum tokens allowed in conversation after summarization
+MAX_AGGREGATE_TOKENS = 50000  # 50k
+
+# Token count that triggers summarization
+MAX_TOKENS_BEFORE_SUMMARY = 40000  # 40k  
+
+# Maximum tokens allocated for the summary itself
+MAX_SUMMARY_TOKENS = 8000  # 8k

@@ -51,6 +51,7 @@ COMPONENT_MODEL_MAPPING = {
     "planner": "reasoning",
     "replanner": "reasoning",
     "executor": "execution",
+    "summarizer": "execution",
     # Default for any other component
     "default": "execution",
 }

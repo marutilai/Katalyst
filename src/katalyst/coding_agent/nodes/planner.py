@@ -18,6 +18,7 @@ from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.config import get_llm_config
 from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
 from katalyst.katalyst_core.utils.tools import get_tool_functions_map, create_tools_with_context
+from katalyst.coding_agent.nodes.summarizer import get_summarization_node
 
 
 # Planning-focused prompt
@@ -89,12 +90,16 @@ def planner(state: KatalystState) -> KatalystState:
     tool_functions = get_tool_functions_map(category="planner")
     tools = create_tools_with_context(tool_functions, "PLANNER")
     
-    # Create planner agent with structured output
+    # Get summarization node for conversation compression
+    summarization_node = get_summarization_node()
+    
+    # Create planner agent with structured output and summarization
     planner_agent = create_react_agent(
         model=planner_model,
         tools=tools,
         checkpointer=state.checkpointer,
-        response_format=PlannerOutput  # Use structured output
+        response_format=PlannerOutput,  # Use structured output
+        pre_model_hook=summarization_node  # Enable conversation summarization
     )
     
     # Create planning message

@@ -19,6 +19,7 @@ from katalyst.katalyst_core.config import get_llm_config
 from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
 from katalyst.katalyst_core.utils.tools import get_tool_functions_map, create_tools_with_context
 from katalyst.app.execution_controller import check_execution_cancelled
+from katalyst.coding_agent.nodes.summarizer import get_summarization_node
 
 
 def executor(state: KatalystState) -> KatalystState:
@@ -69,11 +70,15 @@ def executor(state: KatalystState) -> KatalystState:
     tool_functions = get_tool_functions_map(category="executor")
     tools = create_tools_with_context(tool_functions, "EXECUTOR")
     
-    # Create executor agent
+    # Get summarization node for conversation compression
+    summarization_node = get_summarization_node()
+    
+    # Create executor agent with summarization
     executor_agent = create_react_agent(
         model=executor_model,
         tools=tools,
-        checkpointer=state.checkpointer
+        checkpointer=state.checkpointer,
+        pre_model_hook=summarization_node  # Enable conversation summarization
     )
     
     # Add task message to conversation
