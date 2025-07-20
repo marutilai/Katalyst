@@ -1,12 +1,7 @@
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.logger import get_logger
 from langchain_core.agents import AgentFinish
-from katalyst.katalyst_core.utils.error_handling import (
-    ErrorType,
-    create_error_message,
-    classify_error,
-    format_error_for_llm,
-)
+from katalyst.katalyst_core.utils.error_handling import ErrorType, create_error_message
 from katalyst.katalyst_core.utils.task_display import get_task_progress_display
 
 
