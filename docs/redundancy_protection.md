@@ -75,7 +75,7 @@ Agent: read_file(path="models.py")   # BLOCKED - already have this data
 Error: ⚠️ REDUNDANT OPERATION BLOCKED: Tool 'read_file' was already successfully executed
 ```
 
-**Implementation**: `OperationContext.has_recent_operation()` and `tool_runner._check_redundant_operation()`
+**Implementation**: `OperationContext.has_recent_operation()` within individual tool implementations
 
 ## Comparison Table
 
@@ -160,9 +160,9 @@ search_in_file("TODO", "main.py") ✓
    - `has_recent_operation()` method for deterministic checks
    - Configurable history limits
 
-3. **tool_runner** (`coding_agent/nodes/tool_runner.py`)
-   - Integrates all three protection levels
-   - Validation pipeline: hallucination → repetition → redundancy → security
+3. **Tool Execution** (handled by create_react_agent)
+   - Protection mechanisms are integrated into tool implementations
+   - Validation happens within individual tools as needed
 
 ### Configuration
 
@@ -236,7 +236,7 @@ Here's how all three levels work together in practice:
 # State tracks all three protection mechanisms
 state = KatalystState(...)
 
-# In tool_runner validation pipeline:
+# In tool execution (handled by create_react_agent):
 def validate_tool_call(tool_name, tool_input, state):
     # Level 1 & 2: Repetition detection
     if not state.repetition_detector.check(tool_name, tool_input):

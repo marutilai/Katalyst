@@ -65,7 +65,7 @@ class KatalystState(BaseModel):
         default_factory=list,
         description="(task, summary) tuples appended after each task finishes.",
     )
-    # MINIMAL: Used by tool_runner and advance_pointer but redundant with LangGraph's message tracking
+    # MINIMAL: Redundant with LangGraph's message tracking
     # action_trace: List[Tuple[AgentAction, str]] = Field(
     #     default_factory=list,
     #     description=(

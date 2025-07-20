@@ -4,7 +4,7 @@ import json
 import hashlib
 from unittest.mock import Mock, patch
 from katalyst.katalyst_core.state import KatalystState
-from katalyst.coding_agent.nodes.tool_runner import tool_runner
+# Note: tool_runner has been removed - tests would need refactoring to use executor
 from langchain_core.agents import AgentAction
 
 

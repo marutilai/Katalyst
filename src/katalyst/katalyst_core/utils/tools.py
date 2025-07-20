@@ -241,7 +241,19 @@ def create_tools_with_context(tool_functions_map: Dict[str, callable], agent_nam
         def make_logging_wrapper(func, t_name):
             @functools.wraps(func)
             def wrapper(**kwargs):
-                logger.info(f"[{agent_name}] Calling tool: {t_name}")
+                # Format kwargs for logging, truncating long values
+                log_kwargs = {}
+                for k, v in kwargs.items():
+                    # Skip internal parameters
+                    if k in ['auto_approve', 'user_input_fn']:
+                        continue
+                    if isinstance(v, str) and len(v) > 100:
+                        log_kwargs[k] = v[:100] + "..."
+                    elif isinstance(v, list) and len(str(v)) > 100:
+                        log_kwargs[k] = f"[list with {len(v)} items]"
+                    else:
+                        log_kwargs[k] = v
+                logger.info(f"[{agent_name}] Calling tool: {t_name} with {log_kwargs}")
                 return func(**kwargs)
             return wrapper
         
@@ -249,7 +261,19 @@ def create_tools_with_context(tool_functions_map: Dict[str, callable], agent_nam
             # For async functions, create a sync wrapper with logging
             def make_sync_wrapper(async_func, t_name):
                 def sync_wrapper(**kwargs):
-                    logger.info(f"[{agent_name}] Calling tool: {t_name}")
+                    # Format kwargs for logging, truncating long values
+                    log_kwargs = {}
+                    for k, v in kwargs.items():
+                        # Skip internal parameters
+                        if k in ['auto_approve', 'user_input_fn']:
+                            continue
+                        if isinstance(v, str) and len(v) > 100:
+                            log_kwargs[k] = v[:100] + "..."
+                        elif isinstance(v, list) and len(str(v)) > 100:
+                            log_kwargs[k] = f"[list with {len(v)} items]"
+                        else:
+                            log_kwargs[k] = v
+                    logger.info(f"[{agent_name}] Calling tool: {t_name} with {log_kwargs}")
                     return asyncio.run(async_func(**kwargs))
                 return sync_wrapper
             

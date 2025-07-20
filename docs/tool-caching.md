@@ -179,7 +179,7 @@ Cache hits are indicated in the tool response:
 ### Thread Safety
 
 - Caches are not thread-safe (single-threaded agent execution)
-- All cache operations happen synchronously in tool_runner
+- All cache operations happen synchronously during tool execution
 
 ## Debugging
 

@@ -30,7 +30,7 @@ def create_subtask(
 ) -> str:
     """
     Creates a new subtask and adds it to the task queue.
-    This tool is handled specially by the tool_runner to modify the agent's state.
+    This tool modifies the agent's task queue to add new subtasks dynamically.
     
     Arguments:
         task_description: Clear description of the subtask to create
@@ -131,10 +131,10 @@ def create_subtask(
                 error="File-operation task - think higher level"
             )
     
-    # Log the request (actual insertion happens in tool_runner)
+    # Log the request
     logger.info(f"[CREATE_SUBTASK] Request to create subtask: '{task_description}' (Reason: {reason})")
     
-    # Return success - the tool_runner will handle the actual state modification
+    # Return success - the executor will handle the actual state modification
     result = format_create_subtask_response(
         True,
         f"Subtask creation request processed. Task: '{task_description}'",

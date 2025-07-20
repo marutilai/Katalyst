@@ -52,7 +52,6 @@ COMPONENT_MODEL_MAPPING = {
     "replanner": "reasoning",
     "agent_react": "execution",
     "generate_directory_overview": "execution",
-    "tool_runner": "execution",
     # Default for any other component
     "default": "execution",
 }
