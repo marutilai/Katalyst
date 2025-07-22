@@ -7,7 +7,6 @@ hierarchical format for both agent context and user display.
 
 from typing import List, Tuple, Set, Dict
 from katalyst.katalyst_core.state import KatalystState
-from .task_utils import find_parent_planner_task_index
 
 
 def build_task_hierarchy(state: KatalystState, include_progress: bool = True) -> List[str]:
@@ -78,57 +77,3 @@ def get_task_progress_display(state: KatalystState) -> str:
     return "\n".join(lines)
 
 
-def get_task_context_for_agent(state: KatalystState) -> str:
-    """
-    Generate focused task context for the agent prompt, showing only current planner task and its subtasks.
-    
-    Args:
-        state: The current Katalyst state
-        
-    Returns:
-        Formatted task context for agent prompt
-    """
-    lines = []
-    completed_task_names = {task[0] for task in state.completed_tasks}
-    
-    # Get current task
-    if state.task_idx >= len(state.task_queue):
-        return "No current task"
-    
-    current_task = state.task_queue[state.task_idx]
-    
-    # Find which planner task this belongs to
-    planner_task_idx = find_parent_planner_task_index(
-        current_task,
-        state.task_idx,
-        state.original_plan,
-        None  # MINIMAL: created_subtasks is commented out
-    )
-    
-    planner_task = None
-    if planner_task_idx is not None and state.original_plan:
-        if current_task in state.original_plan:
-            planner_task = current_task
-        else:
-            planner_task = state.original_plan[planner_task_idx]
-    
-    # If we found a planner task, show it with its subtasks
-    if planner_task:
-        lines.append(f"Current Planner Task: {planner_task}")
-        
-        # MINIMAL: created_subtasks is commented out
-        # # Check if this planner task has subtasks
-        # if planner_task_idx is not None and planner_task_idx in state.created_subtasks:
-        #     subtasks = state.created_subtasks[planner_task_idx]
-        #     if subtasks:
-        #         lines.append("\nSubtasks:")
-        #         for subtask in subtasks:
-        #             is_completed = subtask in completed_task_names
-        #             is_current = subtask == current_task
-        #             marker = "✓" if is_completed else "→" if is_current else " "
-        #             lines.append(f"{marker} {subtask}")
-    
-    # Always show what we're currently working on
-    lines.append(f"\nCurrently Working On: {current_task}")
-    
-    return "\n".join(lines)
