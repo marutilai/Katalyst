@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 # Suppress tree-sitter deprecation warning
 warnings.filterwarnings("ignore", category=FutureWarning, module="tree_sitter")
 
-from katalyst.katalyst_core.graph import build_compiled_graph
+from katalyst.supervisor.supervisor import build_supervisor_graph
 from katalyst.katalyst_core.utils.logger import get_logger, _LOG_FILE
 from katalyst.app.onboarding import welcome_screens
 from katalyst.app.config import ONBOARDING_FLAG
@@ -134,7 +134,7 @@ def repl(user_input_fn=input):
     # Check if we have an existing session
     has_previous_session = CHECKPOINT_DB.exists()
     
-    graph = build_compiled_graph().with_config(checkpointer=checkpointer)
+    graph = build_supervisor_graph().with_config(checkpointer=checkpointer)
     conversation_id = "katalyst-main-thread"
     config = {
         "configurable": {"thread_id": conversation_id},
