@@ -102,6 +102,7 @@ def replanner(state: KatalystState) -> KatalystState:
         model=replanner_model,
         tools=tools,
         checkpointer=state.checkpointer,
+        prompt=replanner_prompt,  # Set as system prompt
         response_format=ReplannerOutput,  # Use structured output
         pre_model_hook=summarization_node  # Enable conversation summarization
     )
@@ -134,9 +135,7 @@ TOOL EXECUTION HISTORY:
         context += "No tool executions recorded yet.\n"
     
     # Create verification message
-    verification_message = HumanMessage(content=f"""{replanner_prompt}
-
-{context}
+    verification_message = HumanMessage(content=f"""{context}
 
 Please verify what has been implemented and decide if the objective is complete or if more work is needed.""")
     

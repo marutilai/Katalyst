@@ -98,14 +98,13 @@ def planner(state: KatalystState) -> KatalystState:
         model=planner_model,
         tools=tools,
         checkpointer=state.checkpointer,
+        prompt=planner_prompt,  # Set as system prompt
         response_format=PlannerOutput,  # Use structured output
         pre_model_hook=summarization_node  # Enable conversation summarization
     )
     
-    # Create planning message
-    planning_message = HumanMessage(content=f"""{planner_prompt}
-
-User Request: {state.task}
+    # Create user request message
+    user_request_message = HumanMessage(content=f"""User Request: {state.task}
 
 Please explore the codebase as needed and create a detailed implementation plan.
 Provide your final plan as a list of subtasks that can be executed to complete the request.""")
@@ -114,8 +113,8 @@ Provide your final plan as a list of subtasks that can be executed to complete t
     if not state.messages:
         state.messages = []
     
-    # Add planning message
-    state.messages.append(planning_message)
+    # Add user request message
+    state.messages.append(user_request_message)
     
     try:
         # Use the planner agent to create a plan

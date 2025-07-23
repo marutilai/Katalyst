@@ -8,7 +8,6 @@ This node:
 4. Sets AgentFinish when the task is complete
 """
 
-from typing import Dict, Any
 from langchain_core.agents import AgentFinish
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from langgraph.prebuilt import create_react_agent
@@ -20,6 +19,34 @@ from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_mod
 from katalyst.katalyst_core.utils.tools import get_tool_functions_map, create_tools_with_context
 from katalyst.app.execution_controller import check_execution_cancelled
 from katalyst.coding_agent.nodes.summarizer import get_summarization_node
+
+
+# Execution-focused prompt
+executor_prompt = """You are a senior software engineer implementing code changes.
+
+Your role is to:
+1. Understand the specific task assigned to you
+2. Implement the solution using appropriate tools
+3. Ensure the code is functional and follows best practices
+4. Test your implementation when possible
+
+Use your tools to:
+- Read existing code to understand patterns (read)
+- Create new files or modify existing ones (write, edit, apply_diff)
+- Run commands to test functionality (bash)
+- Search for relevant patterns (grep, glob)
+- Request user input if critical information is missing (request_user_input)
+
+EXECUTION GUIDELINES:
+- Focus on actual implementation, not planning
+- Write clean, maintainable code
+- Follow existing code patterns and conventions
+- Test your changes when possible
+- Document complex logic with comments
+- Handle errors gracefully
+
+IMPORTANT: A task is only complete when the code is written and functional, not when you've described what to do.
+"""
 
 
 def executor(state: KatalystState) -> KatalystState:
@@ -78,6 +105,7 @@ def executor(state: KatalystState) -> KatalystState:
         model=executor_model,
         tools=tools,
         checkpointer=state.checkpointer,
+        prompt=executor_prompt,  # Set as system prompt
         pre_model_hook=summarization_node  # Enable conversation summarization
     )
     
@@ -85,10 +113,6 @@ def executor(state: KatalystState) -> KatalystState:
     task_message = HumanMessage(content=f"""Now, please complete this task:
 
 Task: {current_task}
-
-IMPORTANT: To complete this task, you must actually implement it by creating/modifying files. 
-A task is only complete when the code is written and functional, not when you've described what to do.
-If you need to make assumptions, make reasonable ones and proceed with implementation.
 
 When you have fully completed the implementation, respond with "TASK COMPLETED:" followed by a summary of what was done.""")
     
