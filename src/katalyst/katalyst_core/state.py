@@ -36,7 +36,6 @@ class KatalystState(BaseModel):
     # ── ReAct dialogue (inner loop) ───────────────────────────────────────
     checkpointer: Optional[Any] = Field(
         None,
-        exclude=True,  # Don't persist the checkpointer instance
         description="The checkpointer to use for shared agent conversation"
     )
     messages: List[BaseMessage] = Field(

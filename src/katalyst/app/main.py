@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 # Suppress tree-sitter deprecation warning
 warnings.filterwarnings("ignore", category=FutureWarning, module="tree_sitter")
 
-from katalyst.supervisor.supervisor import build_supervisor_graph
+from katalyst.supervisor.custom_supervisor import build_custom_supervisor_graph
 from katalyst.katalyst_core.utils.logger import get_logger, _LOG_FILE
 from katalyst.app.onboarding import welcome_screens
 from katalyst.app.config import ONBOARDING_FLAG
@@ -134,7 +134,7 @@ def repl(user_input_fn=input):
     # Check if we have an existing session
     has_previous_session = CHECKPOINT_DB.exists()
     
-    graph = build_supervisor_graph().with_config(checkpointer=checkpointer)
+    graph = build_custom_supervisor_graph().with_config(checkpointer=checkpointer)
     conversation_id = "katalyst-main-thread"
     config = {
         "configurable": {"thread_id": conversation_id},
@@ -246,6 +246,8 @@ def repl(user_input_fn=input):
             )
         logger.info(f"[MAIN_REPL] Starting new task: '{user_input}'")
         # Only pass new input for this turn; let checkpointer handle memory
+        from langchain_core.messages import HumanMessage
+        
         current_input = {
             "task": user_input,
             "auto_approve": os.getenv("KATALYST_AUTO_APPROVE", "false").lower()
@@ -253,6 +255,7 @@ def repl(user_input_fn=input):
             "project_root_cwd": os.getcwd(),
             "user_input_fn": user_input_fn,
             "checkpointer": checkpointer,
+            "messages": [HumanMessage(content=user_input)],  # Add message for supervisor
         }
         final_state = None
         try:

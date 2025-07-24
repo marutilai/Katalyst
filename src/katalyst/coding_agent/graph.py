@@ -1,9 +1,8 @@
 """
-Data Science Agent Graph
+Coding Agent Graph
 
-Defines the LangGraph StateGraph for the data science agent.
-Follows the same pattern as the coding agent with planner, executor, and replanner nodes,
-but specialized for data science workflows.
+Defines the LangGraph StateGraph for the coding agent.
+This is the main software development agent with planner, executor, and replanner nodes.
 """
 
 from langgraph.graph import StateGraph, START, END
@@ -16,26 +15,24 @@ from katalyst.katalyst_core.routing import (
     route_after_verification,
 )
 
-# Import DS-specific nodes
+# Import coding-specific nodes
 from .nodes.planner import planner
 from .nodes.executor import executor
+from .nodes.advance_pointer import advance_pointer
 from .nodes.replanner import replanner
-
-# Still use shared nodes for common functionality
-from katalyst.coding_agent.nodes.advance_pointer import advance_pointer
-from katalyst.coding_agent.nodes.human_plan_verification import human_plan_verification
+from .nodes.human_plan_verification import human_plan_verification
 
 
-def build_data_science_graph():
+def build_coding_graph():
     """
-    Build the data science agent graph.
+    Build the coding agent graph.
     
-    Uses DS-specific nodes for planner, executor, and replanner
-    with prompts and logic optimized for data analysis workflows.
+    Uses coding-specific nodes for planner, executor, and replanner
+    with prompts and logic optimized for software development workflows.
     """
     g = StateGraph(KatalystState)
 
-    # ── planner: generates the initial list of analysis tasks ────────────────────
+    # ── planner: generates the initial list of sub-tasks ─────────────────────────
     g.add_node("planner", planner)
     
     # ── human verification: allows user to review/modify plans ────────────────────
@@ -66,7 +63,7 @@ def build_data_science_graph():
         ["advance_pointer", "replanner", END],
     )
 
-    # ── decide whether to re‑plan or continue with next sub‑task ─────────────────
+    # ── decide whether to re-plan or continue with next sub-task ─────────────────
     g.add_conditional_edges(
         "advance_pointer",
         route_after_pointer,  # may return "executor", "replanner", or END
@@ -80,4 +77,4 @@ def build_data_science_graph():
         ["human_plan_verification", END],
     )
 
-    return g.compile(name="data_science_agent")
+    return g.compile(name="coding_agent")

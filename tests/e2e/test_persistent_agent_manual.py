@@ -12,7 +12,7 @@ pytestmark = pytest.mark.e2e
 
 @pytest.mark.skip(reason="Manual e2e test - requires LLM API keys")
 def test_persistent_agent():
-    from katalyst.katalyst_core.graph import build_compiled_graph
+    from katalyst.coding_agent.graph import build_coding_graph
     from katalyst.katalyst_core.utils.logger import get_logger
     
     logger = get_logger()
@@ -28,7 +28,7 @@ def test_persistent_agent():
         sys.exit(1)
     
     print("Building graph...")
-    graph = build_compiled_graph()
+    graph = build_coding_graph()
     
     # Test directory
     test_dir = os.path.join(os.getcwd(), "test_outputs")

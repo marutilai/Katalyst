@@ -62,6 +62,10 @@ def planner(state: KatalystState) -> KatalystState:
     logger = get_logger()
     logger.debug("[DS_PLANNER] Starting data science planner node...")
     
+    # Debug: Check state
+    logger.debug(f"[DS_PLANNER] State type: {type(state)}")
+    logger.debug(f"[DS_PLANNER] State checkpointer: {state.checkpointer}")
+    
     # Check if we have a checkpointer
     if not state.checkpointer:
         logger.error("[DS_PLANNER] No checkpointer found in state")

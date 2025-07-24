@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from pydantic import BaseModel, Field
 from katalyst.katalyst_core.state import KatalystState
-from katalyst.katalyst_core.graph import build_compiled_graph
+from katalyst.coding_agent.graph import build_coding_graph
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
 from katalyst.katalyst_core.config import get_llm_config
@@ -244,7 +244,7 @@ class KatalystTestRunner:
                 project_root_cwd=str(Path.cwd()),
                 user_input_fn=self._simulate_user_input,
             )
-            app = build_compiled_graph()
+            app = build_coding_graph()
             config = {
                 "recursion_limit": int(os.getenv("KATALYST_RECURSION_LIMIT", 250)),
             }
