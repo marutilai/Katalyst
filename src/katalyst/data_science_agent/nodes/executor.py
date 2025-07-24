@@ -31,11 +31,11 @@ Your role is to:
 4. Document findings clearly with evidence
 
 Use your tools to:
-- Read data files (read_file for CSVs, JSONs, etc.)
-- Execute analysis code (execute_data_code for pandas, visualization, etc.)
-- Run system commands for data processing (bash)
-- Save results and visualizations (write_file)
-- Search for additional data if needed (search_files, grep)
+- Read data files (read for CSVs, JSONs, etc.)
+- Execute analysis code (execute_data_code for pandas, visualization, etc. - maintains state across executions)
+- Save results and visualizations (write)
+- Search for additional data if needed (glob, grep)
+- Run system commands if needed (bash)
 
 ANALYSIS GUIDELINES:
 - Let data guide your investigation, don't force preconceptions
@@ -135,7 +135,7 @@ When you have completed the investigation, respond with "TASK COMPLETED:" follow
         check_execution_cancelled("ds_executor")
         
         # Execute with the agent
-        logger.info(f"[DS_EXECUTOR] Invoking executor agent for analysis")
+        logger.info("[DS_EXECUTOR] Invoking executor agent for analysis")
         logger.debug(f"[DS_EXECUTOR] Message count before: {len(state.messages)}")
         
         result = executor_agent.invoke({"messages": state.messages})
