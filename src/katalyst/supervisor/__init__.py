@@ -5,6 +5,6 @@ The supervisor intelligently routes user requests to the appropriate agent
 based on the nature of the task.
 """
 
-from .custom_supervisor import build_custom_supervisor_graph
+from .main_graph import build_main_graph
 
-__all__ = ["build_custom_supervisor_graph"]
+__all__ = ["build_main_graph"]

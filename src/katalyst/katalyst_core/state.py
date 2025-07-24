@@ -73,6 +73,9 @@ class KatalystState(BaseModel):
     response: Optional[str] = Field(
         None, description="Final deliverable once the outer loop terminates."
     )
+    next_agent: Optional[str] = Field(
+        None, description="Next agent to route to (used by router node)"
+    )
     plan_feedback: Optional[str] = Field(
         None,
         description="User feedback about the generated plan to be incorporated in replanning.",
