@@ -66,7 +66,7 @@ def executor(state: KatalystState) -> KatalystState:
     - Generate insights and visualizations
     - Return findings when complete
     """
-    logger = get_logger()
+    logger = get_logger("data_science_agent")
     logger.debug("[DS_EXECUTOR] Starting data science executor node...")
     
     # Check if we have a checkpointer

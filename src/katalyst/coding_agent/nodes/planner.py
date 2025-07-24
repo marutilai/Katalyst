@@ -58,7 +58,7 @@ def planner(state: KatalystState) -> KatalystState:
     """
     Use a planning agent to explore the codebase and create an implementation plan.
     """
-    logger = get_logger()
+    logger = get_logger("coding_agent")
     logger.debug("[PLANNER] Starting planner node...")
     
     # Check if we have a checkpointer

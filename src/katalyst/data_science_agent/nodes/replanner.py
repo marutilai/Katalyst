@@ -68,7 +68,7 @@ def replanner(state: KatalystState) -> KatalystState:
     """
     Use a replanner agent to verify analysis and decide next steps.
     """
-    logger = get_logger()
+    logger = get_logger("data_science_agent")
     logger.debug("[DS_REPLANNER] Starting data science replanner node...")
     
     # Skip if response already set

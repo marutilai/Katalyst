@@ -56,7 +56,7 @@ def replanner(state: KatalystState) -> KatalystState:
     """
     Use a replanner agent to verify work and decide next steps.
     """
-    logger = get_logger()
+    logger = get_logger("coding_agent")
     logger.debug("[REPLANNER] Starting replanner node...")
     
     # Skip if response already set

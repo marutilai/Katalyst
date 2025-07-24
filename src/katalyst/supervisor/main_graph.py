@@ -21,7 +21,7 @@ def router_node(state: KatalystState) -> KatalystState:
     
     This is a simple LLM call that classifies the task and routes accordingly.
     """
-    logger = get_logger()
+    logger = get_logger("supervisor")
     logger.info(f"[ROUTER] Analyzing task: {state.task}")
     
     # Get LLM for routing decision
@@ -101,7 +101,7 @@ def build_main_graph():
     - Agents are full subgraphs with their own nodes
     - State and checkpointer flow naturally through the system
     """
-    logger = get_logger()
+    logger = get_logger("supervisor")
     logger.info("[MAIN_GRAPH] Building main graph with subgraphs...")
     
     # Create the main graph

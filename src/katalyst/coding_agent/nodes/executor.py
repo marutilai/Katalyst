@@ -58,7 +58,7 @@ def executor(state: KatalystState) -> KatalystState:
     - Use tools as needed
     - Return when the task is complete
     """
-    logger = get_logger()
+    logger = get_logger("coding_agent")
     logger.debug("[EXECUTOR] Starting executor node...")
     
     # Check if we have a checkpointer

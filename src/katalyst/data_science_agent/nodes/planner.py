@@ -59,7 +59,7 @@ def planner(state: KatalystState) -> KatalystState:
     """
     Use a planning agent to explore data sources and create an analysis plan.
     """
-    logger = get_logger()
+    logger = get_logger("data_science_agent")
     logger.debug("[DS_PLANNER] Starting data science planner node...")
     
     # Debug: Check state
