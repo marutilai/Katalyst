@@ -37,6 +37,14 @@ Use your tools to:
 - Search for additional data if needed (glob, grep)
 - Run system commands if needed (bash)
 
+AVAILABLE LIBRARIES:
+- pandas: Data manipulation, analysis, and file I/O (CSV, Excel, JSON, etc.)
+- numpy: Numerical computing and array operations
+- matplotlib: Basic plotting and visualization
+- seaborn: Statistical data visualization
+- scikit-learn (sklearn): Machine learning algorithms and utilities
+- optuna: Hyperparameter optimization framework
+
 ANALYSIS GUIDELINES:
 - Let data guide your investigation, don't force preconceptions
 - Start simple, build complexity as understanding grows

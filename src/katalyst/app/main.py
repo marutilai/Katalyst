@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 warnings.filterwarnings("ignore", category=FutureWarning, module="tree_sitter")
 
 from katalyst.supervisor.main_graph import build_main_graph
-from katalyst.katalyst_core.utils.logger import get_logger, _LOG_FILE
+from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.app.onboarding import welcome_screens
 from katalyst.app.config import ONBOARDING_FLAG
 from katalyst.katalyst_core.utils.environment import ensure_openai_api_key
@@ -87,7 +87,6 @@ def print_run_summary(final_state: dict, input_handler: InputHandler = None):
         elif last_agent_outcome:
             console.print(f"[dim]Last agent step was an action: {last_agent_outcome.tool}[/dim]")
     
-    console.print(f"\n[blue]Full logs are available in: {_LOG_FILE}[/blue]")
     console.print("\n[green]Katalyst Agent is now ready for a new task![/green]")
 
 

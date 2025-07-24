@@ -49,6 +49,17 @@ class JupyterKernelManager:
         # Wait for kernel to be ready
         self.kernel_client.wait_for_ready(timeout=10)
         self.logger.info("[KERNEL] Jupyter kernel started successfully")
+        
+        # Get kernel info for debugging
+        try:
+            info_result = self.execute_code("import sys; print(f'Python: {sys.version}'); print(f'Executable: {sys.executable}')", timeout=5)
+            if info_result['outputs']:
+                self.logger.debug(f"[KERNEL] Kernel environment info: {' '.join(info_result['outputs'])}")
+        except Exception as e:
+            self.logger.debug(f"[KERNEL] Could not get kernel info: {e}")
+        
+        # Install essential data science libraries
+        self._install_essential_libraries()
     
     def execute_code(self, code: str, timeout: int = 30) -> Dict[str, Any]:
         """
@@ -92,11 +103,13 @@ class JupyterKernelManager:
                     
                 elif msg_type == 'error':
                     # Execution error
-                    errors.append({
+                    error_info = {
                         'ename': content['ename'],
                         'evalue': content['evalue'],
                         'traceback': content['traceback']
-                    })
+                    }
+                    errors.append(error_info)
+                    self.logger.debug(f"[KERNEL] Execution error: {error_info['ename']}: {error_info['evalue']}")
                     
                 elif msg_type == 'execute_result':
                     # Expression result
@@ -162,6 +175,40 @@ class JupyterKernelManager:
     def is_alive(self) -> bool:
         """Check if kernel is running."""
         return self.kernel_manager is not None and self.kernel_manager.is_alive()
+    
+    def _install_essential_libraries(self) -> None:
+        """Install essential data science libraries in the kernel."""
+        essential_libs = ['pandas', 'numpy', 'matplotlib', 'seaborn', 'scikit-learn', 'optuna']
+        
+        # First check which libraries are missing
+        check_code = """
+import importlib
+missing_libs = []
+for lib in %s:
+    try:
+        if lib == 'scikit-learn':
+            importlib.import_module('sklearn')
+        else:
+            importlib.import_module(lib)
+    except ImportError:
+        missing_libs.append(lib)
+print(f"Missing libraries: {missing_libs}")
+""" % str(essential_libs)
+        
+        result = self.execute_code(check_code, timeout=10)
+        
+        # Install missing libraries
+        if result['outputs']:
+            output = ' '.join(result['outputs'])
+            if 'Missing libraries: []' not in output:
+                self.logger.info("[KERNEL] Installing missing data science libraries...")
+                install_code = "!pip install -q " + " ".join(essential_libs)
+                install_result = self.execute_code(install_code, timeout=60)
+                
+                if install_result['errors']:
+                    self.logger.warning(f"[KERNEL] Error installing libraries: {install_result['errors']}")
+                else:
+                    self.logger.info("[KERNEL] Essential libraries installed successfully")
     
     def _signal_handler(self, signum, frame):
         """Handle termination signals by shutting down the kernel."""
