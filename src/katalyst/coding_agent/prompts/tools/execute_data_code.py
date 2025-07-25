@@ -17,9 +17,11 @@ Output: String containing:
 
 Examples:
 - execute_data_code("import pandas as pd")
-- execute_data_code("df = pd.read_csv('data.csv')")
+- execute_data_code("df = pd.read_csv('/path/to/data.csv')")
+- execute_data_code("df_cleaned.to_csv('/path/to/output.csv', index=False)")
 - execute_data_code("df.describe()", timeout=10)
 - execute_data_code("plt.plot([1,2,3], [4,5,6]); plt.show()")
+- execute_data_code("plt.savefig('/path/to/plot.png', dpi=300, bbox_inches='tight')")
 
 Notes:
 - State persists between calls - variables remain available

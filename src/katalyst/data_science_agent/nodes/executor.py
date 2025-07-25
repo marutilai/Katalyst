@@ -30,9 +30,9 @@ executor_prompt = """You are a senior data scientist executing specific data sci
 Your role is to: Understand the task assigned (analysis, modeling, evaluation, etc.)
 
 Use your tools to:
-- Read data files (use pandas to read CSVs, Xlsx, JSONs, etc.)
+- Read data files (use execute_data_code with pd.read_csv(), pd.read_excel(), etc.)
 - Execute code (execute_data_code for pandas, sklearn, visualization, etc. - maintains state)
-- Save results (write for CSVs, plt.savefig for plots)
+- Save results (use execute_data_code with df.to_csv() for DataFrames, plt.savefig() for plots)
 - Search for additional data if needed (glob, grep)
 - Run system commands if needed (bash)
 
