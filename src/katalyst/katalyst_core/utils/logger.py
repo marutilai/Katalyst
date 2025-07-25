@@ -6,6 +6,8 @@ from katalyst.katalyst_core.utils.system_info import get_os_info
 
 # Cache for loggers by name
 _LOGGERS = {}
+# Single log file for all agents
+_LOG_FILE = None
 
 def get_logger(agent_name: str = "katalyst"):
     """
@@ -18,6 +20,8 @@ def get_logger(agent_name: str = "katalyst"):
     Returns:
         Logger instance configured for the agent
     """
+    global _LOG_FILE
+    
     # Return cached logger if it exists
     if agent_name in _LOGGERS:
         return _LOGGERS[agent_name]
@@ -25,13 +29,17 @@ def get_logger(agent_name: str = "katalyst"):
     # Create new logger
     logger = logging.getLogger(agent_name)
     if not logger.handlers:
-        # Determine log file location based on OS and add timestamp
-        os_info = get_os_info()
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        if os_info in ("Linux", "Darwin"):
-            log_file = f"/tmp/{agent_name}_{timestamp}.log"
-        else:
-            log_file = os.path.join(tempfile.gettempdir(), f"{agent_name}_{timestamp}.log")
+        # Create single log file on first logger creation
+        if _LOG_FILE is None:
+            os_info = get_os_info()
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            if os_info in ("Linux", "Darwin"):
+                _LOG_FILE = f"/tmp/katalyst_{timestamp}.log"
+            else:
+                _LOG_FILE = os.path.join(tempfile.gettempdir(), f"katalyst_{timestamp}.log")
+            print(f"[LOGGER] Logs will be written to: {_LOG_FILE}")
+        
+        log_file = _LOG_FILE
         
         # File handler for DEBUG and above (detailed)
         file_handler = logging.FileHandler(log_file, mode="a")
@@ -49,8 +57,6 @@ def get_logger(agent_name: str = "katalyst"):
         console_handler.setFormatter(console_formatter)
         console_handler.setLevel(logging.INFO)
         logger.addHandler(console_handler)
-
-        print(f"[LOGGER] Logs will be written to: {log_file}")
 
     logger.setLevel(logging.DEBUG)  # Capture everything; handlers filter output
     
