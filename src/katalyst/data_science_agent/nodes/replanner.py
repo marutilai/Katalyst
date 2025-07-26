@@ -47,7 +47,11 @@ VERIFICATION GUIDELINES:
 - Consider if additional analyses would add value
 
 FILE ORGANIZATION:
-- Ensure outputs are organized in appropriate directories such as models/, visualizations/, features/
+- Ensure outputs are organized in appropriate directories:
+  - data/: Processed datasets, feature files, intermediate results
+  - models/: Trained models, model artifacts, performance metrics
+  - visualizations/: Charts, plots, graphs, visual analysis outputs
+  - docs/: Reports, summaries, methodology documentation
 - Check that filenames are descriptive and indicate their content
 
 DECISION CRITERIA:
