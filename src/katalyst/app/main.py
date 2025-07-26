@@ -26,6 +26,7 @@ from katalyst.app.execution_controller import execution_controller
 from katalyst.app.config import CHECKPOINT_DB
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langchain_core.agents import AgentFinish
+from langchain_core.messages import HumanMessage
 from langgraph.errors import GraphRecursionError
 from rich.console import Console
 from rich.table import Table
@@ -245,7 +246,6 @@ def repl(user_input_fn=input):
             )
         logger.info(f"[MAIN_REPL] Starting new task: '{user_input}'")
         # Only pass new input for this turn; let checkpointer handle memory
-        from langchain_core.messages import HumanMessage
         
         current_input = {
             "task": user_input,

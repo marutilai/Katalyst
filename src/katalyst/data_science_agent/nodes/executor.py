@@ -161,11 +161,7 @@ SUGGESTED NEXT STEPS:
             if "TASK COMPLETED:" in last_message.content:
                 # Extract summary after "TASK COMPLETED:"
                 summary_parts = last_message.content.split("TASK COMPLETED:", 1)
-                summary = (
-                    summary_parts[1].strip()
-                    if len(summary_parts) > 1
-                    else last_message.content
-                )
+                summary = summary_parts[1].strip()
 
                 # Task is complete
                 state.agent_outcome = AgentFinish(

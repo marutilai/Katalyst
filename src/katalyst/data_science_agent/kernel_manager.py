@@ -25,7 +25,7 @@ class JupyterKernelManager:
     
     def __init__(self):
         if not hasattr(self, 'initialized'):
-            self.logger = get_logger()
+            self.logger = get_logger("kernel_manager")
             self.kernel_manager: Optional[KernelManager] = None
             self.kernel_client = None
             self.initialized = True
@@ -181,10 +181,10 @@ class JupyterKernelManager:
         essential_libs = ['pandas', 'numpy', 'matplotlib', 'seaborn', 'scikit-learn', 'optuna']
         
         # First check which libraries are missing
-        check_code = """
+        check_code = f"""
 import importlib
 missing_libs = []
-for lib in %s:
+for lib in {essential_libs}:
     try:
         if lib == 'scikit-learn':
             importlib.import_module('sklearn')
@@ -192,8 +192,8 @@ for lib in %s:
             importlib.import_module(lib)
     except ImportError:
         missing_libs.append(lib)
-print(f"Missing libraries: {missing_libs}")
-""" % str(essential_libs)
+print(f"Missing libraries: {{missing_libs}}")
+"""
         
         result = self.execute_code(check_code, timeout=10)
         
