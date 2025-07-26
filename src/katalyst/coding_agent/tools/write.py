@@ -3,6 +3,7 @@ import json
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.syntax_checker import check_syntax
 from katalyst.katalyst_core.utils.tools import katalyst_tool
+from katalyst.katalyst_core.utils.error_handling import create_error_message, ErrorType
 from katalyst.app.ui.input_handler import InputHandler
 from katalyst.app.execution_controller import check_execution_cancelled
 
@@ -30,6 +31,20 @@ def write(path: str, content: str, auto_approve: bool = True) -> str:
     
     if content is None:
         return json.dumps({"success": False, "path": path, "error": "No content provided."})
+    
+    # Check if trying to write CSV file
+    if path.endswith('.csv'):
+        error_msg = create_error_message(
+            ErrorType.TOOL_ERROR,
+            "CSV files should be saved using execute_data_code with df.to_csv(). Example: execute_data_code(\"df.to_csv('/path/to/file.csv', index=False)\")",
+            "write"
+        )
+        logger.error(error_msg)
+        return json.dumps({
+            "success": False, 
+            "path": path, 
+            "error": error_msg
+        })
     
     # Get file extension for syntax checking
     file_extension = os.path.splitext(path)[1].lstrip('.')

@@ -31,7 +31,7 @@ def human_plan_verification(state: KatalystState) -> KatalystState:
     
     Returns: The updated KatalystState
     """
-    logger = get_logger()
+    logger = get_logger("coding_agent")
     logger.debug("[HUMAN_PLAN_VERIFICATION] Starting human plan verification...")
     
     # Skip verification if auto_approve is True

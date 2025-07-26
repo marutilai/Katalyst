@@ -34,11 +34,6 @@ class KatalystState(BaseModel):
     )
 
     # ── ReAct dialogue (inner loop) ───────────────────────────────────────
-    checkpointer: Optional[Any] = Field(
-        None,
-        exclude=True,  # Don't persist the checkpointer instance
-        description="The checkpointer to use for shared agent conversation"
-    )
     messages: List[BaseMessage] = Field(
         default_factory=list,
         description="Accumulated messages for the persistent agent conversation"
@@ -73,6 +68,9 @@ class KatalystState(BaseModel):
     )
     response: Optional[str] = Field(
         None, description="Final deliverable once the outer loop terminates."
+    )
+    next_agent: Optional[str] = Field(
+        None, description="Next agent to route to (used by router node)"
     )
     plan_feedback: Optional[str] = Field(
         None,

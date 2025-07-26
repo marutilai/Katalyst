@@ -10,8 +10,9 @@ from dotenv import load_dotenv
 # Suppress tree-sitter deprecation warning
 warnings.filterwarnings("ignore", category=FutureWarning, module="tree_sitter")
 
-from katalyst.katalyst_core.graph import build_compiled_graph
-from katalyst.katalyst_core.utils.logger import get_logger, _LOG_FILE
+from katalyst.supervisor.main_graph import build_main_graph
+from katalyst.katalyst_core.utils.logger import get_logger
+from katalyst.katalyst_core.utils.checkpointer_manager import checkpointer_manager
 from katalyst.app.onboarding import welcome_screens
 from katalyst.app.config import ONBOARDING_FLAG
 from katalyst.katalyst_core.utils.environment import ensure_openai_api_key
@@ -26,6 +27,7 @@ from katalyst.app.execution_controller import execution_controller
 from katalyst.app.config import CHECKPOINT_DB
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langchain_core.agents import AgentFinish
+from langchain_core.messages import HumanMessage
 from langgraph.errors import GraphRecursionError
 from rich.console import Console
 from rich.table import Table
@@ -87,7 +89,6 @@ def print_run_summary(final_state: dict, input_handler: InputHandler = None):
         elif last_agent_outcome:
             console.print(f"[dim]Last agent step was an action: {last_agent_outcome.tool}[/dim]")
     
-    console.print(f"\n[blue]Full logs are available in: {_LOG_FILE}[/blue]")
     console.print("\n[green]Katalyst Agent is now ready for a new task![/green]")
 
 
@@ -131,10 +132,13 @@ def repl(user_input_fn=input):
     # Use persistent SQLite checkpointer
     checkpointer = SqliteSaver.from_conn_string(str(CHECKPOINT_DB))
     
+    # Store checkpointer in the manager for global access
+    checkpointer_manager.set_checkpointer(checkpointer)
+    
     # Check if we have an existing session
     has_previous_session = CHECKPOINT_DB.exists()
     
-    graph = build_compiled_graph().with_config(checkpointer=checkpointer)
+    graph = build_main_graph().with_config(checkpointer=checkpointer)
     conversation_id = "katalyst-main-thread"
     config = {
         "configurable": {"thread_id": conversation_id},
@@ -246,13 +250,14 @@ def repl(user_input_fn=input):
             )
         logger.info(f"[MAIN_REPL] Starting new task: '{user_input}'")
         # Only pass new input for this turn; let checkpointer handle memory
+        
         current_input = {
             "task": user_input,
             "auto_approve": os.getenv("KATALYST_AUTO_APPROVE", "false").lower()
             == "true",
             "project_root_cwd": os.getcwd(),
             "user_input_fn": user_input_fn,
-            "checkpointer": checkpointer,
+            "messages": [HumanMessage(content=user_input)],  # Add message for supervisor
         }
         final_state = None
         try:

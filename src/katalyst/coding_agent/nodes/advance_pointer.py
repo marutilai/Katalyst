@@ -22,7 +22,7 @@ def advance_pointer(state: KatalystState) -> KatalystState:
     
     Returns: The updated KatalystState
     """
-    logger = get_logger()
+    logger = get_logger("coding_agent")
 
     # 1) Log completion: get the subtask and summary from agent_outcome
     if isinstance(state.agent_outcome, AgentFinish):

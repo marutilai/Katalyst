@@ -2,6 +2,7 @@ import os
 import json
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.tools import katalyst_tool
+from katalyst.katalyst_core.utils.error_handling import create_error_message, ErrorType
 from katalyst.katalyst_core.utils.file_utils import load_gitignore_patterns
 
 
@@ -38,6 +39,18 @@ def read(
     
     if not os.path.isfile(path):
         return json.dumps({"error": f"Path is not a file: {path}"})
+    
+    # Check if trying to read CSV file
+    if path.endswith('.csv'):
+        error_msg = create_error_message(
+            ErrorType.TOOL_ERROR,
+            f"CSV files should be read using execute_data_code with pd.read_csv(). Example: execute_data_code(\"df = pd.read_csv('{path}')\")",
+            "read"
+        )
+        logger.error(error_msg)
+        return json.dumps({
+            "error": error_msg
+        })
     
     # Check gitignore if requested
     if respect_gitignore:

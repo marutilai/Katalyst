@@ -1,3 +1,11 @@
+"""
+Data Science Agent Graph
+
+Defines the LangGraph StateGraph for the data science agent.
+Follows the same pattern as the coding agent with planner, executor, and replanner nodes,
+but specialized for data science workflows.
+"""
+
 from langgraph.graph import StateGraph, START, END
 
 from katalyst.katalyst_core.state import KatalystState
@@ -7,41 +15,27 @@ from katalyst.katalyst_core.routing import (
     route_after_replanner,
     route_after_verification,
 )
-from katalyst.coding_agent.nodes.planner import planner
-from katalyst.coding_agent.nodes.executor import executor
+
+# Import DS-specific nodes
+from .nodes.planner import planner
+from .nodes.executor import executor
+from .nodes.replanner import replanner
+
+# Still use shared nodes for common functionality
 from katalyst.coding_agent.nodes.advance_pointer import advance_pointer
-from katalyst.coding_agent.nodes.replanner import replanner
 from katalyst.coding_agent.nodes.human_plan_verification import human_plan_verification
 
 
-# Node-callable functions (define/import elsewhere in your code‑base)
-# ------------------------------------------------------------------
-# • planner                    – produces an ordered list of sub‑tasks in ``state.task_queue``
-# • human_plan_verification    – allows user to approve/reject plan with feedback
-# • executor                   – Uses create_react_agent to complete the task (handles tool execution internally)
-# • advance_pointer            – increments ``state.task_idx`` when task is complete
-# • replanner                  – builds a fresh plan or final answer when current plan exhausted
-# ------------------------------------------------------------------
-
-# ─────────────────────────────────────────────────────────────────────────────
-# TWO-LEVEL AGENT STRUCTURE WITH HUMAN-IN-THE-LOOP
-# ─────────────────────────────────────────────────────────────────────────────
-# 1. OUTER LOOP  (Plan-and-Execute with Human Verification)
-#    planner → human_verification → ⟮ INNER LOOP ⟯ → advance_pointer → replanner
-#         ↑            ↓                                    ↑               ↓
-#         └─ feedback ─┘                                    └─ new plan ───┘
-#                                                                          ↓
-#                                                         human_verification → END
-#
-# 2. INNER LOOP  (ReAct over a single task)
-#    executor (handles full tool execution loop internally via create_react_agent)
-# ─────────────────────────────────────────────────────────────────────────────
-
-
-def build_compiled_graph():
+def build_data_science_graph():
+    """
+    Build the data science agent graph.
+    
+    Uses DS-specific nodes for planner, executor, and replanner
+    with prompts and logic optimized for data analysis workflows.
+    """
     g = StateGraph(KatalystState)
 
-    # ── planner: generates the initial list of sub‑tasks ─────────────────────────
+    # ── planner: generates the initial list of analysis tasks ────────────────────
     g.add_node("planner", planner)
     
     # ── human verification: allows user to review/modify plans ────────────────────
@@ -86,4 +80,4 @@ def build_compiled_graph():
         ["human_plan_verification", END],
     )
 
-    return g.compile()
+    return g.compile(name="data_science_agent")
