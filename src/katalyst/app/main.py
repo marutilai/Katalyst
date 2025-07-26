@@ -12,6 +12,7 @@ warnings.filterwarnings("ignore", category=FutureWarning, module="tree_sitter")
 
 from katalyst.supervisor.main_graph import build_main_graph
 from katalyst.katalyst_core.utils.logger import get_logger
+from katalyst.katalyst_core.utils.checkpointer_manager import checkpointer_manager
 from katalyst.app.onboarding import welcome_screens
 from katalyst.app.config import ONBOARDING_FLAG
 from katalyst.katalyst_core.utils.environment import ensure_openai_api_key
@@ -130,6 +131,9 @@ def repl(user_input_fn=input):
     
     # Use persistent SQLite checkpointer
     checkpointer = SqliteSaver.from_conn_string(str(CHECKPOINT_DB))
+    
+    # Store checkpointer in the manager for global access
+    checkpointer_manager.set_checkpointer(checkpointer)
     
     # Check if we have an existing session
     has_previous_session = CHECKPOINT_DB.exists()
@@ -253,7 +257,6 @@ def repl(user_input_fn=input):
             == "true",
             "project_root_cwd": os.getcwd(),
             "user_input_fn": user_input_fn,
-            "checkpointer": checkpointer,
             "messages": [HumanMessage(content=user_input)],  # Add message for supervisor
         }
         final_state = None

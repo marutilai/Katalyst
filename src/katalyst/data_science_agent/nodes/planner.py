@@ -14,6 +14,7 @@ from langgraph.prebuilt import create_react_agent
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.models import PlannerOutput
 from katalyst.katalyst_core.utils.logger import get_logger
+from katalyst.katalyst_core.utils.checkpointer_manager import checkpointer_manager
 from katalyst.katalyst_core.config import get_llm_config
 from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
 from katalyst.katalyst_core.utils.tools import (
@@ -101,16 +102,17 @@ def planner(state: KatalystState) -> KatalystState:
     logger = get_logger("data_science_agent")
     logger.debug("[DS_PLANNER] Starting data science planner node...")
 
-    # Debug: Check state
-    logger.debug(f"[DS_PLANNER] State type: {type(state)}")
-    logger.debug(f"[DS_PLANNER] State checkpointer: {state.checkpointer}")
-
+    # Get checkpointer from manager
+    checkpointer = checkpointer_manager.get_checkpointer()
+    
     # Check if we have a checkpointer
-    if not state.checkpointer:
-        logger.error("[DS_PLANNER] No checkpointer found in state")
+    if not checkpointer:
+        logger.error("[DS_PLANNER] No checkpointer available from manager")
         state.error_message = "No checkpointer available for conversation"
         state.response = "Failed to initialize planner. Please try again."
         return state
+    
+    logger.debug(f"[DS_PLANNER] Got checkpointer from manager: {type(checkpointer)}")
 
     # Get configured model
     llm_config = get_llm_config()
@@ -141,7 +143,7 @@ def planner(state: KatalystState) -> KatalystState:
     planner_agent = create_react_agent(
         model=planner_model,
         tools=tools,
-        checkpointer=state.checkpointer,
+        checkpointer=checkpointer,
         prompt=planner_prompt,  # Set as system prompt
         response_format=PlannerOutput,  # Use structured output
         pre_model_hook=summarization_node,  # Enable conversation summarization

@@ -15,6 +15,7 @@ from langgraph.prebuilt import create_react_agent
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.models import ReplannerOutput
 from katalyst.katalyst_core.utils.logger import get_logger
+from katalyst.katalyst_core.utils.checkpointer_manager import checkpointer_manager
 from katalyst.katalyst_core.config import get_llm_config
 from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
 from katalyst.katalyst_core.utils.tools import get_tool_functions_map, create_tools_with_context
@@ -65,9 +66,12 @@ def replanner(state: KatalystState) -> KatalystState:
         state.task_queue = []
         return state
     
+    # Get checkpointer from manager
+    checkpointer = checkpointer_manager.get_checkpointer()
+    
     # Check if we have a checkpointer
-    if not state.checkpointer:
-        logger.error("[REPLANNER] No checkpointer found in state")
+    if not checkpointer:
+        logger.error("[REPLANNER] No checkpointer available from manager")
         state.error_message = "No checkpointer available for conversation"
         state.response = "Failed to initialize replanner. Please try again."
         return state
@@ -101,7 +105,7 @@ def replanner(state: KatalystState) -> KatalystState:
     replanner_agent = create_react_agent(
         model=replanner_model,
         tools=tools,
-        checkpointer=state.checkpointer,
+        checkpointer=checkpointer,
         prompt=replanner_prompt,  # Set as system prompt
         response_format=ReplannerOutput,  # Use structured output
         pre_model_hook=summarization_node  # Enable conversation summarization

@@ -14,6 +14,7 @@ from langgraph.prebuilt import create_react_agent
 
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.logger import get_logger
+from katalyst.katalyst_core.utils.checkpointer_manager import checkpointer_manager
 from katalyst.katalyst_core.config import get_llm_config
 from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
 from katalyst.katalyst_core.utils.tools import (
@@ -67,9 +68,12 @@ def executor(state: KatalystState) -> KatalystState:
     logger = get_logger("data_science_agent")
     logger.debug("[DS_EXECUTOR] Starting data science executor node...")
 
+    # Get checkpointer from manager
+    checkpointer = checkpointer_manager.get_checkpointer()
+    
     # Check if we have a checkpointer
-    if not state.checkpointer:
-        logger.error("[DS_EXECUTOR] No checkpointer found in state")
+    if not checkpointer:
+        logger.error("[DS_EXECUTOR] No checkpointer available from manager")
         state.error_message = "No checkpointer available for conversation"
         return state
 
@@ -110,7 +114,7 @@ def executor(state: KatalystState) -> KatalystState:
     executor_agent = create_react_agent(
         model=executor_model,
         tools=tools,
-        checkpointer=state.checkpointer,
+        checkpointer=checkpointer,
         prompt=executor_prompt,  # Set as system prompt
         pre_model_hook=summarization_node,  # Enable conversation summarization
     )
