@@ -6,6 +6,36 @@ from katalyst.katalyst_core.utils.tools import katalyst_tool
 from katalyst.katalyst_core.utils.file_utils import should_ignore_path
 
 
+def _process_matches(matches, base_path, pattern, respect_gitignore):
+    """
+    Helper function to process glob matches and filter them.
+    
+    Returns:
+        List of relative file paths that pass all filters
+    """
+    files = []
+    for match in matches:
+        # Skip directories unless explicitly looking for them
+        if match.is_dir() and not pattern.endswith("/"):
+            continue
+        
+        # Get relative path
+        try:
+            rel_path = match.relative_to(base_path)
+        except ValueError:
+            # If can't get relative path, use absolute
+            rel_path = match
+        
+        # Check gitignore if requested
+        if respect_gitignore:
+            if should_ignore_path(str(rel_path), str(base_path), respect_gitignore):
+                continue
+        
+        files.append(str(rel_path))
+    
+    return files
+
+
 @katalyst_tool(prompt_module="glob", prompt_var="GLOB_TOOL_PROMPT", categories=["planner", "executor"])
 def glob(
     pattern: str,
@@ -56,25 +86,7 @@ def glob(
             matches = list(base_path.glob(pattern))
         
         # Convert to relative paths and filter
-        files = []
-        for match in matches:
-            # Skip directories unless explicitly looking for them
-            if match.is_dir() and not pattern.endswith("/"):
-                continue
-            
-            # Get relative path
-            try:
-                rel_path = match.relative_to(base_path)
-            except ValueError:
-                # If can't get relative path, use absolute
-                rel_path = match
-            
-            # Check gitignore if requested
-            if respect_gitignore:
-                if should_ignore_path(str(rel_path), str(base_path), respect_gitignore):
-                    continue
-            
-            files.append(str(rel_path))
+        files = _process_matches(matches, base_path, pattern, respect_gitignore)
         
         # Sort for consistent output
         files.sort()
@@ -101,21 +113,9 @@ def glob(
                 else:
                     matches = list(base_path.glob(expanded_pattern))
                 
-                # Process matches
-                for match in matches:
-                    if match.is_dir() and not expanded_pattern.endswith("/"):
-                        continue
-                    
-                    try:
-                        rel_path = match.relative_to(base_path)
-                    except ValueError:
-                        rel_path = match
-                    
-                    if respect_gitignore:
-                        if should_ignore_path(str(rel_path), str(base_path), respect_gitignore):
-                            continue
-                    
-                    files.append(str(rel_path))
+                # Process matches using helper function
+                new_files = _process_matches(matches, base_path, expanded_pattern, respect_gitignore)
+                files.extend(new_files)
                 
                 # If we found files with this pattern, stop trying others
                 if files:
@@ -135,18 +135,14 @@ def glob(
                     pass
                 else:
                     # Simple filename pattern - do case-insensitive search
-                    for match in base_path.rglob("*"):
-                        if match.is_file() and pattern_lower in match.name.lower():
-                            try:
-                                rel_path = match.relative_to(base_path)
-                            except ValueError:
-                                rel_path = match
-                            
-                            if respect_gitignore:
-                                if should_ignore_path(str(rel_path), str(base_path), respect_gitignore):
-                                    continue
-                            
-                            files.append(str(rel_path))
+                    all_files = list(base_path.rglob("*"))
+                    case_insensitive_matches = [
+                        f for f in all_files 
+                        if f.is_file() and pattern_lower in f.name.lower()
+                    ]
+                    
+                    # Process matches using helper function
+                    files = _process_matches(case_insensitive_matches, base_path, pattern, respect_gitignore)
                     
                     if files:
                         files.sort()

@@ -1,10 +1,58 @@
 import os
 import subprocess
+import re
+import json
+from shutil import which
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.tools import katalyst_tool
-from shutil import which
 from katalyst.app.config import SEARCH_FILES_MAX_RESULTS  # Centralized config
-import json
+
+
+def _build_rg_command(pattern, path, file_pattern=None, case_insensitive=False, 
+                      show_line_numbers=True, max_results=None):
+    """
+    Build ripgrep command with all necessary flags.
+    
+    Returns:
+        List of command arguments for subprocess
+    """
+    cmd = ["rg", "--with-filename", "--color", "never"]
+    
+    # Add line numbers if requested (default: True)
+    if show_line_numbers:
+        cmd.append("--line-number")
+    
+    # Add case insensitive flag if requested
+    if case_insensitive:
+        cmd.append("-i")
+    
+    # Add the pattern and path
+    cmd.extend([pattern, path])
+    
+    # Add file pattern filter if specified
+    if file_pattern:
+        cmd.extend(["--glob", file_pattern])
+    
+    # Set max results
+    if max_results is None:
+        max_results = SEARCH_FILES_MAX_RESULTS
+    cmd.extend(["--max-count", str(max_results)])
+    
+    # Add context lines for better understanding
+    cmd.extend(["--context", "2", "--context-separator", "-----"])
+    
+    # Standard ignore patterns
+    cmd.extend([
+        "-g", "!node_modules/**",
+        "-g", "!__pycache__/**",
+        "-g", "!.env",
+        "-g", "!.git/**",
+        "-g", "!*.pyc",
+        "-g", "!.venv/**",
+        "-g", "!venv/**",
+    ])
+    
+    return cmd
 
 
 @katalyst_tool(prompt_module="grep", prompt_var="GREP_TOOL_PROMPT", categories=["planner", "executor"])
@@ -44,42 +92,9 @@ def grep(
     if which("rg") is None:
         return json.dumps({"error": "'rg' (ripgrep) is not installed. Please install it to use grep."})
 
-    # Build the ripgrep command
-    cmd = ["rg", "--with-filename", "--color", "never"]
-    
-    # Add line numbers if requested (default: True)
-    if show_line_numbers:
-        cmd.append("--line-number")
-    
-    # Add case insensitive flag if requested
-    if case_insensitive:
-        cmd.append("-i")
-    
-    # Add the pattern and path
-    cmd.extend([pattern, path])
-    
-    # Add file pattern filter if specified
-    if file_pattern:
-        cmd.extend(["--glob", file_pattern])
-    
-    # Set max results
-    if max_results is None:
-        max_results = SEARCH_FILES_MAX_RESULTS
-    cmd.extend(["--max-count", str(max_results)])
-    
-    # Add context lines for better understanding
-    cmd.extend(["--context", "2", "--context-separator", "-----"])
-    
-    # Standard ignore patterns
-    cmd.extend([
-        "-g", "!node_modules/**",
-        "-g", "!__pycache__/**",
-        "-g", "!.env",
-        "-g", "!.git/**",
-        "-g", "!*.pyc",
-        "-g", "!.venv/**",
-        "-g", "!venv/**",
-    ])
+    # Build the ripgrep command using helper function
+    cmd = _build_rg_command(pattern, path, file_pattern, case_insensitive, 
+                           show_line_numbers, max_results)
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=False)
@@ -117,7 +132,6 @@ def grep(
                 variations.append(f"\\b{pattern}\\b")
             
             # Try partial matches - split camelCase or snake_case
-            import re
             # Split camelCase
             camel_parts = re.findall(r'[A-Z]?[a-z]+|[A-Z]+(?=[A-Z][a-z]|\b)', pattern)
             if len(camel_parts) > 1:
@@ -139,24 +153,11 @@ def grep(
             for var_pattern in variations:
                 if var_pattern not in attempted_patterns:
                     logger.debug(f"Trying pattern variation: {var_pattern}")
-                    cmd_var = ["rg", "--with-filename", "--color", "never"]
-                    if show_line_numbers:
-                        cmd_var.append("--line-number")
-                    cmd_var.append("-i")  # Use case-insensitive for variations
-                    cmd_var.extend([var_pattern, path])
-                    if file_pattern:
-                        cmd_var.extend(["--glob", file_pattern])
-                    cmd_var.extend(["--max-count", str(max_results)])
-                    cmd_var.extend(["--context", "2", "--context-separator", "-----"])
-                    cmd_var.extend([
-                        "-g", "!node_modules/**",
-                        "-g", "!__pycache__/**",
-                        "-g", "!.env",
-                        "-g", "!.git/**",
-                        "-g", "!*.pyc",
-                        "-g", "!.venv/**",
-                        "-g", "!venv/**",
-                    ])
+                    # Build command using helper, forcing case-insensitive for variations
+                    cmd_var = _build_rg_command(var_pattern, path, file_pattern, 
+                                               case_insensitive=True, 
+                                               show_line_numbers=show_line_numbers, 
+                                               max_results=max_results)
                     
                     result_var = subprocess.run(cmd_var, capture_output=True, text=True, check=False)
                     if result_var.stdout.strip():
