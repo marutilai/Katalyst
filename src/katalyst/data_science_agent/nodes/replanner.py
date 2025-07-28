@@ -47,12 +47,16 @@ VERIFICATION GUIDELINES:
 - Consider if additional analyses would add value
 
 FILE ORGANIZATION:
-- Ensure outputs are organized in appropriate directories such as models/, visualizations/, features/
+- Ensure outputs are organized in appropriate directories:
+  - data/: Processed datasets, feature files, intermediate results
+  - models/: Trained models, model artifacts, performance metrics
+  - visualizations/: Charts, plots, graphs, visual analysis outputs
+  - docs/: Reports, summaries, methodology documentation
 - Check that filenames are descriptive and indicate their content
 
 DECISION CRITERIA:
 - Set is_complete to true if:
-  * Original analysis objectives are fully addressed
+  * Original analysis objectives are fully ACHIEVED
   * Key insights have been discovered and documented
   * Findings are properly validated
   * Results are ready for stakeholder consumption
@@ -62,6 +66,7 @@ DECISION CRITERIA:
   * Initial findings raise new questions
   * Additional validation is needed
   * User feedback suggests new directions
+  * User goals were not achieved
 
 Example additional tasks:
 - Perform statistical significance testing on key findings
@@ -87,7 +92,7 @@ def replanner(state: KatalystState) -> KatalystState:
 
     # Get checkpointer from manager
     checkpointer = checkpointer_manager.get_checkpointer()
-    
+
     # Check if we have a checkpointer
     if not checkpointer:
         logger.error("[DS_REPLANNER] No checkpointer available from manager")

@@ -42,7 +42,11 @@ Use your tools to:
 - Run system commands if needed (bash)
 
 FILE ORGANIZATION:
-- Create organized output directories: models/, visualizations/, features/
+- Create organized output directories:
+  - data/: Processed datasets, feature files, intermediate results
+  - models/: Trained models, model artifacts, performance metrics
+  - visualizations/: Charts, plots, graphs, visual analysis outputs
+  - docs/: Reports, summaries, methodology documentation
 - Use descriptive filenames that indicate the content
 
 AVAILABLE LIBRARIES:

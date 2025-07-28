@@ -23,17 +23,31 @@ def build_task_hierarchy(state: KatalystState, include_progress: bool = True) ->
     lines = []
     completed_task_names = {task[0] for task in state.completed_tasks} if include_progress else set()
     
-    # If no original plan, use current task queue
-    plan_tasks = state.original_plan or state.task_queue
+    # Build complete task list: original plan + any new tasks from replanner
+    all_tasks = []
     
-    # Process each parent task
-    for parent_idx, parent_task in enumerate(plan_tasks):
-        parent_num = parent_idx + 1
+    # Start with original plan if available
+    if state.original_plan:
+        all_tasks.extend(state.original_plan)
+    
+    # Add any tasks from current queue that aren't in original plan
+    for task in state.task_queue:
+        if task not in all_tasks:
+            all_tasks.append(task)
+    
+    # Also include completed tasks that might not be in either list
+    for task_name, _ in state.completed_tasks:
+        if task_name not in all_tasks:
+            all_tasks.append(task_name)
+    
+    # Process each task
+    for task_idx, task in enumerate(all_tasks):
+        task_num = task_idx + 1
         
-        # Check if parent task is completed
-        is_completed = parent_task in completed_task_names
+        # Check if task is completed
+        is_completed = task in completed_task_names
         marker = "✓" if is_completed and include_progress else " "
-        lines.append(f"{marker} {parent_num}. {parent_task}")
+        lines.append(f"{marker} {task_num}. {task}")
         
         # MINIMAL: created_subtasks is commented out
         # # Add any dynamically created subtasks for this parent
@@ -58,8 +72,14 @@ def get_task_progress_display(state: KatalystState) -> str:
     Returns:
         Formatted progress display string
     """
-    # Count totals
-    total_tasks = len(state.task_queue)
+    # Count totals based on all tasks (original + replanned)
+    # This ensures accurate count when replanner adds new tasks
+    all_task_count = len(set(
+        list(state.original_plan or []) + 
+        list(state.task_queue) + 
+        [task[0] for task in state.completed_tasks]
+    ))
+    total_tasks = all_task_count
     completed_count = len(state.completed_tasks)
     
     # Build display
