@@ -2,7 +2,7 @@ from typing import List, Tuple, Optional, Union, Callable, Dict, Any
 from pydantic import BaseModel, Field
 from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.messages import BaseMessage
-import os
+from katalyst.app import config
 
 
 class KatalystState(BaseModel):
@@ -82,14 +82,14 @@ class KatalystState(BaseModel):
         0, description="Count of agent↔tool cycles in the current task."
     )
     max_inner_cycles: int = Field(
-        default=int(os.getenv("KATALYST_MAX_INNER_CYCLES", 20)),
+        default=config.MAX_INNER_CYCLES,
         description="Abort inner loop once this many cycles are hit.",
     )
     outer_cycles: int = Field(
         0, description="Count of planner→replanner cycles for the whole run."
     )
     max_outer_cycles: int = Field(
-        default=int(os.getenv("KATALYST_MAX_OUTER_CYCLES", 5)),
+        default=config.MAX_OUTER_CYCLES,
         description="Abort outer loop once this many cycles are hit.",
     )
 

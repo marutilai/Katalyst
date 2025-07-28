@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 # Suppress tree-sitter deprecation warning
 warnings.filterwarnings("ignore", category=FutureWarning, module="tree_sitter")
 
+from katalyst.app import config
 from katalyst.supervisor.main_graph import build_main_graph
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.checkpointer_manager import checkpointer_manager
@@ -58,64 +59,72 @@ def print_run_summary(final_state: dict, input_handler: InputHandler = None):
     console = Console()
     if not input_handler:
         input_handler = InputHandler(console)
-    
+
     final_user_response = final_state.get("response")
     if final_user_response:
         if "limit exceeded" in final_user_response.lower():
             input_handler.show_status(
                 final_user_response,
                 status="warning",
-                title="KATALYST RUN STOPPED DUE TO LIMIT"
+                title="KATALYST RUN STOPPED DUE TO LIMIT",
             )
         else:
             input_handler.show_status(
-                final_user_response,
-                status="success",
-                title="KATALYST TASK CONCLUDED"
+                final_user_response, status="success", title="KATALYST TASK CONCLUDED"
             )
     else:
-        console.print("\n[bold]KATALYST RUN FINISHED[/bold] (No explicit overall response message)")
+        console.print(
+            "\n[bold]KATALYST RUN FINISHED[/bold] (No explicit overall response message)"
+        )
         completed_tasks = final_state.get("completed_tasks", [])
         if completed_tasks:
             console.print("\n[bold]Summary of completed sub-tasks:[/bold]")
             for i, (task_desc, summary) in enumerate(completed_tasks):
                 console.print(f"  [cyan]{i+1}.[/cyan] '{task_desc}': {summary}")
         else:
-            console.print("[dim]No sub-tasks were marked as completed with a summary.[/dim]")
+            console.print(
+                "[dim]No sub-tasks were marked as completed with a summary.[/dim]"
+            )
         last_agent_outcome = final_state.get("agent_outcome")
         if isinstance(last_agent_outcome, AgentFinish):
             console.print(
                 f"[dim]Last agent step was a finish with output: {last_agent_outcome.return_values.get('output')}[/dim]"
             )
         elif last_agent_outcome:
-            console.print(f"[dim]Last agent step was an action: {last_agent_outcome.tool}[/dim]")
-    
+            console.print(
+                f"[dim]Last agent step was an action: {last_agent_outcome.tool}[/dim]"
+            )
+
     console.print("\n[green]Katalyst Agent is now ready for a new task![/green]")
 
 
 class ReplInterruptHandler:
     """Handles interrupt signals for the REPL with double-press detection."""
-    
+
     def __init__(self, console):
         self.console = console
         self.last_interrupt_time = 0
         self.interrupt_count = 0
         self.double_press_window = 0.5
-    
+
     def __call__(self, signum, frame):
         """Handle SIGINT with double-press detection."""
         current_time = time.time()
         time_since_last = current_time - self.last_interrupt_time
-        
+
         # Check if this is a second press within the window
         if time_since_last <= self.double_press_window and self.interrupt_count >= 1:
-            self.console.print("\n\n[bold red]Double interrupt detected. Exiting Katalyst...[/bold red]")
+            self.console.print(
+                "\n\n[bold red]Double interrupt detected. Exiting Katalyst...[/bold red]"
+            )
             self.console.print("[green]Goodbye![/green]")
             os._exit(0)  # Force exit immediately
         else:
             self.interrupt_count = 1
             self.last_interrupt_time = current_time
-            self.console.print("\n[yellow]Press Ctrl+C again to exit Katalyst.[/yellow]")
+            self.console.print(
+                "\n[yellow]Press Ctrl+C again to exit Katalyst.[/yellow]"
+            )
             # Raise KeyboardInterrupt to cancel current input
             raise KeyboardInterrupt()
 
@@ -129,55 +138,67 @@ def repl(user_input_fn=input):
     logger = get_logger()
     console = Console()
     input_handler = InputHandler(console)
-    
+
     # Use persistent SQLite checkpointer
     checkpointer = SqliteSaver.from_conn_string(str(CHECKPOINT_DB))
-    
+
     # Store checkpointer in the manager for global access
     checkpointer_manager.set_checkpointer(checkpointer)
-    
+
     # Check if we have an existing session
     has_previous_session = CHECKPOINT_DB.exists()
-    
+
     graph = build_main_graph().with_config(checkpointer=checkpointer)
     conversation_id = "katalyst-main-thread"
-    config = {
+    graph_config = {
         "configurable": {"thread_id": conversation_id},
-        "recursion_limit": int(os.getenv("KATALYST_RECURSION_LIMIT", 250)),
+        "recursion_limit": config.RECURSION_LIMIT,
     }
-    
+
     # Setup interrupt handler for REPL
     interrupt_handler = ReplInterruptHandler(console)
     signal.signal(signal.SIGINT, interrupt_handler)
-    
+
     # Show session status
     if has_previous_session:
-        console.print("\n[cyan]Resuming previous session... (use /new to start fresh)[/cyan]\n")
+        console.print(
+            "\n[cyan]Resuming previous session... (use /new to start fresh)[/cyan]\n"
+        )
     else:
         console.print("\n[green]Starting new session...[/green]\n")
-    
+
     # Get TodoManager singleton and load todos from previous session
     todo_manager = TodoManager.get_instance()
     if todo_manager.load() and (todo_manager.pending or todo_manager.in_progress):
         console.print("[yellow]📋 Resuming todo list from previous session:[/yellow]")
         console.print(todo_manager.get_summary())
         console.print("")  # Empty line for spacing
-    
+
     # Define available commands for interactive selection
     slash_commands = [
         {"label": "/help", "value": "/help", "description": "Show help message"},
-        {"label": "/init", "value": "/init", "description": "Generate developer guide (KATALYST.md)"},
+        {
+            "label": "/init",
+            "value": "/init",
+            "description": "Generate developer guide (KATALYST.md)",
+        },
         {"label": "/provider", "value": "/provider", "description": "Set LLM provider"},
         {"label": "/model", "value": "/model", "description": "Set LLM model"},
-        {"label": "/new", "value": "/new", "description": "Start a new conversation (clear history)"},
+        {
+            "label": "/new",
+            "value": "/new",
+            "description": "Start a new conversation (clear history)",
+        },
         {"label": "/exit", "value": "/exit", "description": "Exit the agent"},
     ]
-    
+
     while True:
         try:
             # Use styled prompt for better visibility
             if user_input_fn == input:
-                user_input = input_handler.prompt_text("[bold green]>[/bold green] ", default="", show_default=False).strip()
+                user_input = input_handler.prompt_text(
+                    "[bold green]>[/bold green] ", default="", show_default=False
+                ).strip()
             else:
                 # For testing, use the provided function
                 user_input = user_input_fn("> ").strip()
@@ -186,9 +207,11 @@ def repl(user_input_fn=input):
             continue
         except EOFError:
             # Handle Ctrl+D
-            console.print("\n[yellow]Use /exit to quit or Ctrl+C twice to force exit.[/yellow]")
+            console.print(
+                "\n[yellow]Use /exit to quit or Ctrl+C twice to force exit.[/yellow]"
+            )
             continue
-        
+
         # Skip empty input
         if not user_input:
             continue
@@ -197,25 +220,23 @@ def repl(user_input_fn=input):
         if user_input == "/":
             # Display commands in a nice table format
             console.print("\n[bold cyan]Available Commands:[/bold cyan]")
-            
+
             # Create a table for better formatting
             table = Table(show_header=False, box=None, padding=(0, 2))
             table.add_column("Command", style="bold green", no_wrap=True)
             table.add_column("Description", style="dim")
-            
+
             for cmd in slash_commands:
                 table.add_row(cmd["label"], cmd["description"])
-            
+
             console.print(table)
             console.print("\n[dim]Type a command or press Enter to cancel[/dim]")
-            
+
             # Get user input for the command
             command_input = input_handler.prompt_text(
-                "[bold green]>[/bold green] /", 
-                default="", 
-                show_default=False
+                "[bold green]>[/bold green] /", default="", show_default=False
             ).strip()
-            
+
             if command_input:
                 # Add the slash back if user didn't type it
                 if not command_input.startswith("/"):
@@ -242,43 +263,52 @@ def repl(user_input_fn=input):
             # Clear the checkpoint data for current thread
             try:
                 checkpointer.delete_checkpoint(config)
-                console.print("[green]Conversation history cleared. Starting fresh![/green]")
-                
+                console.print(
+                    "[green]Conversation history cleared. Starting fresh![/green]"
+                )
+
                 # Also clear todos when starting fresh
                 if todo_manager.clear():
                     console.print("[green]Todo list cleared.[/green]")
                 else:
                     console.print("[yellow]Note: Could not clear todo list.[/yellow]")
-                    
+
             except sqlite3.Error as e:
                 logger.error(f"Database error while clearing checkpoint: {e}")
-                console.print("[red]Error: Could not clear conversation history due to a database issue.[/red]")
+                console.print(
+                    "[red]Error: Could not clear conversation history due to a database issue.[/red]"
+                )
             except Exception as e:
-                logger.warning(f"Failed to clear checkpoint with an unexpected error: {e}")
-                console.print("[yellow]Note: Could not clear previous session data.[/yellow]")
+                logger.warning(
+                    f"Failed to clear checkpoint with an unexpected error: {e}"
+                )
+                console.print(
+                    "[yellow]Note: Could not clear previous session data.[/yellow]"
+                )
             continue
         elif user_input == "/exit":
             print("Goodbye!")
             break
         logger.info(
             "\n==================== 🚀🚀🚀  KATALYST RUN START  🚀🚀🚀 ===================="
-            )
+        )
         logger.info(f"[MAIN_REPL] Starting new task: '{user_input}'")
         # Only pass new input for this turn; let checkpointer handle memory
-        
+
         current_input = {
             "task": user_input,
-            "auto_approve": os.getenv("KATALYST_AUTO_APPROVE", "false").lower()
-            == "true",
+            "auto_approve": config.AUTO_APPROVE,
             "project_root_cwd": os.getcwd(),
             "user_input_fn": user_input_fn,
-            "messages": [HumanMessage(content=user_input)],  # Add message for supervisor
+            "messages": [
+                HumanMessage(content=user_input)
+            ],  # Add message for supervisor
         }
         final_state = None
         try:
             # Wrap graph execution with cancellation support
             final_state = execution_controller.wrap_execution(
-                graph.invoke, current_input, config
+                graph.invoke, current_input, graph_config
             )
         except KeyboardInterrupt:
             # Handle ESC or Ctrl+C
@@ -294,25 +324,26 @@ def repl(user_input_fn=input):
                 "increase the KATALYST_RECURSION_LIMIT environment variable if needed."
             )
             logger.error(f"[GUARDRAIL] {msg}")
-            input_handler.show_status(msg, status="error", title="Recursion Limit Exceeded")
+            input_handler.show_status(
+                msg, status="error", title="Recursion Limit Exceeded"
+            )
             continue
         except Exception as e:
             logger.exception("An error occurred during graph execution.")
             input_handler.show_status(
                 f"An unexpected error occurred: {e}",
                 status="error",
-                title="Execution Error"
+                title="Execution Error",
             )
             continue
         logger.info(
             "\n==================== 🎉🎉🎉  KATALYST RUN COMPLETE  🎉🎉🎉 ===================="
-            )
+        )
         if final_state:
             print_run_summary(final_state, input_handler)
         else:
             input_handler.show_status(
-                "The agent run did not complete successfully.",
-                status="error"
+                "The agent run did not complete successfully.", status="error"
             )
 
 

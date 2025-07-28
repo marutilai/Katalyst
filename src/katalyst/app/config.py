@@ -1,6 +1,7 @@
 # katalyst/app/config.py
 # Central configuration and constants for the Katalyst Agent project.
 
+import os
 from pathlib import Path
 
 # Maximum number of search results to return from the search_files tool.
@@ -62,7 +63,20 @@ KATALYST_IGNORE_PATTERNS = {
 MAX_AGGREGATE_TOKENS = 50000  # 50k
 
 # Token count that triggers summarization
-MAX_TOKENS_BEFORE_SUMMARY = 40000  # 40k  
+MAX_TOKENS_BEFORE_SUMMARY = 40000  # 40k
 
 # Maximum tokens allocated for the summary itself
 MAX_SUMMARY_TOKENS = 8000  # 8k
+
+# --- Agent Behavior Configuration ---
+# Whether to auto-approve file modifications without prompting
+AUTO_APPROVE = os.getenv("KATALYST_AUTO_APPROVE", "false").lower() == "true"
+
+# Maximum cycles for outer planning loop
+MAX_OUTER_CYCLES = int(os.getenv("KATALYST_MAX_OUTER_CYCLES", "5"))
+
+# Maximum cycles for inner execution loop
+MAX_INNER_CYCLES = int(os.getenv("KATALYST_MAX_INNER_CYCLES", "20"))
+
+# LangGraph recursion limit
+RECURSION_LIMIT = int(os.getenv("KATALYST_RECURSION_LIMIT", "250"))
