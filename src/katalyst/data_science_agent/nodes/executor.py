@@ -129,6 +129,8 @@ def executor(state: KatalystState) -> KatalystState:
 
 Task: {current_task}
 
+IMPORTANT: Use auto_approve={state.auto_approve} when calling file modification tools (write, edit, multiedit).
+
 Remember: Do ONLY what this specific task asks for. Don't go beyond the request.
 
 When you have completed the task, respond with:

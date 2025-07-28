@@ -70,7 +70,7 @@ MAX_SUMMARY_TOKENS = 8000  # 8k
 
 # --- Agent Behavior Configuration ---
 # Whether to auto-approve file modifications without prompting
-AUTO_APPROVE = os.getenv("KATALYST_AUTO_APPROVE", "false").lower() == "true"
+AUTO_APPROVE = os.getenv("KATALYST_AUTO_APPROVE", "true").lower() == "true"
 
 # Maximum cycles for outer planning loop
 MAX_OUTER_CYCLES = int(os.getenv("KATALYST_MAX_OUTER_CYCLES", "5"))
