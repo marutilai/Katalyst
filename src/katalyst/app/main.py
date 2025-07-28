@@ -31,6 +31,7 @@ from langchain_core.messages import HumanMessage
 from langgraph.errors import GraphRecursionError
 from rich.console import Console
 from rich.table import Table
+from katalyst.katalyst_core.utils.todo_persistence import TodoManager
 
 # Import async cleanup to register cleanup handlers
 import katalyst.katalyst_core.utils.async_cleanup
@@ -155,6 +156,13 @@ def repl(user_input_fn=input):
     else:
         console.print("\n[green]Starting new session...[/green]\n")
     
+    # Get TodoManager singleton and load todos from previous session
+    todo_manager = TodoManager.get_instance()
+    if todo_manager.load() and (todo_manager.pending or todo_manager.in_progress):
+        console.print("[yellow]📋 Resuming todo list from previous session:[/yellow]")
+        console.print(todo_manager.get_summary())
+        console.print("")  # Empty line for spacing
+    
     # Define available commands for interactive selection
     slash_commands = [
         {"label": "/help", "value": "/help", "description": "Show help message"},
@@ -235,6 +243,13 @@ def repl(user_input_fn=input):
             try:
                 checkpointer.delete_checkpoint(config)
                 console.print("[green]Conversation history cleared. Starting fresh![/green]")
+                
+                # Also clear todos when starting fresh
+                if todo_manager.clear():
+                    console.print("[green]Todo list cleared.[/green]")
+                else:
+                    console.print("[yellow]Note: Could not clear todo list.[/yellow]")
+                    
             except sqlite3.Error as e:
                 logger.error(f"Database error while clearing checkpoint: {e}")
                 console.print("[red]Error: Could not clear conversation history due to a database issue.[/red]")
