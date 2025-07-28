@@ -2,8 +2,6 @@
 
 All notable changes to Katalyst will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
-
 
 ## [0.9.1] - 2025-07-28
 
@@ -37,7 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Legacy code** - Removed commented-out modules and unused imports
 
 
-## [0.8.3] - 2025-01-08
+## [0.8.3] - 2025-07-01
 
 ### Added
 - **Interactive command palette** - Type `/` to see all available commands in a formatted table
@@ -58,7 +56,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Unused test files** - Renamed legacy test files with underscore prefix (_test_*.py)
 
 
-## [0.7.0] - 2025-01-07
+## [0.7.0] - 2025-06-28
 
 ### Added
 - **Persistent Agent Architecture** - Single agent instance maintained across all tasks for better performance
@@ -95,22 +93,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Custom React agent implementation** - now using LangGraph's built-in create_react_agent
 - **Unused state fields** - commented out for minimal implementation
 
-## [0.6.1] - 2025-06-23
-
-### Added
-- **Tool Repetition Detector** to prevent infinite loops with configurable thresholds
-- **Fuzzy matching** in `apply_source_code_diff` for handling whitespace/formatting differences
-- **Conversation summarizer** utility for intelligent context compression
-- **Chat history compression** with automatic triggering at 50+ messages
-
-### Fixed
-- Path validation and standardized path handling across all tools
-- Dependency awareness in agent prompts
-- Tool hallucination defense mechanisms
-
-### Changed
-- Improved error messages with retry prompts for common failures
-- Enhanced agent search behavior and tool selection logic
 
 ## [0.6.2] - 2025-06-26
 
