@@ -90,11 +90,94 @@ def grep(
 
     output = result.stdout.strip()
 
-    # If no matches are found, return an info message
+    # If no matches are found, try smart variations
     if not output:
-        return json.dumps({
-            "info": f"No matches found for pattern '{pattern}' in {path}."
-        })
+        logger.debug(f"No matches for '{pattern}', trying variations...")
+        attempted_patterns = [pattern]
+        
+        # Try case-insensitive if not already
+        if not case_insensitive:
+            logger.debug("Trying case-insensitive search...")
+            cmd_retry = cmd.copy()
+            if "-i" not in cmd_retry:
+                cmd_retry.insert(2, "-i")
+            
+            result_retry = subprocess.run(cmd_retry, capture_output=True, text=True, check=False)
+            if result_retry.stdout.strip():
+                output = result_retry.stdout.strip()
+                attempted_patterns.append(f"{pattern} (case-insensitive)")
+                logger.debug(f"Found matches with case-insensitive search")
+            
+        # If still no matches, try pattern variations
+        if not output:
+            variations = []
+            
+            # Try word boundaries
+            if not pattern.startswith("\\b") and not pattern.endswith("\\b"):
+                variations.append(f"\\b{pattern}\\b")
+            
+            # Try partial matches - split camelCase or snake_case
+            import re
+            # Split camelCase
+            camel_parts = re.findall(r'[A-Z]?[a-z]+|[A-Z]+(?=[A-Z][a-z]|\b)', pattern)
+            if len(camel_parts) > 1:
+                variations.append(".*".join(camel_parts))
+                variations.append(".*".join(camel_parts).lower())
+            
+            # Split snake_case or kebab-case
+            snake_parts = re.split(r'[_-]', pattern)
+            if len(snake_parts) > 1:
+                variations.append(".*".join(snake_parts))
+            
+            # Try flexible spacing patterns
+            if " " not in pattern and len(pattern) > 3:
+                variations.append(f".*{pattern}.*")
+                variations.append(f"{pattern}.*")
+                variations.append(f".*{pattern}")
+            
+            # Try each variation
+            for var_pattern in variations:
+                if var_pattern not in attempted_patterns:
+                    logger.debug(f"Trying pattern variation: {var_pattern}")
+                    cmd_var = ["rg", "--with-filename", "--color", "never"]
+                    if show_line_numbers:
+                        cmd_var.append("--line-number")
+                    cmd_var.append("-i")  # Use case-insensitive for variations
+                    cmd_var.extend([var_pattern, path])
+                    if file_pattern:
+                        cmd_var.extend(["--glob", file_pattern])
+                    cmd_var.extend(["--max-count", str(max_results)])
+                    cmd_var.extend(["--context", "2", "--context-separator", "-----"])
+                    cmd_var.extend([
+                        "-g", "!node_modules/**",
+                        "-g", "!__pycache__/**",
+                        "-g", "!.env",
+                        "-g", "!.git/**",
+                        "-g", "!*.pyc",
+                        "-g", "!.venv/**",
+                        "-g", "!venv/**",
+                    ])
+                    
+                    result_var = subprocess.run(cmd_var, capture_output=True, text=True, check=False)
+                    if result_var.stdout.strip():
+                        output = result_var.stdout.strip()
+                        attempted_patterns.append(var_pattern)
+                        logger.debug(f"Found matches with pattern: {var_pattern}")
+                        break
+                    else:
+                        attempted_patterns.append(var_pattern)
+        
+        # If still no matches after all attempts
+        if not output:
+            return json.dumps({
+                "info": f"No matches found for pattern '{pattern}' in {path}.",
+                "attempted_patterns": attempted_patterns,
+                "suggestions": [
+                    "Try a simpler pattern or partial match",
+                    "Check if the file extension filter is too restrictive",
+                    "Verify the search path is correct"
+                ]
+            })
 
     matches = []
     match_count = 0
