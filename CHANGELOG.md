@@ -5,6 +5,38 @@ All notable changes to Katalyst will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [0.9.1] - 2025-07-28
+
+### Added
+- **Data Science Agent** - Specialized agent for data analysis and machine learning tasks with Jupyter kernel integration
+- **Multi-agent Supervisor** - Orchestrates between coding and data science agents based on task requirements
+- **Enhanced grep tool** - Smart pattern retry with case-insensitive fallback and partial match variations
+- **glob tool** - Fast pattern-based file searching (e.g., `**/*.py`, `src/**/*.ts`)
+- **Todo persistence** - Saves todos to `.katalyst/todo.json` with automatic loading on startup
+
+### Fixed
+- **Task progress counting** - Shows correct "Task 1 of N" in terminal output
+- **Checkpointer serialization** - Resolved singleton manager issues for conversation persistence
+- **LangGraph imports** - Updated to latest module structure
+- **License format warning** - Changed from deprecated TOML table to simple string format
+- **grep tool max_results** - Properly handles `None` values with sensible defaults
+
+### Changed
+- **Tool improvements**:
+  - Renamed tools for Unix familiarity: `read_file` → `read`, `list_files` → `ls`, `execute_command` → `bash`, `regex_search_inside_files` → `grep`
+  - Added `respect_gitignore` parameter to read tool
+  - Removed redundant `move_or_rename_path` tool (use bash mv/rename instead)
+  - Replaced `apply_source_code_diff` with `edit` and `multiedit` tools for simpler file modifications
+- **Data Science agent folder structure** - Uses `data/` for datasets and `docs/` for documentation
+- **Test organization** - Moved to pytest.ini configuration and removed outdated tests
+- **Improved prompts** - More concise tool descriptions for better LLM performance
+
+### Removed
+- **Obsolete test files** - Cleaned up tests for removed features (tool_runner, adaptive planning, etc.)
+- **Duplicate prompt files** - Consolidated tool prompts into single location
+- **Legacy code** - Removed commented-out modules and unused imports
+
+
 ## [0.8.3] - 2025-01-08
 
 ### Added

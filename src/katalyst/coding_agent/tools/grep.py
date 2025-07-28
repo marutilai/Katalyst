@@ -75,6 +75,10 @@ def grep(
         f"Entered grep with pattern: {pattern}, path: {path}, file_pattern: {file_pattern}, "
         f"case_insensitive: {case_insensitive}, show_line_numbers: {show_line_numbers}"
     )
+    
+    # Set default max_results if not provided
+    if max_results is None:
+        max_results = SEARCH_FILES_MAX_RESULTS
 
     # Check for required arguments
     if not pattern:
