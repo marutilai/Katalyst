@@ -1,4 +1,3 @@
-from contextlib import asynccontextmanager
 from opentelemetry import trace as trace_api
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk import trace as trace_sdk
@@ -9,8 +8,6 @@ from dotenv import load_dotenv
 from katalyst.katalyst_core.utils.logger import get_logger
 import os
 import threading
-from functools import wraps
-from contextlib import contextmanager
 
 log = get_logger()
 load_dotenv()
