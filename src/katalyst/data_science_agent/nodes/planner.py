@@ -145,15 +145,16 @@ For Deployment Preparation:
 
 TASK CLASSIFICATION:
 For each task, assign one of these types:
+- test_creation: Writing new tests (unit, integration, e2e)
+- refactor: Improving code structure without changing functionality
+- documentation: Creating reports, documenting findings, comments, READMEs
 - data_exploration: Initial data analysis, EDA, understanding data
-- feature_engineering: Creating new features, transformations
+- feature_engineering: Data preprocessing, cleaning, missing values, encoding, scaling, creating new features, transformations
 - model_training: Training ML/AI models
 - model_evaluation: Testing and evaluating model performance
-- documentation: Creating reports, documenting findings
-- other: Anything else (data loading, preprocessing, etc.)
+- other: Anything else other than the above
 
-IMPORTANT: Create focused tasks that directly address what was requested.
-Don't add extra exploration unless specifically asked for.
+IMPORTANT: Create focused tasks that directly address what was requested. Don't add extra exploration unless specifically asked for.
 
 After exploring the available data and understanding the objectives, provide your plan as a list of classified subtasks."""
 
@@ -167,13 +168,13 @@ def planner(state: KatalystState) -> KatalystState:
 
     # Get checkpointer from manager
     checkpointer = checkpointer_manager.get_checkpointer()
-    
+
     # Check if we have a checkpointer
     if not checkpointer:
         logger.error("[DS_PLANNER] No checkpointer available from manager")
         state.error_message = "No checkpointer available for conversation"
         return state
-    
+
     logger.debug(f"[DS_PLANNER] Got checkpointer from manager: {type(checkpointer)}")
 
     # Get configured model
@@ -247,7 +248,10 @@ Create only the tasks needed to complete what was specifically requested."""
         # Extract structured response
         structured_response = result.get("structured_response")
 
-        if structured_response and (isinstance(structured_response, PlannerOutput) or isinstance(structured_response, EnhancedPlannerOutput)):
+        if structured_response and (
+            isinstance(structured_response, PlannerOutput)
+            or isinstance(structured_response, EnhancedPlannerOutput)
+        ):
             subtasks = structured_response.subtasks
 
             if subtasks:
@@ -259,21 +263,24 @@ Create only the tasks needed to complete what was specifically requested."""
                         f"[{task.task_type.value.upper()}] {task.description}"
                         for task in subtasks
                     ]
-                    
+
                     # Log the plan with task types
-                    plan_message = f"Generated analysis plan with task types:\n" + "\n".join(
-                        f"{i+1}. {task_str}" 
-                        for i, task_str in enumerate(task_strings)
+                    plan_message = (
+                        f"Generated analysis plan with task types:\n"
+                        + "\n".join(
+                            f"{i+1}. {task_str}"
+                            for i, task_str in enumerate(task_strings)
+                        )
                     )
                 else:
                     # Standard output with strings
                     task_strings = subtasks
-                    
+
                     # Log the plan
                     plan_message = f"Generated analysis plan:\n" + "\n".join(
                         f"{i+1}. {s}" for i, s in enumerate(subtasks)
                     )
-                
+
                 # Update state with the plan
                 state.task_queue = task_strings
                 state.original_plan = task_strings
@@ -282,7 +289,7 @@ Create only the tasks needed to complete what was specifically requested."""
                 state.completed_tasks = []
                 state.error_message = None
                 state.plan_feedback = None
-                
+
                 logger.info(f"[DS_PLANNER] {plan_message}")
             else:
                 logger.error("[DS_PLANNER] Structured response contained no subtasks")

@@ -109,12 +109,11 @@ For each task, assign one of these types:
 - test_creation: Writing new tests (unit, integration, e2e)
 - refactor: Improving code structure without changing functionality
 - documentation: Writing docs, comments, READMEs
-- data_exploration: Analyzing tabular datasets, EDA
-- feature_engineering: Creating features for ML/AI models
+- data_exploration: Initial data analysis, EDA, understanding data
+- feature_engineering: Data preprocessing, cleaning, encoding, scaling, creating new features, transformations
 - model_training: Training ML/AI models
-- model_evaluation: Testing ML/AI model performance
-- model_deployment: Deploying ML/AI models
-- other: Anything else
+- model_evaluation: Testing and evaluating model performance
+- other: Anything else other than the above
 
 After exploring and understanding the requirements, provide your plan as a list of classified subtasks."""
 
@@ -224,8 +223,7 @@ Provide your final plan as a list of subtasks that can be executed to complete t
 
                     # Log the plan with task types
                     plan_message = f"Generated plan with task types:\n" + "\n".join(
-                        f"{i+1}. {task_str}"
-                        for i, task_str in enumerate(task_strings)
+                        f"{i+1}. {task_str}" for i, task_str in enumerate(task_strings)
                     )
                 else:
                     # Standard output with strings
