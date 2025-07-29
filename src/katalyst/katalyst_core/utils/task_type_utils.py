@@ -75,9 +75,9 @@ def get_task_type_guidance(task_type: TaskType) -> str:
     guidance_map = {
         TaskType.TEST_CREATION: _load_playbook_content("test_creation"),
         TaskType.FEATURE_ENGINEERING: _load_playbook_content("feature_engineering"),
+        TaskType.DATA_EXPLORATION: _load_playbook_content("data_exploration"),
         # TaskType.REFACTOR: _load_playbook_content("refactor"),
         # TaskType.DOCUMENTATION: _load_playbook_content("documentation"),
-        # TaskType.DATA_EXPLORATION: _load_playbook_content("data_exploration"),
         # TaskType.MODEL_TRAINING: _load_playbook_content("model_training"),
         # TaskType.MODEL_EVALUATION: _load_playbook_content("model_evaluation"),
     }
