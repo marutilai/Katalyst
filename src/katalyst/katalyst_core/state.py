@@ -66,9 +66,6 @@ class KatalystState(BaseModel):
         None,
         description="Captured exception text with trace (fed back into LLM for self-repair).",
     )
-    response: Optional[str] = Field(
-        None, description="Final deliverable once the outer loop terminates."
-    )
     next_agent: Optional[str] = Field(
         None, description="Next agent to route to (used by router node)"
     )

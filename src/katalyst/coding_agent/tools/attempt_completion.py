@@ -35,4 +35,7 @@ def attempt_completion(result: str) -> str:
         logger.error("No valid 'result' provided to attempt_completion.")
         return format_attempt_completion_response(False, error="No result provided.")
     logger.debug("[TOOL] Exiting attempt_completion successfully")
-    return format_attempt_completion_response(True, result=result)
+    
+    # Format the result with "TASK COMPLETED:" prefix for the executor to recognize
+    formatted_result = f"TASK COMPLETED: {result}"
+    return format_attempt_completion_response(True, result=formatted_result)

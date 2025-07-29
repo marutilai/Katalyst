@@ -60,9 +60,9 @@ def replanner(state: KatalystState) -> KatalystState:
     logger = get_logger("coding_agent")
     logger.debug("[REPLANNER] Starting replanner node...")
     
-    # Skip if response already set
-    if state.response:
-        logger.debug("[REPLANNER] Final response already set. Skipping replanning.")
+    # Check if all tasks are completed (no need to replan)
+    if not state.error_message and state.task_idx >= len(state.task_queue):
+        logger.debug("[REPLANNER] All tasks completed. Nothing to replan.")
         state.task_queue = []
         return state
     
@@ -73,7 +73,6 @@ def replanner(state: KatalystState) -> KatalystState:
     if not checkpointer:
         logger.error("[REPLANNER] No checkpointer available from manager")
         state.error_message = "No checkpointer available for conversation"
-        state.response = "Failed to initialize replanner. Please try again."
         return state
     
     # Get configured model
@@ -168,9 +167,9 @@ Please verify what has been implemented and decide if the objective is complete 
                 ai_messages = [msg for msg in state.messages if isinstance(msg, AIMessage)]
                 if ai_messages:
                     # Use the last AI message content as summary
-                    state.response = ai_messages[-1].content
+                    pass
                 else:
-                    state.response = "Task completed successfully."
+                    pass
                 
             else:
                 # More work needed
@@ -180,7 +179,6 @@ Please verify what has been implemented and decide if the objective is complete 
                     state.task_queue = structured_response.subtasks
                     state.task_idx = 0
                     state.error_message = None
-                    state.response = None
                     
                     # Log new plan
                     plan_message = "Continuing with updated plan:\n" + "\n".join(
@@ -190,12 +188,10 @@ Please verify what has been implemented and decide if the objective is complete 
                 else:
                     logger.error("[REPLANNER] Structured response indicates more work needed but no subtasks provided")
                     state.error_message = "Replanner indicated more work needed but provided no tasks"
-                    state.response = "Unable to determine next steps."
         else:
             # Fallback: check if there's an error message in the result
             logger.error(f"[REPLANNER] No structured response received. Result keys: {list(result.keys())}")
             state.error_message = "Failed to get structured response from replanner"
-            state.response = "Failed to determine next steps. Please try again."
             
             # Log any AI messages for debugging
             ai_messages = [msg for msg in state.messages if isinstance(msg, AIMessage)]
@@ -205,7 +201,6 @@ Please verify what has been implemented and decide if the objective is complete 
     except Exception as e:
         logger.error(f"[REPLANNER] Failed to replan: {str(e)}")
         state.error_message = f"Replanning failed: {str(e)}"
-        state.response = "Unable to determine next steps due to an error."
     
     logger.debug("[REPLANNER] End of replanner node.")
     return state

@@ -2,7 +2,7 @@ from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.logger import get_logger
 from langchain_core.agents import AgentFinish
 from katalyst.katalyst_core.utils.error_handling import ErrorType, create_error_message
-from katalyst.katalyst_core.utils.task_display import get_task_progress_display
+from katalyst.katalyst_core.utils.task_manager import get_task_progress_display
 
 
 def _display_task_progress(state: KatalystState, logger) -> None:
@@ -83,7 +83,6 @@ def advance_pointer(state: KatalystState) -> KatalystState:
                 f"Outer loop exceeded {state.max_outer_cycles} cycles.",
                 "ADVANCE_POINTER",
             )
-            state.response = error_msg
             logger.warning(f"[ADVANCE_POINTER][GUARDRAIL] {error_msg}")
 
     return state

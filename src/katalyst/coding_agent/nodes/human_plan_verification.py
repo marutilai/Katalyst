@@ -94,8 +94,7 @@ def human_plan_verification(state: KatalystState) -> KatalystState:
     elif response.lower() == 'cancel':
         # Cancel operation
         logger.info("[HUMAN_PLAN_VERIFICATION] User cancelled operation")
-        state.response = "Operation cancelled by user"
-        state.task_queue = []
+        state.task_queue = []  # Clear tasks to signal cancellation
         # MINIMAL: Removed chat_history append
         
     else:

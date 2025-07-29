@@ -32,7 +32,7 @@ from langchain_core.messages import HumanMessage
 from langgraph.errors import GraphRecursionError
 from rich.console import Console
 from rich.table import Table
-from katalyst.katalyst_core.utils.todo_persistence import TodoManager
+from katalyst.katalyst_core.utils.task_manager import TaskManager
 
 # Import async cleanup to register cleanup handlers
 import katalyst.katalyst_core.utils.async_cleanup
@@ -60,40 +60,35 @@ def print_run_summary(final_state: dict, input_handler: InputHandler = None):
     if not input_handler:
         input_handler = InputHandler(console)
 
-    final_user_response = final_state.get("response")
-    if final_user_response:
-        if "limit exceeded" in final_user_response.lower():
-            input_handler.show_status(
-                final_user_response,
-                status="warning",
-                title="KATALYST RUN STOPPED DUE TO LIMIT",
-            )
-        else:
-            input_handler.show_status(
-                final_user_response, status="success", title="KATALYST TASK CONCLUDED"
-            )
+    completed_tasks = final_state.get("completed_tasks", [])
+    
+    # Check if we hit any limits
+    error_msg = final_state.get("error_message", "")
+    if error_msg and "limit exceeded" in error_msg.lower():
+        input_handler.show_status(
+            error_msg,
+            status="warning",
+            title="KATALYST RUN STOPPED DUE TO LIMIT",
+        )
+    elif completed_tasks:
+        # Normal completion with tasks
+        console.print("\n[bold green]KATALYST RUN COMPLETE[/bold green]")
+        console.print("\n[bold]Summary of completed tasks:[/bold]")
+        for i, (task_desc, summary) in enumerate(completed_tasks):
+            console.print(f"  [cyan]{i+1}.[/cyan] '{task_desc}': {summary}")
     else:
         console.print(
-            "\n[bold]KATALYST RUN FINISHED[/bold] (No explicit overall response message)"
+            "[dim]No sub-tasks were marked as completed with a summary.[/dim]"
         )
-        completed_tasks = final_state.get("completed_tasks", [])
-        if completed_tasks:
-            console.print("\n[bold]Summary of completed sub-tasks:[/bold]")
-            for i, (task_desc, summary) in enumerate(completed_tasks):
-                console.print(f"  [cyan]{i+1}.[/cyan] '{task_desc}': {summary}")
-        else:
-            console.print(
-                "[dim]No sub-tasks were marked as completed with a summary.[/dim]"
-            )
-        last_agent_outcome = final_state.get("agent_outcome")
-        if isinstance(last_agent_outcome, AgentFinish):
-            console.print(
-                f"[dim]Last agent step was a finish with output: {last_agent_outcome.return_values.get('output')}[/dim]"
-            )
-        elif last_agent_outcome:
-            console.print(
-                f"[dim]Last agent step was an action: {last_agent_outcome.tool}[/dim]"
-            )
+    last_agent_outcome = final_state.get("agent_outcome")
+    if isinstance(last_agent_outcome, AgentFinish):
+        console.print(
+            f"[dim]Last agent step was a finish with output: {last_agent_outcome.return_values.get('output')}[/dim]"
+        )
+    elif last_agent_outcome:
+        console.print(
+            f"[dim]Last agent step was an action: {last_agent_outcome.tool}[/dim]"
+        )
 
     console.print("\n[green]Katalyst Agent is now ready for a new task![/green]")
 
@@ -167,11 +162,11 @@ def repl(user_input_fn=input):
     else:
         console.print("\n[green]Starting new session...[/green]\n")
 
-    # Get TodoManager singleton and load todos from previous session
-    todo_manager = TodoManager.get_instance()
-    if todo_manager.load() and (todo_manager.pending or todo_manager.in_progress):
-        console.print("[yellow]📋 Resuming todo list from previous session:[/yellow]")
-        console.print(todo_manager.get_summary())
+    # Get TaskManager singleton and load tasks from previous session
+    task_manager = TaskManager.get_instance()
+    if task_manager.load() and (task_manager.pending or task_manager.in_progress):
+        console.print("[yellow]📋 Resuming task list from previous session:[/yellow]")
+        console.print(task_manager.get_summary())
         console.print("")  # Empty line for spacing
 
     # Define available commands for interactive selection
@@ -268,7 +263,7 @@ def repl(user_input_fn=input):
                 )
 
                 # Also clear todos when starting fresh
-                if todo_manager.clear():
+                if task_manager.clear():
                     console.print("[green]Todo list cleared.[/green]")
                 else:
                     console.print("[yellow]Note: Could not clear todo list.[/yellow]")

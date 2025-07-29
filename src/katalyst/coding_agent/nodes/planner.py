@@ -86,7 +86,6 @@ def planner(state: KatalystState) -> KatalystState:
     if not checkpointer:
         logger.error("[PLANNER] No checkpointer available from manager")
         state.error_message = "No checkpointer available for conversation"
-        state.response = "Failed to initialize planner. Please try again."
         return state
 
     # Get configured model
@@ -160,7 +159,6 @@ Provide your final plan as a list of subtasks that can be executed to complete t
                 state.task_idx = 0
                 state.outer_cycles = 0
                 state.completed_tasks = []
-                state.response = None
                 state.error_message = None
                 state.plan_feedback = None
 
@@ -172,14 +170,12 @@ Provide your final plan as a list of subtasks that can be executed to complete t
             else:
                 logger.error("[PLANNER] Structured response contained no subtasks")
                 state.error_message = "Plan was empty"
-                state.response = "Failed to create a plan. Please try again."
         else:
             # Fallback: check if there's an error message in the result
             logger.error(
                 f"[PLANNER] No structured response received. Result keys: {list(result.keys())}"
             )
             state.error_message = "Failed to get structured plan from agent"
-            state.response = "Failed to create a plan. Please try again."
 
             # Log any AI messages for debugging
             ai_messages = [msg for msg in state.messages if isinstance(msg, AIMessage)]
@@ -191,7 +187,6 @@ Provide your final plan as a list of subtasks that can be executed to complete t
     except Exception as e:
         logger.error(f"[PLANNER] Failed to generate plan: {str(e)}")
         state.error_message = f"Failed to generate plan: {str(e)}"
-        state.response = "Failed to generate initial plan. Please try again."
 
     logger.debug("[PLANNER] End of planner node.")
     return state

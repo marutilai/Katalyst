@@ -109,7 +109,6 @@ def planner(state: KatalystState) -> KatalystState:
     if not checkpointer:
         logger.error("[DS_PLANNER] No checkpointer available from manager")
         state.error_message = "No checkpointer available for conversation"
-        state.response = "Failed to initialize planner. Please try again."
         return state
     
     logger.debug(f"[DS_PLANNER] Got checkpointer from manager: {type(checkpointer)}")
@@ -185,7 +184,6 @@ Create only the tasks needed to complete what was specifically requested."""
                 state.task_idx = 0
                 state.outer_cycles = 0
                 state.completed_tasks = []
-                state.response = None
                 state.error_message = None
                 state.plan_feedback = None
 
@@ -197,14 +195,12 @@ Create only the tasks needed to complete what was specifically requested."""
             else:
                 logger.error("[DS_PLANNER] Structured response contained no subtasks")
                 state.error_message = "Plan was empty"
-                state.response = "Failed to create an analysis plan. Please try again."
         else:
             # Fallback: check if there's an error message in the result
             logger.error(
                 f"[DS_PLANNER] No structured response received. Result keys: {list(result.keys())}"
             )
             state.error_message = "Failed to get structured plan from agent"
-            state.response = "Failed to create an analysis plan. Please try again."
 
             # Log any AI messages for debugging
             ai_messages = [msg for msg in state.messages if isinstance(msg, AIMessage)]
@@ -216,7 +212,6 @@ Create only the tasks needed to complete what was specifically requested."""
     except Exception as e:
         logger.error(f"[DS_PLANNER] Failed to generate plan: {str(e)}")
         state.error_message = f"Failed to generate plan: {str(e)}"
-        state.response = "Failed to generate analysis plan. Please try again."
 
     logger.debug("[DS_PLANNER] End of data science planner node.")
     return state
