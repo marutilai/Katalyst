@@ -1,0 +1,20 @@
+  phoenix:
+    platform: linux/amd64
+    image: arizephoenix/phoenix:latest
+    container_name: phoenix
+    ports:
+      - "6006:6006"
+      - "4317:4317"
+    env_file:
+      - .env
+    volumes:
+      - phoenix_data:/var/lib/phoenix
+    networks:
+      - app_network
+
+volumes:
+  phoenix_data:
+
+networks:
+  app_network:
+    driver: bridge
