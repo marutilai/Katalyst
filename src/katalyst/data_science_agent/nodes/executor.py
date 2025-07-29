@@ -21,7 +21,10 @@ from katalyst.katalyst_core.utils.tools import (
     get_tool_functions_map,
     create_tools_with_context,
 )
+from katalyst.katalyst_core.utils.task_type_utils import parse_task_type, get_task_type_guidance
+from katalyst.katalyst_core.utils.models import TaskType
 from katalyst.app.execution_controller import check_execution_cancelled
+from katalyst.app.config import USE_PLAYBOOKS
 from katalyst.coding_agent.nodes.summarizer import get_summarization_node
 
 
@@ -123,14 +126,35 @@ def executor(state: KatalystState) -> KatalystState:
         pre_model_hook=summarization_node,  # Enable conversation summarization
     )
 
-    # Add task message to conversation
-    task_message = HumanMessage(
-        content=f"""Now, please complete this task:
+    # Parse task type and get specialized guidance if USE_PLAYBOOKS is enabled
+    specialized_guidance = ""
+    if USE_PLAYBOOKS:
+        task_type, clean_task = parse_task_type(current_task)
+        if task_type and task_type != TaskType.OTHER:
+            specialized_guidance = get_task_type_guidance(task_type)
+            logger.debug(f"[DS_EXECUTOR] Detected task type: {task_type.value}")
+            # Log the clean task description
+            logger.debug(f"[DS_EXECUTOR] Task description: {clean_task}")
+    
+    # Create task message with optional specialized guidance
+    task_content = f"""Now, please complete this task:
 
 Task: {current_task}
 
 IMPORTANT: Use auto_approve={state.auto_approve} when calling file modification tools (write, edit, multiedit).
+"""
+    
+    # Add specialized guidance section if available
+    if specialized_guidance:
+        task_content += f"""
+## Best Practices and Guidelines
 
+The following guidelines are recommended best practices for this type of task:
+
+{specialized_guidance}
+"""
+    
+    task_content += """
 Remember: Do ONLY what this specific task asks for. Don't go beyond the request.
 
 When you have completed the task, respond with:
@@ -142,7 +166,9 @@ SUGGESTED NEXT STEPS:
 1. [Natural follow-up task based on what you found]
 2. [Another logical next step]
 3. [A third option for further exploration]"""
-    )
+    
+    # Add task message to conversation
+    task_message = HumanMessage(content=task_content)
 
     # Add to messages
     state.messages.append(task_message)
