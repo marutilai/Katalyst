@@ -1,7 +1,8 @@
+services:
   phoenix:
-    platform: linux/amd64
     image: arizephoenix/phoenix:latest
     container_name: phoenix
+    platform: linux/amd64
     ports:
       - "6006:6006"
       - "4317:4317"
