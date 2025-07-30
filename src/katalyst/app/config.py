@@ -80,3 +80,6 @@ MAX_INNER_CYCLES = int(os.getenv("KATALYST_MAX_INNER_CYCLES", "20"))
 
 # LangGraph recursion limit
 RECURSION_LIMIT = int(os.getenv("KATALYST_RECURSION_LIMIT", "250"))
+
+# Whether to use playbooks with task type classification
+USE_PLAYBOOKS = os.getenv("KATALYST_USE_PLAYBOOKS", "true").lower() == "true"

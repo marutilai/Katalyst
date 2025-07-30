@@ -52,7 +52,7 @@ class JupyterKernelManager:
         
         # Get kernel info for debugging
         try:
-            info_result = self.execute_code("import sys; print(f'Python: {sys.version}'); print(f'Executable: {sys.executable}')", timeout=5)
+            info_result = self.execute_code("import sys; print(f'Python: {sys.version}'); print(f'Executable: {sys.executable}')", timeout=10)
             if info_result['outputs']:
                 self.logger.debug(f"[KERNEL] Kernel environment info: {' '.join(info_result['outputs'])}")
         except Exception as e:
@@ -195,7 +195,7 @@ for lib in {essential_libs}:
 print(f"Missing libraries: {{missing_libs}}")
 """
         
-        result = self.execute_code(check_code, timeout=10)
+        result = self.execute_code(check_code, timeout=30)
         
         # Install missing libraries
         if result['outputs']:

@@ -13,6 +13,7 @@ from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_mod
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.coding_agent.graph import build_coding_graph
 from katalyst.data_science_agent.graph import build_data_science_graph
+from katalyst.conversation_agent.graph import build_conversation_graph
 
 
 def router_node(state: KatalystState) -> KatalystState:
@@ -45,14 +46,21 @@ def router_node(state: KatalystState) -> KatalystState:
 Task: {state.task}
 
 Available agents:
-1. coding_agent - For software development tasks like:
+1. conversation_agent - For conversational inputs like:
+   - Greetings (hi, hello, hey, good morning)
+   - Vague requests (help me, I need something, can you assist)
+   - Questions about capabilities (what can you do, how do you work)
+   - Off-topic requests (non-coding/data science tasks)
+   - Any input that needs clarification before proceeding
+
+2. coding_agent - For software development tasks like:
    - Writing, modifying, or debugging code
    - Implementing features or fixing bugs
    - Refactoring or optimizing code
    - Writing tests or documentation
    - Working with git, dependencies, or project setup
 
-2. data_science_agent - For data analysis tasks like:
+3. data_science_agent - For data analysis tasks like:
    - Analyzing datasets and finding patterns
    - Reading and analyzing CSV files or other data formats
    - Creating visualizations and reports
@@ -60,7 +68,7 @@ Available agents:
    - Statistical analysis and hypothesis testing
    - Data cleaning and preprocessing
 
-Respond with ONLY the agent name: either "coding_agent" or "data_science_agent"
+Respond with ONLY the agent name: "conversation_agent", "coding_agent", or "data_science_agent"
 Do not include any explanation, just the agent name."""
     
     try:
@@ -69,7 +77,10 @@ Do not include any explanation, just the agent name."""
         agent_choice = response.content.strip().lower()
         
         # Validate and set routing decision
-        if "data" in agent_choice or "science" in agent_choice:
+        if "conversation" in agent_choice:
+            state.next_agent = "conversation_agent"
+            logger.info("[ROUTER] Routing to conversation_agent")
+        elif "data" in agent_choice or "science" in agent_choice:
             state.next_agent = "data_science_agent"
             logger.info("[ROUTER] Routing to data_science_agent")
         else:
@@ -89,7 +100,7 @@ def route_to_agent(state: KatalystState) -> str:
     """
     Conditional edge function that routes based on the router's decision.
     """
-    return state.next_agent or "coding_agent"
+    return state.next_agent or "conversation_agent"  # Default to conversation for safety
 
 
 def build_main_graph():
@@ -111,6 +122,9 @@ def build_main_graph():
     main.add_node("router", router_node)
     
     # Add agent subgraphs
+    logger.info("[MAIN_GRAPH] Adding conversation agent subgraph...")
+    main.add_node("conversation_agent", build_conversation_graph())
+    
     logger.info("[MAIN_GRAPH] Adding coding agent subgraph...")
     main.add_node("coding_agent", build_coding_graph())
     
@@ -124,10 +138,11 @@ def build_main_graph():
     main.add_conditional_edges(
         "router",
         route_to_agent,
-        ["coding_agent", "data_science_agent"]
+        ["conversation_agent", "coding_agent", "data_science_agent"]
     )
     
-    # Both agents lead to END
+    # All agents lead to END
+    main.add_edge("conversation_agent", END)
     main.add_edge("coding_agent", END)
     main.add_edge("data_science_agent", END)
     

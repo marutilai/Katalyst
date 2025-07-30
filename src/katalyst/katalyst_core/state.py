@@ -73,6 +73,20 @@ class KatalystState(BaseModel):
         None,
         description="User feedback about the generated plan to be incorporated in replanning.",
     )
+    
+    # ── user input handling ───────────────────────────────────────────────
+    needs_user_input: bool = Field(
+        False,
+        description="Flag indicating the agent needs user input to continue.",
+    )
+    user_input_required: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Details about the user input needed (question, suggested_responses, tool_name).",
+    )
+    user_input_response: Optional[str] = Field(
+        None,
+        description="User's response to the input request.",
+    )
 
     # ── loop guardrails ───────────────────────────────────────────────────
     inner_cycles: int = Field(

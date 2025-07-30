@@ -13,10 +13,11 @@ from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.prebuilt import create_react_agent
 
 from katalyst.katalyst_core.state import KatalystState
-from katalyst.katalyst_core.utils.models import PlannerOutput
+from katalyst.katalyst_core.utils.models import PlannerOutput, EnhancedPlannerOutput
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.checkpointer_manager import checkpointer_manager
 from katalyst.katalyst_core.config import get_llm_config
+from katalyst.app.config import USE_PLAYBOOKS
 from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
 from katalyst.katalyst_core.utils.tools import (
     get_tool_functions_map,
@@ -71,6 +72,51 @@ Example subtask format:
 - Configure deployment and build processes
 """
 
+# Enhanced prompt with task classification
+enhanced_planner_prompt = """You are a senior software architect creating implementation plans.
+
+CRITICAL: You are in the PLANNING phase. DO NOT execute any actions or make any changes!
+
+Your role is to:
+1. ANALYZE the current state of the codebase/filesystem
+2. UNDERSTAND what needs to be built
+3. CREATE a detailed plan for implementation
+4. CLASSIFY each task by type
+
+You are ONLY allowed to:
+- Explore directory structure (ls) - to understand what exists
+- Search for patterns (grep, glob) - to find relevant code
+- Read files (read) - to understand existing architecture
+- Find code definitions (list_code_definitions) - to understand code structure
+- Ask questions (request_user_input) - when you need clarification
+
+You MUST NOT:
+- Create any files or directories
+- Execute any commands
+- Make any modifications
+- Install any packages
+- Run any builds or tests
+
+PLANNING GUIDELINES:
+- Each task should be a complete, actionable instruction
+- Tasks should be roughly equal in scope
+- Tasks should build on each other logically
+- Include all setup, implementation, and testing tasks
+- Be specific about file paths and component names
+
+TASK CLASSIFICATION:
+For each task, assign one of these types:
+- test_creation: Writing new tests (unit, integration, e2e)
+- refactor: Improving code structure without changing functionality
+- documentation: Writing docs, comments, READMEs
+- data_exploration: Initial data analysis, EDA, understanding data
+- feature_engineering: Data preprocessing, cleaning, encoding, scaling, creating new features, transformations
+- model_training: Training ML/AI models
+- model_evaluation: Testing and evaluating model performance
+- other: Anything else other than the above
+
+After exploring and understanding the requirements, provide your plan as a list of classified subtasks."""
+
 
 def planner(state: KatalystState) -> KatalystState:
     """
@@ -81,7 +127,7 @@ def planner(state: KatalystState) -> KatalystState:
 
     # Get checkpointer from manager
     checkpointer = checkpointer_manager.get_checkpointer()
-    
+
     # Check if we have a checkpointer
     if not checkpointer:
         logger.error("[PLANNER] No checkpointer available from manager")
@@ -113,13 +159,23 @@ def planner(state: KatalystState) -> KatalystState:
     # Get summarization node for conversation compression
     summarization_node = get_summarization_node()
 
+    # Select appropriate prompt and output format based on USE_PLAYBOOKS
+    if USE_PLAYBOOKS:
+        selected_prompt = enhanced_planner_prompt
+        output_format = EnhancedPlannerOutput
+        logger.debug("[PLANNER] Using enhanced planner with task classification")
+    else:
+        selected_prompt = planner_prompt
+        output_format = PlannerOutput
+        logger.debug("[PLANNER] Using standard planner")
+
     # Create planner agent with structured output and summarization
     planner_agent = create_react_agent(
         model=planner_model,
         tools=tools,
         checkpointer=checkpointer,
-        prompt=planner_prompt,  # Set as system prompt
-        response_format=PlannerOutput,  # Use structured output
+        prompt=selected_prompt,  # Set as system prompt
+        response_format=output_format,  # Use structured output
         pre_model_hook=summarization_node,  # Enable conversation summarization
     )
 
@@ -149,23 +205,44 @@ Provide your final plan as a list of subtasks that can be executed to complete t
         # Extract structured response
         structured_response = result.get("structured_response")
 
-        if structured_response and isinstance(structured_response, PlannerOutput):
+        if structured_response and (
+            isinstance(structured_response, PlannerOutput)
+            or isinstance(structured_response, EnhancedPlannerOutput)
+        ):
             subtasks = structured_response.subtasks
 
             if subtasks:
-                # Update state with the plan
-                state.task_queue = subtasks
-                state.original_plan = subtasks
+                # Handle different output formats
+                if isinstance(structured_response, EnhancedPlannerOutput):
+                    # Enhanced output with TaskInfo objects
+                    # Prefix each task with its type in brackets
+                    task_strings = [
+                        f"[{task.task_type.value.upper()}] {task.description}"
+                        for task in subtasks
+                    ]
+
+                    # Log the plan with task types
+                    plan_message = f"Generated plan with task types:\n" + "\n".join(
+                        f"{i+1}. {task_str}" for i, task_str in enumerate(task_strings)
+                    )
+                else:
+                    # Standard output with strings
+                    task_strings = subtasks
+
+                    # Log the plan
+                    plan_message = f"Generated plan:\n" + "\n".join(
+                        f"{i+1}. {s}" for i, s in enumerate(subtasks)
+                    )
+
+                # Update state with the plan (as strings for now)
+                state.task_queue = task_strings
+                state.original_plan = task_strings
                 state.task_idx = 0
                 state.outer_cycles = 0
                 state.completed_tasks = []
                 state.error_message = None
                 state.plan_feedback = None
 
-                # Log the plan
-                plan_message = f"Generated plan:\n" + "\n".join(
-                    f"{i+1}. {s}" for i, s in enumerate(subtasks)
-                )
                 logger.info(f"[PLANNER] {plan_message}")
             else:
                 logger.error("[PLANNER] Structured response contained no subtasks")

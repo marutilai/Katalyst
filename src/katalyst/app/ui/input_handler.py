@@ -411,8 +411,8 @@ class InputHandler:
             
             # Show menu and get selection
             menu_entry_index = terminal_menu.show()
-        except (OSError, IOError) as e:
-            # Handle non-TTY environments (e.g., when running tests)
+        except (OSError, IOError, RuntimeError) as e:
+            # Handle non-TTY environments or threading issues (e.g., when running tests or in threads)
             self.console.print(f"[yellow]Arrow navigation unavailable in this environment. Using numbered menu.[/yellow]")
             return self.prompt_menu(title, options, show_numbers=True)
         

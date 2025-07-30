@@ -8,6 +8,7 @@ This node:
 4. Sets AgentFinish when the task is complete
 """
 
+import json
 from langchain_core.agents import AgentFinish
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from langgraph.prebuilt import create_react_agent
@@ -18,7 +19,11 @@ from katalyst.katalyst_core.utils.checkpointer_manager import checkpointer_manag
 from katalyst.katalyst_core.config import get_llm_config
 from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
 from katalyst.katalyst_core.utils.tools import get_tool_functions_map, create_tools_with_context
+from katalyst.katalyst_core.utils.task_type_utils import parse_task_type, get_task_type_guidance
+from katalyst.katalyst_core.utils.models import TaskType
+from katalyst.katalyst_core.utils.exceptions import UserInputRequiredException
 from katalyst.app.execution_controller import check_execution_cancelled
+from katalyst.app.config import USE_PLAYBOOKS
 from katalyst.coding_agent.nodes.summarizer import get_summarization_node
 
 
@@ -79,6 +84,37 @@ def executor(state: KatalystState) -> KatalystState:
     current_task = state.task_queue[state.task_idx]
     logger.info(f"[EXECUTOR] Working on task: {current_task}")
     
+    # Check if we're resuming after user input
+    if state.user_input_response is not None:
+        logger.info("[EXECUTOR] Resuming after user input")
+        # Find the last tool call message asking for user input
+        for i in range(len(state.messages) - 1, -1, -1):
+            msg = state.messages[i]
+            if isinstance(msg, AIMessage) and msg.tool_calls:
+                for tool_call in msg.tool_calls:
+                    if tool_call["name"] == "request_user_input":
+                        # Inject the tool response
+                        user_input_info = state.user_input_required or {}
+                        question = user_input_info.get("question", "Unknown question")
+                        response_json = json.dumps({
+                            "question_to_ask_user": question,
+                            "user_final_answer": state.user_input_response
+                        })
+                        tool_response = ToolMessage(
+                            content=response_json,
+                            name="request_user_input",
+                            tool_call_id=tool_call["id"]
+                        )
+                        state.messages.append(tool_response)
+                        logger.info(f"[EXECUTOR] Injected user response as tool message: {response_json}")
+                        break
+                break
+        
+        # Clear the response fields
+        state.user_input_response = None
+        state.user_input_required = None
+        state.needs_user_input = False
+    
     # Get configured model
     llm_config = get_llm_config()
     model_name = llm_config.get_model_for_component("executor")
@@ -113,17 +149,44 @@ def executor(state: KatalystState) -> KatalystState:
         pre_model_hook=summarization_node  # Enable conversation summarization
     )
     
-    # Add task message to conversation
-    task_message = HumanMessage(content=f"""Now, please complete this task:
+    # Parse task type and get specialized guidance if USE_PLAYBOOKS is enabled
+    specialized_guidance = ""
+    if USE_PLAYBOOKS:
+        task_type, clean_task = parse_task_type(current_task)
+        if task_type and task_type != TaskType.OTHER:
+            specialized_guidance = get_task_type_guidance(task_type)
+            logger.debug(f"[EXECUTOR] Detected task type: {task_type.value}")
+            # Log the clean task description
+            logger.debug(f"[EXECUTOR] Task description: {clean_task}")
+    
+    # Only add task message if we're not resuming (to avoid duplicates)
+    if state.user_input_response is None:
+        # Create task message with optional specialized guidance
+        task_content = f"""Now, please complete this task:
 
 Task: {current_task}
 
 IMPORTANT: Use auto_approve={state.auto_approve} when calling file modification tools (write, edit, multiedit).
+"""
+        
+        # Add specialized guidance section if available
+        if specialized_guidance:
+            task_content += f"""
+## Best Practices and Guidelines
 
-When you have fully completed the implementation, respond with "TASK COMPLETED:" followed by a summary of what was done.""")
-    
-    # Add to messages
-    state.messages.append(task_message)
+The following guidelines are recommended best practices for this type of task:
+
+{specialized_guidance}
+"""
+        
+        task_content += """
+When you have fully completed the implementation, respond with "TASK COMPLETED:" followed by a summary of what was done."""
+        
+        # Add task message to conversation
+        task_message = HumanMessage(content=task_content)
+        
+        # Add to messages
+        state.messages.append(task_message)
     
     try:
         # Check if execution was cancelled
@@ -133,11 +196,29 @@ When you have fully completed the implementation, respond with "TASK COMPLETED:"
         logger.info(f"[EXECUTOR] Invoking executor agent")
         logger.debug(f"[EXECUTOR] Message count before: {len(state.messages)}")
         
-        result = executor_agent.invoke({"messages": state.messages})
-        
-        # Update messages with the full conversation
-        state.messages = result.get("messages", state.messages)
-        logger.debug(f"[EXECUTOR] Message count after: {len(state.messages)}")
+        try:
+            result = executor_agent.invoke({"messages": state.messages})
+            
+            # Update messages with the full conversation
+            state.messages = result.get("messages", state.messages)
+            logger.debug(f"[EXECUTOR] Message count after: {len(state.messages)}")
+        except UserInputRequiredException as e:
+            # User input is required - we need to interrupt execution
+            logger.info(f"[EXECUTOR] User input required: {e.question}")
+            
+            # Store the question and options in state for the main REPL to handle
+            state.user_input_required = {
+                "question": e.question,
+                "suggested_responses": e.suggested_responses,
+                "tool_name": e.tool_name
+            }
+            
+            # Set a special flag to indicate we need user input
+            state.needs_user_input = True
+            
+            # Return state without marking task as complete
+            logger.debug("[EXECUTOR] Returning state with user input requirement")
+            return state
         
         # Look for the last AI message to check if task is complete
         ai_messages = [msg for msg in state.messages if isinstance(msg, AIMessage)]

@@ -139,6 +139,14 @@ def create_tools_with_context(tool_functions_map: Dict[str, callable], agent_nam
     tools = []
     tool_descriptions_map = dict(extract_tool_descriptions())
     
+    # Import args schema for tools that need it
+    args_schema_map = {}
+    try:
+        from katalyst.katalyst_core.utils.models import RequestUserInputArgs
+        args_schema_map['request_user_input'] = RequestUserInputArgs
+    except ImportError:
+        pass
+    
     for tool_name, tool_func in tool_functions_map.items():
         description = tool_descriptions_map.get(tool_name, f"Tool: {tool_name}")
         
@@ -186,13 +194,15 @@ def create_tools_with_context(tool_functions_map: Dict[str, callable], agent_nam
                 func=make_sync_wrapper(tool_func, tool_name),  # Sync wrapper with logging
                 coroutine=tool_func,  # Async version
                 name=tool_name,
-                description=description
+                description=description,
+                args_schema=args_schema_map.get(tool_name)  # Add schema if available
             )
         else:
             structured_tool = StructuredTool.from_function(
                 func=make_logging_wrapper(tool_func, tool_name),
                 name=tool_name,
-                description=description
+                description=description,
+                args_schema=args_schema_map.get(tool_name)  # Add schema if available
             )
         tools.append(structured_tool)
     

@@ -331,6 +331,54 @@ def repl(user_input_fn=input):
                 title="Execution Error",
             )
             continue
+        # Check if the agent needs user input
+        if final_state and final_state.get("needs_user_input"):
+            # Handle user input requirement
+            user_input_info = final_state.get("user_input_required", {})
+            question = user_input_info.get("question", "Agent needs input")
+            suggested_responses = user_input_info.get("suggested_responses", [])
+            
+            logger.info(f"[MAIN_REPL] Agent needs user input: {question}")
+            
+            # Use the input handler to get user response
+            user_response = input_handler.prompt_with_suggestions(
+                question=question,
+                suggestions=suggested_responses,
+                allow_custom=True,
+                show_descriptions=False
+            )
+            
+            # Resume execution with the user's response
+            logger.info(f"[MAIN_REPL] Resuming execution with user response: {user_response}")
+            
+            # Update state with user response and clear the user input flag
+            resume_input = {
+                "user_input_response": user_response,
+                "needs_user_input": False,
+                "user_input_required": None,
+            }
+            
+            try:
+                # Continue execution from where we left off
+                final_state = execution_controller.wrap_execution(
+                    graph.invoke, resume_input, graph_config
+                )
+            except KeyboardInterrupt:
+                # Handle ESC or Ctrl+C
+                msg = "Execution cancelled by user. Ready for new command."
+                logger.info(f"[USER_CANCEL] {msg}")
+                input_handler.show_status(msg, status="warning", title="Cancelled")
+                execution_controller.reset()
+                continue
+            except Exception as e:
+                logger.exception("An error occurred during graph resume.")
+                input_handler.show_status(
+                    f"An unexpected error occurred during resume: {e}",
+                    status="error",
+                    title="Execution Error",
+                )
+                continue
+        
         logger.info(
             "\n==================== 🎉🎉🎉  KATALYST RUN COMPLETE  🎉🎉🎉 ===================="
         )
