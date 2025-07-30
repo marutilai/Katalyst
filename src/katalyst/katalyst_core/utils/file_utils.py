@@ -1,5 +1,6 @@
 import os
-from typing import Set, Optional
+import re
+from typing import Set, Optional, List, Union
 from pathspec import PathSpec
 from pathspec.patterns import GitWildMatchPattern
 from katalyst.app.config import KATALYST_IGNORE_PATTERNS
@@ -56,19 +57,20 @@ def should_ignore_path(
     return False
 
 
-def resolve_and_validate_path(path: str, project_root: str) -> str:
+def resolve_and_validate_path(path: str, project_root: str, allowed_external_paths: Optional[Union[List[str], Set[str]]] = None) -> str:
     """
     Resolve a path and validate it's within the project sandbox.
     
     Args:
         path: The path to validate (can be relative, absolute, or contain ~)
         project_root: The project root directory (sandbox boundary)
+        allowed_external_paths: List or Set of external paths explicitly allowed by user
         
     Returns:
         str: The resolved absolute path
         
     Raises:
-        SandboxViolationError: If the path is outside the project directory
+        SandboxViolationError: If the path is outside the project directory and not in allowed list
     """
     # Handle empty or None path
     if not path:
@@ -95,9 +97,113 @@ def resolve_and_validate_path(path: str, project_root: str) -> str:
     try:
         common_path = os.path.commonpath([resolved_path, project_root_resolved])
         if common_path != project_root_resolved:
+            # Path is outside project - check if it's in allowed list
+            if allowed_external_paths:
+                # Check if the path or original path is in allowed list
+                for allowed in allowed_external_paths:
+                    # Resolve the allowed path for comparison
+                    allowed_expanded = os.path.expanduser(allowed) if allowed.startswith("~") else allowed
+                    allowed_abs = os.path.abspath(allowed_expanded) if not os.path.isabs(allowed_expanded) else allowed_expanded
+                    try:
+                        allowed_resolved = os.path.realpath(allowed_abs)
+                        if resolved_path == allowed_resolved or path == allowed:
+                            # This external path is explicitly allowed
+                            return resolved_path
+                    except:
+                        # If we can't resolve allowed path, do string comparison
+                        if path == allowed:
+                            return resolved_path
             raise SandboxViolationError(path, project_root)
     except ValueError:
         # Paths are on different drives (Windows) or have no common path
+        # Check allowed list before raising error
+        if allowed_external_paths and path in allowed_external_paths:
+            return resolved_path
         raise SandboxViolationError(path, project_root)
     
     return resolved_path
+
+
+def extract_file_paths(text: str) -> List[str]:
+    """
+    Extract file paths from user text.
+    
+    Looks for:
+    - Absolute paths: /path/to/file
+    - Home paths: ~/path/to/file
+    - Relative paths with ..: ../path/to/file
+    - Windows paths: C:\\path\\to\\file
+    
+    Args:
+        text: User input text
+        
+    Returns:
+        List of detected file paths
+    """
+    paths = []
+    
+    # Patterns to match different types of paths
+    patterns = [
+        # Home directory paths (~/...)
+        r'(~(?:/[a-zA-Z0-9_\-./]+)+)',
+        # Relative paths with .. (../...)
+        r'(\.\.(?:/[a-zA-Z0-9_\-./]+)+)',
+        # Unix/Linux/Mac absolute paths (start with / and contain at least one more /)
+        r'(?:^|\s)(/(?:[a-zA-Z0-9_\-]+/)+[a-zA-Z0-9_\-./]*)',
+        # Windows paths with backslashes
+        r'([a-zA-Z]:\\\\[a-zA-Z0-9_\-.\\\\ ]+)',
+        # Windows paths with forward slashes
+        r'([a-zA-Z]:/[a-zA-Z0-9_\-./]+)',
+    ]
+    
+    for pattern in patterns:
+        matches = re.findall(pattern, text)
+        paths.extend(matches)
+    
+    # Deduplicate while preserving order
+    seen = set()
+    unique_paths = []
+    for path in paths:
+        if path not in seen:
+            seen.add(path)
+            unique_paths.append(path)
+    
+    return unique_paths
+
+
+def extract_and_classify_paths(text: str, project_root: str) -> List[str]:
+    """
+    Extract file paths from text and return only those outside the project.
+    
+    Args:
+        text: User input text
+        project_root: The project root directory
+        
+    Returns:
+        List of external file paths that should be added to allowed list
+    """
+    paths = extract_file_paths(text)
+    external_paths = []
+    
+    for path in paths:
+        # Expand ~ to home directory
+        if path.startswith("~"):
+            path = os.path.expanduser(path)
+        
+        # Convert to absolute path if relative to project
+        if not os.path.isabs(path):
+            path = os.path.join(project_root, path)
+        
+        # Check if it's outside project root
+        try:
+            resolved = os.path.realpath(path)
+            project_resolved = os.path.realpath(project_root)
+            common = os.path.commonpath([resolved, project_resolved])
+            if common != project_resolved:
+                # This path is outside the project
+                external_paths.append(path)
+        except (OSError, ValueError):
+            # If we can't resolve, assume it's external to be safe
+            external_paths.append(path)
+    
+    return external_paths

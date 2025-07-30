@@ -41,14 +41,17 @@ def sandbox_paths(*param_names: str) -> Callable:
             bound_args = sig.bind(*args, **kwargs)
             bound_args.apply_defaults()
             
-            # Extract project_root_cwd from arguments
+            # Extract project_root_cwd and allowed_external_paths from arguments
             project_root = None
+            allowed_external_paths = None
             
-            # Check if there's a 'state' parameter with project_root_cwd
+            # Check if there's a 'state' parameter with project_root_cwd and allowed_external_paths
             if 'state' in bound_args.arguments:
                 state = bound_args.arguments['state']
                 if hasattr(state, 'project_root_cwd'):
                     project_root = state.project_root_cwd
+                if hasattr(state, 'allowed_external_paths'):
+                    allowed_external_paths = state.allowed_external_paths
             
             # Check if project_root_cwd is passed directly
             if 'project_root_cwd' in bound_args.arguments:
@@ -90,7 +93,9 @@ def sandbox_paths(*param_names: str) -> Callable:
                     # Validate each path
                     for path in paths_to_validate:
                         try:
-                            validated_path = resolve_and_validate_path(path, project_root)
+                            validated_path = resolve_and_validate_path(
+                                path, project_root, allowed_external_paths
+                            )
                             # Update the path to the validated absolute path
                             if isinstance(path_value, str):
                                 bound_args.arguments[param_name] = validated_path
