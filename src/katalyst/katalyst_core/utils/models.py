@@ -67,3 +67,17 @@ class PlaybookEvaluation(BaseModel):
     usage_recommendation: str = Field(
         description="How to best use these guidelines (e.g., 'strict', 'reference', 'ignore')"
     )
+
+
+class RequestUserInputArgs(BaseModel):
+    """Arguments for the request_user_input tool."""
+    
+    question_to_ask_user: str = Field(
+        ...,
+        description="The question to ask the user"
+    )
+    suggested_responses: List[str] = Field(
+        ...,
+        description="List of suggested answer options. Must be non-empty.",
+        min_items=1
+    )
