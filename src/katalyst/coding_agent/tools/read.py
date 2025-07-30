@@ -4,15 +4,18 @@ from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.tools import katalyst_tool
 from katalyst.katalyst_core.utils.error_handling import create_error_message, ErrorType
 from katalyst.katalyst_core.utils.file_utils import load_gitignore_patterns
+from katalyst.katalyst_core.utils.decorators import sandbox_paths
 
 
 @katalyst_tool(prompt_module="read", prompt_var="READ_TOOL_PROMPT", categories=["planner", "executor", "replanner"])
+@sandbox_paths()
 def read(
     path: str,
     start_line: int = None,
     end_line: int = None,
     respect_gitignore: bool = True,
-    auto_approve: bool = True
+    auto_approve: bool = True,
+    project_root_cwd: str = None
 ) -> str:
     """
     Read the contents of a file, optionally from a specific line range.

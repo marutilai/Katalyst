@@ -1,14 +1,17 @@
 # katalyst/katalyst_core/utils/tools.py
 import os
 import importlib
-from typing import List, Dict
+from typing import List, Dict, Optional
 import inspect
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 import re
 import asyncio
 import functools
 from langchain_core.tools import StructuredTool
 from katalyst.katalyst_core.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from katalyst.katalyst_core.state import KatalystState
 
 # Directory containing all tool modules
 TOOLS_IMPLEMENTATION_DIR = os.path.join(
@@ -124,13 +127,14 @@ def extract_tool_descriptions():
 
 
 
-def create_tools_with_context(tool_functions_map: Dict[str, callable], agent_name: str) -> List[StructuredTool]:
+def create_tools_with_context(tool_functions_map: Dict[str, callable], agent_name: str, state: Optional['KatalystState'] = None) -> List[StructuredTool]:
     """
     Create StructuredTool instances with agent context logging.
     
     Args:
         tool_functions_map: Dictionary mapping tool names to their functions
         agent_name: Name of the agent (e.g., "PLANNER", "EXECUTOR", "REPLANNER")
+        state: Optional KatalystState to extract project_root_cwd from
     
     Returns:
         List of StructuredTool instances with logging wrappers
@@ -154,11 +158,17 @@ def create_tools_with_context(tool_functions_map: Dict[str, callable], agent_nam
         def make_logging_wrapper(func, t_name):
             @functools.wraps(func)
             def wrapper(**kwargs):
+                # Inject project_root_cwd if state is available and tool needs it
+                if state and hasattr(state, 'project_root_cwd'):
+                    sig = inspect.signature(func)
+                    if 'project_root_cwd' in sig.parameters:
+                        kwargs['project_root_cwd'] = state.project_root_cwd
+                
                 # Format kwargs for logging, truncating long values
                 log_kwargs = {}
                 for k, v in kwargs.items():
                     # Skip internal parameters
-                    if k in ['auto_approve', 'user_input_fn']:
+                    if k in ['auto_approve', 'user_input_fn', 'project_root_cwd']:
                         continue
                     if isinstance(v, str) and len(v) > 100:
                         log_kwargs[k] = v[:100] + "..."
@@ -174,11 +184,17 @@ def create_tools_with_context(tool_functions_map: Dict[str, callable], agent_nam
             # For async functions, create a sync wrapper with logging
             def make_sync_wrapper(async_func, t_name):
                 def sync_wrapper(**kwargs):
+                    # Inject project_root_cwd if state is available and tool needs it
+                    if state and hasattr(state, 'project_root_cwd'):
+                        sig = inspect.signature(async_func)
+                        if 'project_root_cwd' in sig.parameters:
+                            kwargs['project_root_cwd'] = state.project_root_cwd
+                    
                     # Format kwargs for logging, truncating long values
                     log_kwargs = {}
                     for k, v in kwargs.items():
                         # Skip internal parameters
-                        if k in ['auto_approve', 'user_input_fn']:
+                        if k in ['auto_approve', 'user_input_fn', 'project_root_cwd']:
                             continue
                         if isinstance(v, str) and len(v) > 100:
                             log_kwargs[k] = v[:100] + "..."

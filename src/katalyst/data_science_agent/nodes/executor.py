@@ -112,7 +112,7 @@ def executor(state: KatalystState) -> KatalystState:
 
     # Get executor tools with logging context
     tool_functions = get_tool_functions_map(category="executor")
-    tools = create_tools_with_context(tool_functions, "DS_EXECUTOR")
+    tools = create_tools_with_context(tool_functions, "DS_EXECUTOR", state)
 
     # Get summarization node for conversation compression
     summarization_node = get_summarization_node()

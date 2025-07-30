@@ -154,7 +154,7 @@ def planner(state: KatalystState) -> KatalystState:
 
     # Get planner tools with logging context
     tool_functions = get_tool_functions_map(category="planner")
-    tools = create_tools_with_context(tool_functions, "PLANNER")
+    tools = create_tools_with_context(tool_functions, "PLANNER", state)
 
     # Get summarization node for conversation compression
     summarization_node = get_summarization_node()

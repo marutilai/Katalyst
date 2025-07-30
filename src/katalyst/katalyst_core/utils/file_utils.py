@@ -3,6 +3,7 @@ from typing import Set, Optional
 from pathspec import PathSpec
 from pathspec.patterns import GitWildMatchPattern
 from katalyst.app.config import KATALYST_IGNORE_PATTERNS
+from katalyst.katalyst_core.utils.exceptions import SandboxViolationError
 
 
 def load_gitignore_patterns(root_path: str) -> Optional[PathSpec]:
@@ -55,5 +56,48 @@ def should_ignore_path(
     return False
 
 
-
-
+def resolve_and_validate_path(path: str, project_root: str) -> str:
+    """
+    Resolve a path and validate it's within the project sandbox.
+    
+    Args:
+        path: The path to validate (can be relative, absolute, or contain ~)
+        project_root: The project root directory (sandbox boundary)
+        
+    Returns:
+        str: The resolved absolute path
+        
+    Raises:
+        SandboxViolationError: If the path is outside the project directory
+    """
+    # Handle empty or None path
+    if not path:
+        path = "."
+    
+    # Expand user home directory
+    if path.startswith("~"):
+        path = os.path.expanduser(path)
+    
+    # If path is relative, make it absolute relative to project root
+    if not os.path.isabs(path):
+        path = os.path.join(project_root, path)
+    
+    # Resolve the path (follows symlinks, removes .., etc)
+    try:
+        resolved_path = os.path.realpath(path)
+        project_root_resolved = os.path.realpath(project_root)
+    except Exception as e:
+        # If we can't resolve, it's likely an invalid path
+        raise SandboxViolationError(path, project_root) from e
+    
+    # Check if the resolved path is within the project root
+    # Use os.path.commonpath to check if paths share a common prefix
+    try:
+        common_path = os.path.commonpath([resolved_path, project_root_resolved])
+        if common_path != project_root_resolved:
+            raise SandboxViolationError(path, project_root)
+    except ValueError:
+        # Paths are on different drives (Windows) or have no common path
+        raise SandboxViolationError(path, project_root)
+    
+    return resolved_path
