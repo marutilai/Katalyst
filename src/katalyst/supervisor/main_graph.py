@@ -11,6 +11,7 @@ from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.config import get_llm_config
 from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
 from katalyst.katalyst_core.utils.logger import get_logger
+from katalyst.katalyst_core.utils.file_utils import extract_and_classify_paths
 from katalyst.coding_agent.graph import build_coding_graph
 from katalyst.data_science_agent.graph import build_data_science_graph
 from katalyst.conversation_agent.graph import build_conversation_graph
@@ -24,6 +25,15 @@ def router_node(state: KatalystState) -> KatalystState:
     """
     logger = get_logger("supervisor")
     logger.info(f"[ROUTER] Analyzing task: {state.task}")
+    
+    # Extract any external file paths from the user's task and add to allowed list
+    external_paths = extract_and_classify_paths(state.task, state.project_root_cwd)
+    if external_paths:
+        logger.info(f"[ROUTER] Detected external paths in user request: {external_paths}")
+        new_paths = set(external_paths) - state.allowed_external_paths
+        if new_paths:
+            state.allowed_external_paths.update(new_paths)
+            logger.info(f"[ROUTER] Added external paths to allowed list: {new_paths}")
     
     # Get LLM for routing decision
     llm_config = get_llm_config()

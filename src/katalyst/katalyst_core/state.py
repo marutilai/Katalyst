@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional, Union, Callable, Dict, Any
+from typing import List, Tuple, Optional, Union, Callable, Dict, Any, Set
 from pydantic import BaseModel, Field
 from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.messages import BaseMessage
@@ -72,6 +72,12 @@ class KatalystState(BaseModel):
     plan_feedback: Optional[str] = Field(
         None,
         description="User feedback about the generated plan to be incorporated in replanning.",
+    )
+    
+    # ── security / sandbox ─────────────────────────────────────────────────
+    allowed_external_paths: Set[str] = Field(
+        default_factory=set,
+        description="External file paths explicitly mentioned by user that can bypass sandbox.",
     )
     
     # ── user input handling ───────────────────────────────────────────────
