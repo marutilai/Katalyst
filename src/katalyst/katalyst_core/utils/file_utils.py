@@ -187,14 +187,7 @@ def extract_file_paths(text: str) -> List[str]:
         paths.extend(matches)
     
     # Deduplicate while preserving order
-    seen = set()
-    unique_paths = []
-    for path in paths:
-        if path not in seen:
-            seen.add(path)
-            unique_paths.append(path)
-    
-    return unique_paths
+    return list(dict.fromkeys(paths))
 
 
 def extract_and_classify_paths(text: str, project_root: str) -> List[str]:
