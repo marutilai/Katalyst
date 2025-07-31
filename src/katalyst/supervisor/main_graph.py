@@ -24,7 +24,7 @@ def router_node(state: KatalystState) -> KatalystState:
     This is a simple LLM call that classifies the task and routes accordingly.
     """
     logger = get_logger("supervisor")
-    logger.info(f"[ROUTER] Analyzing task: {state.task}")
+    logger.debug(f"[ROUTER] Analyzing task: {state.task}")
     
     # Extract any external file paths from the user's task and add to allowed list
     external_paths = extract_and_classify_paths(state.task, state.project_root_cwd)

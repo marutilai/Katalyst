@@ -74,7 +74,7 @@ def conversation(state: KatalystState) -> KatalystState:
                 user_input = msg.content
                 break
     
-    logger.info(f"[CONVERSATION] Processing input: {user_input}")
+    logger.debug(f"[CONVERSATION] Processing input: {user_input}")
     
     # Get configured model
     llm_config = get_llm_config()
@@ -103,7 +103,7 @@ def conversation(state: KatalystState) -> KatalystState:
         ai_message = AIMessage(content=response.content)
         state.messages.append(ai_message)
         
-        logger.info(f"[CONVERSATION] Generated response: {response.content[:100]}...")
+        logger.info(f"[CONVERSATION] Generated response: {response.content}")
         
     except Exception as e:
         error_msg = f"I encountered an error while processing your request: {str(e)}"
