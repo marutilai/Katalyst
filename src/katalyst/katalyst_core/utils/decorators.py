@@ -38,14 +38,28 @@ def sandbox_paths(*param_names: str) -> Callable:
         def wrapper(*args, **kwargs) -> Any:
             # Get function signature
             sig = inspect.signature(func)
+            
+            # Extract state before binding if it's not in function signature
+            state_obj = None
+            if 'state' in kwargs and 'state' not in sig.parameters:
+                state_obj = kwargs.pop('state')
+            
+            # Now bind the remaining arguments
             bound_args = sig.bind(*args, **kwargs)
             bound_args.apply_defaults()
             
-            # Extract project_root_cwd and allowed_external_paths from arguments
+            # Extract project_root_cwd and allowed_external_paths
             project_root = None
             allowed_external_paths = None
             
-            # Check if there's a 'state' parameter with project_root_cwd and allowed_external_paths
+            # First check if we extracted a state object
+            if state_obj is not None:
+                if hasattr(state_obj, 'project_root_cwd'):
+                    project_root = state_obj.project_root_cwd
+                if hasattr(state_obj, 'allowed_external_paths'):
+                    allowed_external_paths = state_obj.allowed_external_paths
+            
+            # Then check if there's a 'state' parameter in the function signature
             if 'state' in bound_args.arguments:
                 state = bound_args.arguments['state']
                 if hasattr(state, 'project_root_cwd'):

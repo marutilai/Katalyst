@@ -67,15 +67,32 @@ class TestSandboxIntegration:
                 allowed_external_paths={external_file}
             )
             
-            # Mock the decorator's state extraction
-            # In real usage, the decorator extracts state from the graph context
-            with pytest.raises(TypeError):
-                # This will fail because read() doesn't accept state parameter directly
-                # But in the real system, the decorator extracts it from the execution context
-                read(path=external_file, state=state)
+            # In the actual system, the decorator extracts state from graph context
+            # For testing, we need to simulate how the decorator would be called
+            # The decorator looks for state in kwargs
+            from katalyst.coding_agent.tools.read import read
+            from functools import wraps
             
-            # For now, we've verified the sandbox logic works at the unit level
-            # The full integration requires the graph execution context
+            # Create a wrapper that simulates the graph executor passing state
+            def simulate_graph_executor(func):
+                @wraps(func)
+                def wrapper(**kwargs):
+                    # Add state to kwargs as the graph executor would
+                    kwargs['state'] = state
+                    return func(**kwargs)
+                return wrapper
+            
+            # Apply our simulation wrapper
+            read_with_state = simulate_graph_executor(read)
+            
+            # Now test reading the external file
+            result = read_with_state(path=external_file, project_root_cwd=project_root)
+            result_data = json.loads(result)
+            
+            # Should succeed with allowed external path
+            assert "content" in result_data
+            assert "External content" in result_data["content"]
+            
         finally:
             if os.path.exists(external_file):
                 os.remove(external_file)
