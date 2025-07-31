@@ -59,7 +59,7 @@ def test_change_logger_name():
 def test_add_agent_version():
     case = KatalystTestCase(
         name="add_agent_version",
-        task="In katalyst/coding_agent/main.py, inside the repl function's else block where initial_state is created, add a new key-value pair: 'agent_version': '1.0.0'. Use the apply_source_code_diff tool. Show me the proposed diff and apply it after my confirmation.",
+        task="In katalyst/coding_agent/main.py, inside the repl function's else block where initial_state is created, add a new key-value pair: 'agent_version': '1.0.0'. Show me the proposed diff and apply it after my confirmation.",
         expected_output="agent_version",
         auto_approve=False,  # Requires user interaction
     )

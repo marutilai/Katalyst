@@ -2,6 +2,7 @@ from typing import List
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.tools import katalyst_tool
 from katalyst.katalyst_core.utils.error_handling import create_error_message, ErrorType
+from katalyst.katalyst_core.utils.exceptions import UserInputRequiredException
 from katalyst.app.ui.input_handler import InputHandler
 from rich.console import Console
 import json
@@ -31,7 +32,7 @@ def request_user_input(
     Parameters:
       - question_to_ask_user: str (the question to ask the user)
       - suggested_responses: list of suggestion strings
-      - user_input_fn: function to use for user input (defaults to input)
+      - user_input_fn: function to use for user input (defaults to input) - for testing only
     Returns the user's answer as a JSON string (with 'question_to_ask_user' and 'user_final_answer' keys).
     """
     logger = get_logger()
@@ -68,6 +69,8 @@ def request_user_input(
         s.strip() for s in suggested_responses if isinstance(s, str) and s.strip()
     ]
     
+    logger.debug(f"Filtered suggestions: {suggestions_for_user}")
+    
     # Ensure we have at least some valid options after filtering
     if not suggestions_for_user:
         error_msg = create_error_message(
@@ -81,6 +84,21 @@ def request_user_input(
     
     # Use enhanced input handler for better UI
     input_handler = InputHandler()
+    
+    # Check if we're in an interactive terminal
+    import sys
+    import os
+    is_interactive = sys.stdin.isatty() and os.isatty(0)
+    logger.debug(f"Is interactive terminal: {is_interactive}, stdin: {sys.stdin}, stdout: {sys.stdout}")
+    
+    # For now, raise an exception in non-test environments to interrupt execution
+    if user_input_fn is None and not is_interactive:
+        logger.info("[TOOL] Raising UserInputRequiredException to interrupt agent execution")
+        raise UserInputRequiredException(
+            question=question_to_ask_user,
+            suggested_responses=suggested_responses,
+            tool_name="request_user_input"
+        )
     
     # If a custom user_input_fn is provided, use the old behavior for compatibility
     if user_input_fn != input:
@@ -124,6 +142,8 @@ def request_user_input(
         menu_options = [{"label": sug, "value": sug} for sug in suggestions_for_user]
         menu_options.append({"label": "Enter custom answer", "value": "__custom__"})
         
+        logger.debug(f"Menu options to display: {menu_options}")
+        
         # Show arrow menu
         selected = input_handler.prompt_arrow_menu(
             title="Select an answer",
@@ -148,5 +168,5 @@ def request_user_input(
 
     logger.debug(f"User responded with: {actual_answer}")
     result = format_response(question_to_ask_user, actual_answer)
-    logger.debug(f"[TOOL] Exiting request_user_input successfully with user answer")
+    logger.info(f"[TOOL] request_user_input returning result: {result}")
     return result

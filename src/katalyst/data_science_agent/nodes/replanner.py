@@ -119,7 +119,7 @@ def replanner(state: KatalystState) -> KatalystState:
 
     # Get replanner tools with logging context (verification tools)
     tool_functions = get_tool_functions_map(category="replanner")
-    tools = create_tools_with_context(tool_functions, "DS_REPLANNER")
+    tools = create_tools_with_context(tool_functions, "DS_REPLANNER", state)
 
     # Get summarization node for conversation compression
     summarization_node = get_summarization_node()

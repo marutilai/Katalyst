@@ -4,6 +4,7 @@ from pathlib import Path
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.tools import katalyst_tool
 from katalyst.katalyst_core.utils.file_utils import should_ignore_path
+from katalyst.katalyst_core.utils.decorators import sandbox_paths
 
 
 def _process_matches(matches, base_path, pattern, respect_gitignore):
@@ -37,11 +38,13 @@ def _process_matches(matches, base_path, pattern, respect_gitignore):
 
 
 @katalyst_tool(prompt_module="glob", prompt_var="GLOB_TOOL_PROMPT", categories=["planner", "executor"])
+@sandbox_paths()
 def glob(
     pattern: str,
     path: str = ".",
     respect_gitignore: bool = True,
-    auto_approve: bool = True
+    auto_approve: bool = True,
+    project_root_cwd: str = None
 ) -> str:
     """
     Find files matching a glob pattern.

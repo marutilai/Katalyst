@@ -45,7 +45,6 @@ from katalyst.app.instrumentation import init_instrumentation
 load_dotenv()
 
 
-
 def maybe_show_welcome():
     if not ONBOARDING_FLAG.exists():
         welcome_screens.screen_1_welcome_and_security()
@@ -82,9 +81,15 @@ def print_run_summary(final_state: dict, input_handler: InputHandler = None):
         for i, (task_desc, summary) in enumerate(completed_tasks):
             console.print(f"  [cyan]{i+1}.[/cyan] '{task_desc}': {summary}")
     else:
-        console.print(
-            "[dim]No sub-tasks were marked as completed with a summary.[/dim]"
-        )
+        # Only show "no sub-tasks" message if tasks were actually created
+        task_queue = final_state.get("task_queue", [])
+        original_plan = final_state.get("original_plan", [])
+        
+        # If tasks were created (either in queue or original plan), show the message
+        if task_queue or original_plan:
+            console.print(
+                "[dim]No sub-tasks were marked as completed with a summary.[/dim]"
+            )
     last_agent_outcome = final_state.get("agent_outcome")
     if isinstance(last_agent_outcome, AgentFinish):
         console.print(
@@ -290,8 +295,7 @@ def repl(user_input_fn=input):
                     if task_manager.clear():
                         console.print("[green]Todo list cleared.[/green]")
                     else:
-                        console.print("[yellow]Note: Could not clear todo list.[/yellow]"
-                    )
+                        console.print("[yellow]Note: Could not clear todo list.[/yellow]")
 
                 except sqlite3.Error as e:
                     logger.error(f"Database error while clearing checkpoint: {e}")
@@ -379,4 +383,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main() 

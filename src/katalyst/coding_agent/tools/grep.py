@@ -6,6 +6,7 @@ from shutil import which
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.tools import katalyst_tool
 from katalyst.app.config import SEARCH_FILES_MAX_RESULTS  # Centralized config
+from katalyst.katalyst_core.utils.decorators import sandbox_paths
 
 
 def _build_rg_command(pattern, path, file_pattern=None, case_insensitive=False, 
@@ -56,6 +57,7 @@ def _build_rg_command(pattern, path, file_pattern=None, case_insensitive=False,
 
 
 @katalyst_tool(prompt_module="grep", prompt_var="GREP_TOOL_PROMPT", categories=["planner", "executor"])
+@sandbox_paths()
 def grep(
     pattern: str, 
     path: str = ".",
@@ -63,7 +65,8 @@ def grep(
     case_insensitive: bool = False,
     show_line_numbers: bool = True,
     max_results: int = None,
-    auto_approve: bool = True
+    auto_approve: bool = True,
+    project_root_cwd: str = None
 ) -> str:
     """
     Search for patterns in files using ripgrep (rg).

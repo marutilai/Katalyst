@@ -11,6 +11,7 @@ class ErrorType(Enum):
     PARSING_ERROR = "PARSING_ERROR"  # Invalid state or response format
     LLM_ERROR = "LLM_ERROR"  # Critical LLM-related failures
     REPLAN_REQUESTED = "REPLAN_REQUESTED"  # User requested replanning
+    SANDBOX_VIOLATION = "SANDBOX_VIOLATION"  # Attempted access outside project directory
 
 
 def create_error_message(

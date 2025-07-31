@@ -6,9 +6,11 @@ from typing import Dict, List, Optional
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.tools import katalyst_tool
 from katalyst.katalyst_core.utils.file_utils import should_ignore_path
+from katalyst.katalyst_core.utils.decorators import sandbox_paths
 
 
 @katalyst_tool(prompt_module="ls", prompt_var="LS_TOOL_PROMPT", categories=["planner", "executor", "replanner"])
+@sandbox_paths()  # Automatically validates 'path' parameter
 def ls(
     path: str = ".",
     all: bool = False,
@@ -16,7 +18,8 @@ def ls(
     recursive: bool = False,
     human_readable: bool = True,
     respect_gitignore: bool = True,
-    auto_approve: bool = True
+    auto_approve: bool = True,
+    project_root_cwd: str = None  # Added to receive project root from context
 ) -> str:
     """
     List directory contents, similar to Unix ls command.

@@ -9,10 +9,14 @@ __all__ = ["route_after_agent", "route_after_pointer", "route_after_replanner", 
 def route_after_agent(state: KatalystState) -> Union[str, object]:
     """
     Route after executor completes.
-    1) If state.error_message contains [GRAPH_RECURSION], go to "replanner".
-    2) If agent completed the task (AgentFinish), go to "advance_pointer".
-    3) Otherwise, something went wrong, go to "replanner".
+    1) If needs_user_input is True, go to END to pause execution.
+    2) If state.error_message contains [GRAPH_RECURSION], go to "replanner".
+    3) If agent completed the task (AgentFinish), go to "advance_pointer".
+    4) Otherwise, something went wrong, go to "replanner".
     """
+    if state.needs_user_input:
+        # User input is required - pause execution
+        return END
     if state.error_message and "[GRAPH_RECURSION]" in state.error_message:
         return "replanner"
     if isinstance(state.agent_outcome, AgentFinish):

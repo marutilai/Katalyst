@@ -6,10 +6,12 @@ from katalyst.katalyst_core.utils.tools import katalyst_tool
 from katalyst.katalyst_core.utils.error_handling import create_error_message, ErrorType
 from katalyst.app.ui.input_handler import InputHandler
 from katalyst.app.execution_controller import check_execution_cancelled
+from katalyst.katalyst_core.utils.decorators import sandbox_paths
 
 
 @katalyst_tool(prompt_module="write", prompt_var="WRITE_TOOL_PROMPT", categories=["executor"])
-def write(path: str, content: str, auto_approve: bool = True) -> str:
+@sandbox_paths()
+def write(path: str, content: str, auto_approve: bool = True, project_root_cwd: str = None) -> str:
     """
     Write content to a file, creating it if it doesn't exist.
     Checks syntax before writing for supported file types.

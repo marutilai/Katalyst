@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional, Union, Callable, Dict, Any
+from typing import List, Tuple, Optional, Union, Callable, Dict, Any, Set
 from pydantic import BaseModel, Field
 from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.messages import BaseMessage
@@ -72,6 +72,26 @@ class KatalystState(BaseModel):
     plan_feedback: Optional[str] = Field(
         None,
         description="User feedback about the generated plan to be incorporated in replanning.",
+    )
+    
+    # ── security / sandbox ─────────────────────────────────────────────────
+    allowed_external_paths: Set[str] = Field(
+        default_factory=set,
+        description="External file paths explicitly mentioned by user that can bypass sandbox.",
+    )
+    
+    # ── user input handling ───────────────────────────────────────────────
+    needs_user_input: bool = Field(
+        False,
+        description="Flag indicating the agent needs user input to continue.",
+    )
+    user_input_required: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Details about the user input needed (question, suggested_responses, tool_name).",
+    )
+    user_input_response: Optional[str] = Field(
+        None,
+        description="User's response to the input request.",
     )
 
     # ── loop guardrails ───────────────────────────────────────────────────
