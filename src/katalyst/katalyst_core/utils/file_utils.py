@@ -57,6 +57,45 @@ def should_ignore_path(
     return False
 
 
+def _is_path_in_allowed_list(
+    path: str, 
+    resolved_path: str, 
+    allowed_external_paths: Optional[Union[List[str], Set[str]]]
+) -> bool:
+    """
+    Check if a path is in the allowed external paths list.
+    
+    This helper function ensures consistent validation logic across different
+    code paths, preventing security vulnerabilities from inconsistent checks.
+    
+    Args:
+        path: Original path provided by user
+        resolved_path: The resolved absolute path
+        allowed_external_paths: List or Set of allowed external paths
+        
+    Returns:
+        bool: True if the path is allowed, False otherwise
+    """
+    if not allowed_external_paths:
+        return False
+    
+    for allowed in allowed_external_paths:
+        # Resolve the allowed path for comparison
+        allowed_expanded = os.path.expanduser(allowed) if allowed.startswith("~") else allowed
+        allowed_abs = os.path.abspath(allowed_expanded) if not os.path.isabs(allowed_expanded) else allowed_expanded
+        try:
+            allowed_resolved = os.path.realpath(allowed_abs)
+            # Check both resolved paths and original path strings
+            if resolved_path == allowed_resolved or path == allowed:
+                return True
+        except OSError:
+            # If we can't resolve allowed path, do string comparison only
+            if path == allowed:
+                return True
+    
+    return False
+
+
 def resolve_and_validate_path(path: str, project_root: str, allowed_external_paths: Optional[Union[List[str], Set[str]]] = None) -> str:
     """
     Resolve a path and validate it's within the project sandbox.
@@ -98,26 +137,13 @@ def resolve_and_validate_path(path: str, project_root: str, allowed_external_pat
         common_path = os.path.commonpath([resolved_path, project_root_resolved])
         if common_path != project_root_resolved:
             # Path is outside project - check if it's in allowed list
-            if allowed_external_paths:
-                # Check if the path or original path is in allowed list
-                for allowed in allowed_external_paths:
-                    # Resolve the allowed path for comparison
-                    allowed_expanded = os.path.expanduser(allowed) if allowed.startswith("~") else allowed
-                    allowed_abs = os.path.abspath(allowed_expanded) if not os.path.isabs(allowed_expanded) else allowed_expanded
-                    try:
-                        allowed_resolved = os.path.realpath(allowed_abs)
-                        if resolved_path == allowed_resolved or path == allowed:
-                            # This external path is explicitly allowed
-                            return resolved_path
-                    except OSError:
-                        # If we can't resolve allowed path, do string comparison
-                        if path == allowed:
-                            return resolved_path
+            if _is_path_in_allowed_list(path, resolved_path, allowed_external_paths):
+                return resolved_path
             raise SandboxViolationError(path, project_root)
     except ValueError:
         # Paths are on different drives (Windows) or have no common path
         # Check allowed list before raising error
-        if allowed_external_paths and path in allowed_external_paths:
+        if _is_path_in_allowed_list(path, resolved_path, allowed_external_paths):
             return resolved_path
         raise SandboxViolationError(path, project_root)
     

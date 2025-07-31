@@ -111,6 +111,25 @@ class TestSandboxValidation:
         )
         
         assert result_list == result_set
+    
+    def test_path_traversal_in_allowed_paths(self, project_root):
+        """Test that path traversal cannot bypass allowed paths check."""
+        # This tests the security vulnerability mentioned in code review
+        allowed_paths = ["/tmp/data.csv"]
+        
+        # Try to access the same file with path traversal
+        traversal_path = "/tmp/../tmp/data.csv"
+        
+        # This should succeed because it resolves to the allowed path
+        result = resolve_and_validate_path(
+            traversal_path, project_root, allowed_paths
+        )
+        assert "/tmp/data.csv" in result
+        
+        # But accessing a different file should fail
+        evil_path = "/tmp/../etc/passwd"
+        with pytest.raises(SandboxViolationError):
+            resolve_and_validate_path(evil_path, project_root, allowed_paths)
 
 
 class TestExtractAndClassifyPaths:
