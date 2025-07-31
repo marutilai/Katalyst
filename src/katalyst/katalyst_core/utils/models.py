@@ -9,13 +9,13 @@ class TaskType(str, Enum):
     TEST_CREATION = "test_creation"
     REFACTOR = "refactor"
     DOCUMENTATION = "documentation"
-    
+
     # Data Science tasks
     DATA_EXPLORATION = "data_exploration"
     FEATURE_ENGINEERING = "feature_engineering"
     MODEL_TRAINING = "model_training"
     MODEL_EVALUATION = "model_evaluation"
-    
+
     # Generic
     OTHER = "other"
 
@@ -49,35 +49,12 @@ class ReplannerOutput(BaseModel):
     )
 
 
-class PlaybookEvaluation(BaseModel):
-    """Model for evaluating playbook guidelines relevance and applicability."""
-
-    relevance_score: float = Field(
-        ge=0.0,
-        le=1.0,
-        description="Score from 0.0 to 1.0 indicating how relevant the playbook is to the current task",
-    )
-    is_directly_applicable: bool = Field(
-        description="Whether the guidelines can be used as strict requirements"
-    )
-    key_guidelines: List[str] = Field(
-        description="List of most relevant guideline points"
-    )
-    reasoning: str = Field(description="Step-by-step explanation of the evaluation")
-    usage_recommendation: str = Field(
-        description="How to best use these guidelines (e.g., 'strict', 'reference', 'ignore')"
-    )
-
-
 class RequestUserInputArgs(BaseModel):
     """Arguments for the request_user_input tool."""
-    
-    question_to_ask_user: str = Field(
-        ...,
-        description="The question to ask the user"
-    )
+
+    question_to_ask_user: str = Field(..., description="The question to ask the user")
     suggested_responses: List[str] = Field(
         ...,
         description="List of suggested answer options. Must be non-empty.",
-        min_items=1
+        min_items=1,
     )
