@@ -109,7 +109,7 @@ def resolve_and_validate_path(path: str, project_root: str, allowed_external_pat
                         if resolved_path == allowed_resolved or path == allowed:
                             # This external path is explicitly allowed
                             return resolved_path
-                    except:
+                    except OSError:
                         # If we can't resolve allowed path, do string comparison
                         if path == allowed:
                             return resolved_path
