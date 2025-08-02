@@ -91,8 +91,9 @@ def request_user_input(
     is_interactive = sys.stdin.isatty() and os.isatty(0)
     logger.debug(f"Is interactive terminal: {is_interactive}, stdin: {sys.stdin}, stdout: {sys.stdout}")
     
-    # For now, raise an exception in non-test environments to interrupt execution
-    if user_input_fn is None and not is_interactive:
+    # Always raise an exception when no custom input function is provided
+    # This ensures user input is handled in the main REPL thread where terminal menus work properly
+    if user_input_fn is None:
         logger.info("[TOOL] Raising UserInputRequiredException to interrupt agent execution")
         raise UserInputRequiredException(
             question=question_to_ask_user,
