@@ -3,8 +3,6 @@ from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.tools import katalyst_tool
 from katalyst.katalyst_core.utils.error_handling import create_error_message, ErrorType
 from katalyst.katalyst_core.utils.exceptions import UserInputRequiredException
-from katalyst.app.ui.input_handler import InputHandler
-from rich.console import Console
 import json
 
 
@@ -40,11 +38,17 @@ def request_user_input(
         f"Entered request_user_input with question='{question_to_ask_user}', suggested_responses='{suggested_responses}'"
     )
 
-    if user_input_fn is None:
-        user_input_fn = input
-        logger.debug("Using default input function")
+    # Always raise an exception when no custom input function is provided OR when using default input
+    # This ensures user input is handled in the main REPL thread where terminal menus work properly
+    if user_input_fn is None or user_input_fn == input:
+        logger.info("[TOOL] Raising UserInputRequiredException to interrupt agent execution")
+        raise UserInputRequiredException(
+            question=question_to_ask_user,
+            suggested_responses=suggested_responses,
+            tool_name="request_user_input"
+        )
     else:
-        logger.debug(f"Using provided user_input_fn: {user_input_fn}")
+        logger.debug(f"Using provided custom user_input_fn: {user_input_fn}")
 
     if not isinstance(question_to_ask_user, str) or not question_to_ask_user.strip():
         error_msg = create_error_message(
@@ -82,86 +86,37 @@ def request_user_input(
         logger.error(error_msg)
         return error_msg
     
-    # Use enhanced input handler for better UI
-    input_handler = InputHandler()
+    # Only use custom user_input_fn for testing (when it's not None and not the default input)
+    # In all other cases, the exception will have been raised above
+    # Legacy behavior for testing
+    manual_answer_prompt = "Let me enter my own answer"
+    suggestions_for_user.append(manual_answer_prompt)
     
-    # Check if we're in an interactive terminal
-    import sys
-    import os
-    is_interactive = sys.stdin.isatty() and os.isatty(0)
-    logger.debug(f"Is interactive terminal: {is_interactive}, stdin: {sys.stdin}, stdout: {sys.stdout}")
+    print(f"\n[Katalyst Question To User]\n{question_to_ask_user}")
+    print("Suggested answers:")
+    for idx, suggestion_text in enumerate(suggestions_for_user, 1):
+        print(f"  {idx}. {suggestion_text}")
     
-    # Always raise an exception when no custom input function is provided
-    # This ensures user input is handled in the main REPL thread where terminal menus work properly
-    if user_input_fn is None:
-        logger.info("[TOOL] Raising UserInputRequiredException to interrupt agent execution")
-        raise UserInputRequiredException(
-            question=question_to_ask_user,
-            suggested_responses=suggested_responses,
-            tool_name="request_user_input"
-        )
+    user_choice_str = user_input_fn(
+        "Your answer (enter number or type custom answer): "
+    ).strip()
+    actual_answer = ""
     
-    # If a custom user_input_fn is provided, use the old behavior for compatibility
-    if user_input_fn != input:
-        # Legacy behavior for testing
-        manual_answer_prompt = "Let me enter my own answer"
-        suggestions_for_user.append(manual_answer_prompt)
-        
-        print(f"\n[Katalyst Question To User]\n{question_to_ask_user}")
-        print("Suggested answers:")
-        for idx, suggestion_text in enumerate(suggestions_for_user, 1):
-            print(f"  {idx}. {suggestion_text}")
-        
-        user_choice_str = user_input_fn(
-            "Your answer (enter number or type custom answer): "
-        ).strip()
-        actual_answer = ""
-        
-        if user_choice_str.isdigit():
-            try:
-                choice_idx = int(user_choice_str)
-                if 1 <= choice_idx <= len(suggestions_for_user):
-                    actual_answer = suggestions_for_user[choice_idx - 1]
-                    if actual_answer == manual_answer_prompt:
-                        actual_answer = user_input_fn(
-                            f"\nYour custom answer to '{question_to_ask_user}': "
-                        ).strip()
-                else:
-                    actual_answer = user_choice_str
-            except ValueError:
+    if user_choice_str.isdigit():
+        try:
+            choice_idx = int(user_choice_str)
+            if 1 <= choice_idx <= len(suggestions_for_user):
+                actual_answer = suggestions_for_user[choice_idx - 1]
+                if actual_answer == manual_answer_prompt:
+                    actual_answer = user_input_fn(
+                        f"\nYour custom answer to '{question_to_ask_user}': "
+                    ).strip()
+            else:
                 actual_answer = user_choice_str
-        else:
+        except ValueError:
             actual_answer = user_choice_str
     else:
-        # Use arrow navigation for normal operation
-        console = Console()
-        
-        console.print(f"\n[bold cyan]Katalyst Question:[/bold cyan]")
-        console.print(f"{question_to_ask_user}\n")
-        
-        # Add custom answer option
-        menu_options = [{"label": sug, "value": sug} for sug in suggestions_for_user]
-        menu_options.append({"label": "Enter custom answer", "value": "__custom__"})
-        
-        logger.debug(f"Menu options to display: {menu_options}")
-        
-        # Show arrow menu
-        selected = input_handler.prompt_arrow_menu(
-            title="Select an answer",
-            options=menu_options,
-            quit_keys=["escape"]
-        )
-        
-        if selected is None:
-            # User cancelled
-            actual_answer = "[USER_CANCELLED]"
-        elif selected == "__custom__":
-            # User wants to enter custom answer
-            actual_answer = input_handler.prompt_text(
-                f"Your answer to '{question_to_ask_user}': "
-            ).strip()
-        else:
-            actual_answer = selected
+        actual_answer = user_choice_str
 
     if not actual_answer:
         logger.error("User did not provide a valid answer.")
