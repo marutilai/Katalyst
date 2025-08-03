@@ -8,7 +8,7 @@ import json
 @katalyst_tool(
     prompt_module="list_code_definitions",
     prompt_var="LIST_CODE_DEFINITION_NAMES_TOOL_PROMPT",
-    categories=["planner", "executor"]
+    categories=["executor"]
 )
 def list_code_definition_names(path: str, auto_approve: bool = True) -> str:
     """
