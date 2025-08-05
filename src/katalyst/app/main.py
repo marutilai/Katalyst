@@ -6,7 +6,7 @@ import sys
 import time
 import sqlite3
 from dotenv import load_dotenv
-
+from opentelemetry import trace as trace_api
 # Suppress tree-sitter deprecation warning
 warnings.filterwarnings("ignore", category=FutureWarning, module="tree_sitter")
 
@@ -23,6 +23,8 @@ from katalyst.app.cli.commands import (
     handle_provider_command,
     handle_model_command,
 )
+import subprocess
+
 from katalyst.app.ui.input_handler import InputHandler
 from katalyst.app.execution_controller import execution_controller
 from katalyst.app.config import CHECKPOINT_DB
@@ -36,6 +38,8 @@ from katalyst.katalyst_core.utils.task_manager import TaskManager
 
 # Import async cleanup to register cleanup handlers
 import katalyst.katalyst_core.utils.async_cleanup
+from katalyst.app.instrumentation import init_instrumentation
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -139,6 +143,7 @@ def repl(user_input_fn=input):
     logger = get_logger()
     console = Console()
     input_handler = InputHandler(console)
+    tracer = trace_api.get_tracer(__name__)
 
     # Use persistent SQLite checkpointer
     checkpointer = SqliteSaver.from_conn_string(str(CHECKPOINT_DB))
@@ -148,226 +153,186 @@ def repl(user_input_fn=input):
 
     # Check if we have an existing session
     has_previous_session = CHECKPOINT_DB.exists()
+    with tracer.start_as_current_span("session_start") as span:
+        # Set up more unique and informative span attributes
+        
+        project_name = getattr(config, "PROJECT_NAME", "katalyst")
+        current_folder = os.path.basename(os.getcwd())
+        # conversation_id is set just below, so use a placeholder for now
+        temp_conversation_id = "pending"
+        span.set_attribute("session_id", f"{project_name}-{temp_conversation_id}")
+        span.set_attribute("project_name", project_name)
+        span.set_attribute("current_folder", current_folder)
+        span.set_attribute("cwd", os.getcwd())
+        graph = build_main_graph().with_config(checkpointer=checkpointer)
+        conversation_id = "katalyst-main-thread"
+        graph_config = {
+            "configurable": {"thread_id": conversation_id},
+            "recursion_limit": config.RECURSION_LIMIT,
+        }
 
-    graph = build_main_graph().with_config(checkpointer=checkpointer)
-    conversation_id = "katalyst-main-thread"
-    graph_config = {
-        "configurable": {"thread_id": conversation_id},
-        "recursion_limit": config.RECURSION_LIMIT,
-    }
+        # Setup interrupt handler for REPL
+        interrupt_handler = ReplInterruptHandler(console)
+        signal.signal(signal.SIGINT, interrupt_handler)
 
-    # Setup interrupt handler for REPL
-    interrupt_handler = ReplInterruptHandler(console)
-    signal.signal(signal.SIGINT, interrupt_handler)
-
-    # Show session status
-    if has_previous_session:
-        console.print(
-            "\n[cyan]Resuming previous session... (use /new to start fresh)[/cyan]\n"
-        )
-    else:
-        console.print("\n[green]Starting new session...[/green]\n")
-
-    # Get TaskManager singleton and load tasks from previous session
-    task_manager = TaskManager.get_instance()
-    if task_manager.load() and (task_manager.pending or task_manager.in_progress):
-        console.print("[yellow]📋 Resuming task list from previous session:[/yellow]")
-        console.print(task_manager.get_summary())
-        console.print("")  # Empty line for spacing
-
-    # Define available commands for interactive selection
-    slash_commands = [
-        {"label": "/help", "value": "/help", "description": "Show help message"},
-        {
-            "label": "/init",
-            "value": "/init",
-            "description": "Generate developer guide (KATALYST.md)",
-        },
-        {"label": "/provider", "value": "/provider", "description": "Set LLM provider"},
-        {"label": "/model", "value": "/model", "description": "Set LLM model"},
-        {
-            "label": "/new",
-            "value": "/new",
-            "description": "Start a new conversation (clear history)",
-        },
-        {"label": "/exit", "value": "/exit", "description": "Exit the agent"},
-    ]
-
-    while True:
-        try:
-            # Use styled prompt for better visibility
-            if user_input_fn == input:
-                user_input = input_handler.prompt_text(
-                    "[bold green]>[/bold green] ", default="", show_default=False
-                ).strip()
-            else:
-                # For testing, use the provided function
-                user_input = user_input_fn("> ").strip()
-        except KeyboardInterrupt:
-            # Interrupt during input - already handled by signal handler
-            continue
-        except EOFError:
-            # Handle Ctrl+D
+        # Show session status
+        if has_previous_session:
             console.print(
-                "\n[yellow]Use /exit to quit or Ctrl+C twice to force exit.[/yellow]"
+                "\n[cyan]Resuming previous session... (use /new to start fresh)[/cyan]\n"
             )
-            continue
+        else:
+            console.print("\n[green]Starting new session...[/green]\n")
 
-        # Skip empty input
-        if not user_input:
-            continue
+        # Get TaskManager singleton and load tasks from previous session
+        task_manager = TaskManager.get_instance()
+        if task_manager.load() and (task_manager.pending or task_manager.in_progress):
+            console.print("[yellow]📋 Resuming task list from previous session:[/yellow]")
+            console.print(task_manager.get_summary())
+            console.print("")  # Empty line for spacing
 
-        # Handle slash command selection
-        if user_input == "/":
-            # Display commands in a nice table format
-            console.print("\n[bold cyan]Available Commands:[/bold cyan]")
+        # Define available commands for interactive selection
+        slash_commands = [
+            {"label": "/help", "value": "/help", "description": "Show help message"},
+            {
+                "label": "/init",
+                "value": "/init",
+                "description": "Generate developer guide (KATALYST.md)",
+            },
+            {"label": "/provider", "value": "/provider", "description": "Set LLM provider"},
+            {"label": "/model", "value": "/model", "description": "Set LLM model"},
+            {"label": "/config", "value": "/config", "description": "Run interactive configuration for environment variables"},
+            {
+                "label": "/new",
+                "value": "/new",
+                "description": "Start a new conversation (clear history)",
+            },
+            {"label": "/exit", "value": "/exit", "description": "Exit the agent"},
+        ]
 
-            # Create a table for better formatting
-            table = Table(show_header=False, box=None, padding=(0, 2))
-            table.add_column("Command", style="bold green", no_wrap=True)
-            table.add_column("Description", style="dim")
-
-            for cmd in slash_commands:
-                table.add_row(cmd["label"], cmd["description"])
-
-            console.print(table)
-            console.print("\n[dim]Type a command or press Enter to cancel[/dim]")
-
-            # Get user input for the command
-            command_input = input_handler.prompt_text(
-                "[bold green]>[/bold green] /", default="", show_default=False
-            ).strip()
-
-            if command_input:
-                # Add the slash back if user didn't type it
-                if not command_input.startswith("/"):
-                    user_input = "/" + command_input
+        while True:
+            try:
+                # Use styled prompt for better visibility
+                if user_input_fn == input:
+                    user_input = input_handler.prompt_text(
+                        "[bold green]>[/bold green] ", default="", show_default=False
+                    ).strip()
                 else:
-                    user_input = command_input
-            else:
-                # User cancelled
+                    # For testing, use the provided function
+                    user_input = user_input_fn("> ").strip()
+            except KeyboardInterrupt:
+                # Interrupt during input - already handled by signal handler
+                continue
+            except EOFError:
+                # Handle Ctrl+D
+                console.print(
+                    "\n[yellow]Use /exit to quit or Ctrl+C twice to force exit.[/yellow]"
+                )
                 continue
 
-        if user_input == "/help":
-            show_help()
-            continue
-        elif user_input == "/init":
-            handle_init_command(graph, config)
-            continue
-        elif user_input == "/provider":
-            handle_provider_command()
-            continue
-        elif user_input == "/model":
-            handle_model_command()
-            continue
-        elif user_input == "/new":
-            # Clear the checkpoint data for current thread
-            try:
-                checkpointer.delete_checkpoint(config)
-                console.print(
-                    "[green]Conversation history cleared. Starting fresh![/green]"
-                )
+            # Skip empty input
+            if not user_input:
+                continue
 
-                # Also clear todos when starting fresh
-                if task_manager.clear():
-                    console.print("[green]Todo list cleared.[/green]")
+            # Handle slash command selection
+            if user_input == "/":
+                # Display commands in a nice table format
+                console.print("\n[bold cyan]Available Commands:[/bold cyan]")
+
+                # Create a table for better formatting
+                table = Table(show_header=False, box=None, padding=(0, 2))
+                table.add_column("Command", style="bold green", no_wrap=True)
+                table.add_column("Description", style="dim")
+
+                for cmd in slash_commands:
+                    table.add_row(cmd["label"], cmd["description"])
+
+                console.print(table)
+                console.print("\n[dim]Type a command or press Enter to cancel[/dim]")
+
+                # Get user input for the command
+                command_input = input_handler.prompt_text(
+                    "[bold green]>[/bold green] /", default="", show_default=False
+                ).strip()
+
+                if command_input:
+                    # Add the slash back if user didn't type it
+                    if not command_input.startswith("/"):
+                        user_input = "/" + command_input
+                    else:
+                        user_input = command_input
                 else:
-                    console.print("[yellow]Note: Could not clear todo list.[/yellow]")
+                    # User cancelled
+                    continue
 
-            except sqlite3.Error as e:
-                logger.error(f"Database error while clearing checkpoint: {e}")
-                console.print(
-                    "[red]Error: Could not clear conversation history due to a database issue.[/red]"
-                )
-            except Exception as e:
-                logger.warning(
-                    f"Failed to clear checkpoint with an unexpected error: {e}"
-                )
-                console.print(
-                    "[yellow]Note: Could not clear previous session data.[/yellow]"
-                )
-            continue
-        elif user_input == "/exit":
-            print("Goodbye!")
-            break
-        logger.debug(
-            "\n==================== 🚀🚀🚀  KATALYST RUN START  🚀🚀🚀 ===================="
-        )
-        logger.debug(f"[MAIN_REPL] Starting new task: '{user_input}'")
-        # Only pass new input for this turn; let checkpointer handle memory
+            if user_input == "/help":
+                show_help()
+                continue
+            elif user_input == "/init":
+                handle_init_command(graph, config)
+                continue
+            elif user_input == "/provider":
+                handle_provider_command()
+                continue
+            elif user_input == "/model":
+                handle_model_command()
+                continue
+            elif user_input == "/config":
+                # Run the Typer-based interactive configuration
+                try:
+                    subprocess.run([sys.executable, "-m", "katalyst.app.cli.configure", "run"], check=True)
+                except Exception as e:
+                    console.print(f"[red]Failed to run interactive configuration: {e}[/red]")
+                continue
+            elif user_input == "/new":
+                # Clear the checkpoint data for current thread
+                try:
+                    checkpointer.delete_checkpoint(config)
+                    console.print(
+                        "[green]Conversation history cleared. Starting fresh![/green]"
+                    )
 
-        current_input = {
-            "task": user_input,
-            "auto_approve": config.AUTO_APPROVE,
-            "project_root_cwd": os.getcwd(),
-            "user_input_fn": user_input_fn,
-            "messages": [
-                HumanMessage(content=user_input)
-            ],  # Add message for supervisor
-        }
-        final_state = None
-        try:
-            # Wrap graph execution with cancellation support
-            final_state = execution_controller.wrap_execution(
-                graph.invoke, current_input, graph_config
+                    # Also clear todos when starting fresh
+                    if task_manager.clear():
+                        console.print("[green]Todo list cleared.[/green]")
+                    else:
+                        console.print("[yellow]Note: Could not clear todo list.[/yellow]")
+
+                except sqlite3.Error as e:
+                    logger.error(f"Database error while clearing checkpoint: {e}")
+                    console.print(
+                        "[red]Error: Could not clear conversation history due to a database issue.[/red]"
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to clear checkpoint with an unexpected error: {e}"
+                    )
+                    console.print(
+                        "[yellow]Note: Could not clear previous session data.[/yellow]"
+                    )
+                continue
+            elif user_input == "/exit":
+                print("Goodbye!")
+                break
+            logger.info(
+                "\n==================== 🚀🚀🚀  KATALYST RUN START  🚀🚀🚀 ===================="
             )
-        except KeyboardInterrupt:
-            # Handle ESC or Ctrl+C
-            msg = "Execution cancelled by user. Ready for new command."
-            logger.info(f"[USER_CANCEL] {msg}")
-            input_handler.show_status(msg, status="warning", title="Cancelled")
-            execution_controller.reset()
-            continue
-        except GraphRecursionError:
-            msg = (
-                f"Recursion limit ({config['recursion_limit']}) reached. "
-                "The agent is likely in a loop. Please simplify the task or "
-                "increase the KATALYST_RECURSION_LIMIT environment variable if needed."
-            )
-            logger.error(f"[GUARDRAIL] {msg}")
-            input_handler.show_status(
-                msg, status="error", title="Recursion Limit Exceeded"
-            )
-            continue
-        except Exception as e:
-            logger.exception("An error occurred during graph execution.")
-            input_handler.show_status(
-                f"An unexpected error occurred: {e}",
-                status="error",
-                title="Execution Error",
-            )
-            continue
-        # Check if the agent needs user input
-        if final_state and final_state.get("needs_user_input"):
-            # Handle user input requirement
-            user_input_info = final_state.get("user_input_required", {})
-            question = user_input_info.get("question", "Agent needs input")
-            suggested_responses = user_input_info.get("suggested_responses", [])
-            
-            logger.info(f"[MAIN_REPL] Agent needs user input: {question}")
-            
-            # Use the input handler to get user response
-            user_response = input_handler.prompt_with_suggestions(
-                question=question,
-                suggestions=suggested_responses,
-                allow_custom=True,
-                show_descriptions=False
-            )
-            
-            # Resume execution with the user's response
-            logger.info(f"[MAIN_REPL] Resuming execution with user response: {user_response}")
-            
-            # Update state with user response and clear the user input flag
-            resume_input = {
-                "user_input_response": user_response,
-                "needs_user_input": False,
-                "user_input_required": None,
+            logger.info(f"[MAIN_REPL] Starting new task: '{user_input}'")
+            # Only pass new input for this turn; let checkpointer handle memory
+
+            current_input = {
+                "task": user_input,
+                "auto_approve": config.AUTO_APPROVE,
+                "project_root_cwd": os.getcwd(),
+                "user_input_fn": user_input_fn,
+                "messages": [
+                    HumanMessage(content=user_input)
+                ],  # Add message for supervisor
             }
-            
+            final_state = None
             try:
-                # Continue execution from where we left off
+                # Wrap graph execution with cancellation support
                 final_state = execution_controller.wrap_execution(
-                    graph.invoke, resume_input, graph_config
+                    graph.invoke, current_input, graph_config
                 )
             except KeyboardInterrupt:
                 # Handle ESC or Ctrl+C
@@ -376,29 +341,40 @@ def repl(user_input_fn=input):
                 input_handler.show_status(msg, status="warning", title="Cancelled")
                 execution_controller.reset()
                 continue
-            except Exception as e:
-                logger.exception("An error occurred during graph resume.")
+            except GraphRecursionError:
+                msg = (
+                    f"Recursion limit ({config['recursion_limit']}) reached. "
+                    "The agent is likely in a loop. Please simplify the task or "
+                    "increase the KATALYST_RECURSION_LIMIT environment variable if needed."
+                )
+                logger.error(f"[GUARDRAIL] {msg}")
                 input_handler.show_status(
-                    f"An unexpected error occurred during resume: {e}",
+                    msg, status="error", title="Recursion Limit Exceeded"
+                )
+                continue
+            except Exception as e:
+                logger.exception("An error occurred during graph execution.")
+                input_handler.show_status(
+                    f"An unexpected error occurred: {e}",
                     status="error",
                     title="Execution Error",
                 )
                 continue
-        
-        logger.debug(
-            "\n==================== 🎉🎉🎉  KATALYST RUN COMPLETE  🎉🎉🎉 ===================="
-        )
-        if final_state:
-            print_run_summary(final_state, input_handler)
-        else:
-            input_handler.show_status(
-                "The agent run did not complete successfully.", status="error"
+            logger.info(
+                "\n==================== 🎉🎉🎉  KATALYST RUN COMPLETE  🎉🎉🎉 ===================="
             )
+            if final_state:
+                print_run_summary(final_state, input_handler)
+            else:
+                input_handler.show_status(
+                    "The agent run did not complete successfully.", status="error"
+                )
 
 
 def main():
     ensure_openai_api_key()
     maybe_show_welcome()
+    init_instrumentation()
     try:
         repl()
     except Exception as e:
@@ -407,4 +383,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main() 
