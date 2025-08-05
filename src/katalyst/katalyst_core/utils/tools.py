@@ -127,6 +127,25 @@ def extract_tool_descriptions():
 
 
 
+def _inject_context_from_state(func: Callable, kwargs: dict, state: Optional['KatalystState']) -> None:
+    """
+    Helper function to inject context from state into tool kwargs.
+    
+    Args:
+        func: The function to inspect for parameters
+        kwargs: The kwargs dict to update with context
+        state: Optional KatalystState containing context
+    """
+    if state:
+        sig = inspect.signature(func)
+        if 'project_root_cwd' in sig.parameters and hasattr(state, 'project_root_cwd'):
+            kwargs['project_root_cwd'] = state.project_root_cwd
+        if 'user_input_fn' in sig.parameters and hasattr(state, 'user_input_fn'):
+            kwargs['user_input_fn'] = state.user_input_fn
+        if 'auto_approve' in sig.parameters and hasattr(state, 'auto_approve'):
+            kwargs['auto_approve'] = state.auto_approve
+
+
 def create_tools_with_context(tool_functions_map: Dict[str, callable], agent_name: str, state: Optional['KatalystState'] = None) -> List[StructuredTool]:
     """
     Create StructuredTool instances with agent context logging.
@@ -159,14 +178,7 @@ def create_tools_with_context(tool_functions_map: Dict[str, callable], agent_nam
             @functools.wraps(func)
             def wrapper(**kwargs):
                 # Inject context from state if available and tool needs it
-                if state:
-                    sig = inspect.signature(func)
-                    if 'project_root_cwd' in sig.parameters and hasattr(state, 'project_root_cwd'):
-                        kwargs['project_root_cwd'] = state.project_root_cwd
-                    if 'user_input_fn' in sig.parameters and hasattr(state, 'user_input_fn'):
-                        kwargs['user_input_fn'] = state.user_input_fn
-                    if 'auto_approve' in sig.parameters and hasattr(state, 'auto_approve'):
-                        kwargs['auto_approve'] = state.auto_approve
+                _inject_context_from_state(func, kwargs, state)
                 
                 # Format kwargs for logging, truncating long values
                 log_kwargs = {}
@@ -189,14 +201,7 @@ def create_tools_with_context(tool_functions_map: Dict[str, callable], agent_nam
             def make_sync_wrapper(async_func, t_name):
                 def sync_wrapper(**kwargs):
                     # Inject context from state if available and tool needs it
-                    if state:
-                        sig = inspect.signature(async_func)
-                        if 'project_root_cwd' in sig.parameters and hasattr(state, 'project_root_cwd'):
-                            kwargs['project_root_cwd'] = state.project_root_cwd
-                        if 'user_input_fn' in sig.parameters and hasattr(state, 'user_input_fn'):
-                            kwargs['user_input_fn'] = state.user_input_fn
-                        if 'auto_approve' in sig.parameters and hasattr(state, 'auto_approve'):
-                            kwargs['auto_approve'] = state.auto_approve
+                    _inject_context_from_state(async_func, kwargs, state)
                     
                     # Format kwargs for logging, truncating long values
                     log_kwargs = {}
