@@ -423,8 +423,8 @@ class InputHandler:
 
             # Show menu and get selection
             menu_entry_index = terminal_menu.show()
-        except (OSError, IOError, RuntimeError, Exception) as e:
-            # Handle any issues with TerminalMenu
+        except (OSError, IOError, RuntimeError) as e:
+            # Handle terminal-related issues with TerminalMenu
             self.console.print(
                 f"[yellow]Arrow navigation failed ({type(e).__name__}). Using numbered menu.[/yellow]"
             )
