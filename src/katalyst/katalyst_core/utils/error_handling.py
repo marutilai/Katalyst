@@ -12,6 +12,7 @@ class ErrorType(Enum):
     LLM_ERROR = "LLM_ERROR"  # Critical LLM-related failures
     REPLAN_REQUESTED = "REPLAN_REQUESTED"  # User requested replanning
     SANDBOX_VIOLATION = "SANDBOX_VIOLATION"  # Attempted access outside project directory
+    ML_ANALYSIS_REQUIRED = "ML_ANALYSIS_REQUIRED"  # ML performance analysis not performed
 
 
 def create_error_message(
