@@ -8,7 +8,7 @@ from katalyst.katalyst_core.utils.tools import katalyst_tool
 from katalyst.data_science_agent.kernel_manager import get_kernel_manager
 
 
-@katalyst_tool(prompt_module="execute_data_code", prompt_var="EXECUTE_DATA_CODE_TOOL_PROMPT", categories=["executor"])
+@katalyst_tool(prompt_module="execute_data_code", prompt_var="EXECUTE_DATA_CODE_TOOL_PROMPT", categories=["planner", "executor"])
 def execute_data_code(code: str, timeout: int = 30) -> str:
     """
     Execute Python code in a persistent Jupyter kernel.

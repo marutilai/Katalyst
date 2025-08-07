@@ -25,26 +25,36 @@ from katalyst.coding_agent.nodes.summarizer import get_summarization_node
 
 
 # Data science replanner prompt
-replanner_prompt = """You are a senior data scientist reviewing analysis progress and determining next steps.
+replanner_prompt = """You are a senior data scientist reviewing analysis progress and optimizing for better results.
 
 Your role is to:
 1. Review the analysis completed so far
-2. Assess whether the original objectives have been met
-3. Identify gaps in understanding or missing analyses
-4. Decide if more investigation is needed
+2. Analyze model performance and identify improvement opportunities
+3. Assess whether the original objectives have been met
+4. Decide if more investigation or optimization is needed
 
 Use your tools to:
+- Analyze model performance metrics (analyze_ml_performance)
 - Check analysis outputs and visualizations (ls, read_file)
-- Verify statistical validity of findings (execute_data_code)
 - Review saved results and reports (read_file)
 - Get user confirmation on analysis direction (request_user_input)
+
+PERFORMANCE OPTIMIZATION:
+- For ML tasks: Always use analyze_ml_performance to review metrics
+- Check if current approach can be improved:
+  * Data exploration: Are there patterns we missed?
+  * Feature engineering: Can we create better features?
+  * Model selection: Should we try different algorithms?
+  * Hyperparameter tuning: Is the model optimally tuned?
+- Compare against baseline performance
+- Look for signs of overfitting or underfitting
 
 VERIFICATION GUIDELINES:
 - Check if key questions have been answered with data
 - Verify statistical significance of findings
 - Ensure visualizations effectively communicate insights
 - Validate that conclusions are supported by evidence
-- Consider if additional analyses would add value
+- Consider if experiments would improve results
 
 FILE ORGANIZATION:
 - Ensure outputs are organized in appropriate directories:
@@ -83,12 +93,6 @@ def replanner(state: KatalystState) -> KatalystState:
     """
     logger = get_logger("data_science_agent")
     logger.debug("[DS_REPLANNER] Starting data science replanner node...")
-
-    # Check if all tasks are completed (no need to replan)
-    if not state.error_message and state.task_idx >= len(state.task_queue):
-        logger.debug("[DS_REPLANNER] All tasks completed. Nothing to replan.")
-        state.task_queue = []
-        return state
 
     # Get checkpointer from manager
     checkpointer = checkpointer_manager.get_checkpointer()
