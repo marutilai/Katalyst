@@ -28,6 +28,8 @@ dependencies = [
     "ipykernel>=6.29.0",
     "opentelemetry-exporter-otlp (>=1.36.0,<2.0.0)",
     "openinference-instrumentation-langchain (>=0.1.49,<0.2.0)",
+    "litellm>=1.52.0",
+    "langchain-litellm>=0.1.0",
 ]
 
 [project.scripts]
@@ -73,6 +75,8 @@ langgraph-checkpoint-sqlite = "2.0.10"
 jupyter-client = "^8.6.0"
 ipykernel = "^6.29.0"
 langmem = "0.0.28"
+litellm = ">=1.52.0"
+langchain-litellm = ">=0.1.0"
 
 [tool.poetry.extras]
 data-science = ["pandas", "numpy", "matplotlib", "seaborn"]
