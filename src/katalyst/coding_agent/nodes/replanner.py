@@ -17,7 +17,7 @@ from katalyst.katalyst_core.utils.models import ReplannerOutput
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.checkpointer_manager import checkpointer_manager
 from katalyst.katalyst_core.config import get_llm_config
-from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
+from katalyst.katalyst_core.utils.langchain_models import get_litellm_client
 from katalyst.katalyst_core.utils.tools import get_tool_functions_map, create_tools_with_context
 from katalyst.coding_agent.nodes.summarizer import get_summarization_node
 
@@ -85,7 +85,7 @@ def replanner(state: KatalystState) -> KatalystState:
     logger.debug(f"[REPLANNER] Using model: {model_name} (provider: {provider})")
     
     # Get replanner model
-    replanner_model = get_langchain_chat_model(
+    replanner_model = get_litellm_client(
         model_name=model_name,
         provider=provider,
         temperature=0,

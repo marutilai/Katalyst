@@ -9,7 +9,7 @@ from langgraph.graph import StateGraph, START, END
 
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.config import get_llm_config
-from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
+from katalyst.katalyst_core.utils.langchain_models import get_litellm_client
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.file_utils import extract_and_classify_paths
 from katalyst.coding_agent.graph import build_coding_graph
@@ -42,7 +42,7 @@ def router_node(state: KatalystState) -> KatalystState:
     timeout = llm_config.get_timeout()
     api_base = llm_config.get_api_base()
     
-    model = get_langchain_chat_model(
+    model = get_litellm_client(
         model_name=model_name,
         provider=provider,
         temperature=0,

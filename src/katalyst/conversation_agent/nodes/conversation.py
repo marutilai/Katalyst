@@ -12,7 +12,7 @@ from langchain_core.messages import AIMessage
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.config import get_llm_config
-from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
+from katalyst.katalyst_core.utils.langchain_models import get_litellm_client
 
 
 # Conversation prompt for analyzing and responding to user input
@@ -86,7 +86,7 @@ def conversation(state: KatalystState) -> KatalystState:
     logger.debug(f"[CONVERSATION] Using model: {model_name} (provider: {provider})")
     
     # Get conversation model
-    conversation_model = get_langchain_chat_model(
+    conversation_model = get_litellm_client(
         model_name=model_name,
         provider=provider,
         temperature=0.7,  # Slightly higher temp for more natural conversation
