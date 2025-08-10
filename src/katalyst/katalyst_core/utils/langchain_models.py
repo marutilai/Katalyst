@@ -180,7 +180,7 @@ def get_litellm_client(model_name:str,use_strictly_one_model:bool=True,**kwargs)
         # if there is no policy on using strictly one mode ,
         #  then we create use the first "model" as provided one and then we implemet fallback policy 
         # TODO: Add this section
-        pass
+        raise NotImplementedError("Fallback model logic is not yet implemented.")
 
 def get_langchain_chat_model(
     model_name: str,
