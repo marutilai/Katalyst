@@ -23,6 +23,7 @@ from katalyst.katalyst_core.utils.tools import (
 )
 from katalyst.katalyst_core.utils.task_type_utils import parse_task_type, get_task_type_guidance
 from katalyst.katalyst_core.utils.models import TaskType
+from katalyst.katalyst_core.utils.error_handling import ErrorType, create_error_message
 from katalyst.app.execution_controller import check_execution_cancelled
 from katalyst.app.config import USE_PLAYBOOKS
 from katalyst.coding_agent.nodes.summarizer import get_summarization_node
@@ -105,7 +106,7 @@ def executor(state: KatalystState) -> KatalystState:
     executor_model = get_langchain_chat_model(
         model_name=model_name,
         provider=provider,
-        temperature=0,
+        # temperature=0,  # Commented out - not supported by GPT-5
         timeout=timeout,
         api_base=api_base,
     )
@@ -128,6 +129,7 @@ def executor(state: KatalystState) -> KatalystState:
 
     # Parse task type and get specialized guidance if USE_PLAYBOOKS is enabled
     specialized_guidance = ""
+    task_type = None
     if USE_PLAYBOOKS:
         task_type, clean_task = parse_task_type(current_task)
         if task_type and task_type != TaskType.OTHER:
@@ -135,6 +137,65 @@ def executor(state: KatalystState) -> KatalystState:
             logger.debug(f"[DS_EXECUTOR] Detected task type: {task_type.value}")
             # Log the clean task description
             logger.debug(f"[DS_EXECUTOR] Task description: {clean_task}")
+            
+            # Add specific requirements for data exploration
+            if task_type == TaskType.DATA_EXPLORATION:
+                specialized_guidance += """
+
+REQUIRED OUTPUT:
+Before marking this task complete, you MUST create a comprehensive findings file 'data/exploration_findings.json' with a structure like:
+
+{
+  "dataset_info": {
+    "train_shape": [rows, cols],
+    "test_shape": [rows, cols]
+  },
+  "missing_values": {
+    "column_name": percentage,
+    ...
+  },
+  "skewed_features": {
+    "feature_name": skew_value,
+    ...
+  },
+  "correlations": {
+    "high_corr_pairs": [[feat1, feat2, corr_value], ...],
+    "target_correlations": {"feature": corr_value, ...}
+  },
+  "outliers": {
+    "feature_name": {"count": n, "percentage": pct},
+    ...
+  },
+  "categorical_analysis": {
+    "column_name": {"unique_count": n, "top_values": {...}},
+    ...
+  },
+  "recommendations": {
+    "drop_features": ["feature1", ...],
+    "transform_features": {"feature": "transformation_type", ...},
+    "imputation_strategy": {"feature": "strategy", ...}
+  }
+}
+
+Include all statistical findings and insights valuable for feature engineering.
+Use the write tool to save this JSON file.
+"""
+                logger.info("[DS_EXECUTOR] Added exploration summary requirement")
+            
+            # Add requirement to read summary for feature engineering
+            elif task_type == TaskType.FEATURE_ENGINEERING:
+                specialized_guidance = """
+REQUIRED FIRST STEP:
+You MUST read 'data/exploration_findings.json' to understand the data characteristics.
+Load it using execute_data_code:
+  import json
+  with open('data/exploration_findings.json', 'r') as f:
+      findings = json.load(f)
+  
+Apply the recommendations from the exploration findings when creating features.
+
+""" + specialized_guidance
+                logger.info("[DS_EXECUTOR] Added requirement to read exploration summary")
     
     # Create task message with optional specialized guidance
     task_content = f"""Now, please complete this task:
@@ -198,6 +259,49 @@ SUGGESTED NEXT STEPS:
                 # Extract summary after "TASK COMPLETED:"
                 summary_parts = last_message.content.split("TASK COMPLETED:", 1)
                 summary = summary_parts[1].strip()
+                
+                # Validate task-specific requirements before marking complete
+                if USE_PLAYBOOKS and task_type:
+                    # Check if data exploration created summary
+                    if task_type == TaskType.DATA_EXPLORATION:
+                        summary_created = any(
+                            "exploration_findings.json" in msg.content and 
+                            msg.name == "write"
+                            for msg in state.messages[-20:] 
+                            if isinstance(msg, ToolMessage)
+                        )
+                        
+                        if not summary_created:
+                            logger.error("[DS_EXECUTOR] Data exploration task did not create required summary file")
+                            state.error_message = create_error_message(
+                                ErrorType.EXPLORATION_SUMMARY_MISSING,
+                                "Data exploration tasks must create 'data/exploration_findings.json' with findings. Use write tool to save the JSON structure.",
+                                "DS_EXECUTOR"
+                            )
+                            # Don't mark as complete
+                            return state
+                        else:
+                            logger.info("[DS_EXECUTOR] Data exploration JSON findings file created successfully")
+                    
+                    # Check if feature engineering read summary
+                    elif task_type == TaskType.FEATURE_ENGINEERING:
+                        summary_read = any(
+                            "exploration_findings.json" in msg.content and
+                            (msg.name == "read" or msg.name == "execute_data_code")
+                            for msg in state.messages[-30:]
+                            if isinstance(msg, ToolMessage)
+                        )
+                        
+                        if not summary_read:
+                            logger.warning("[DS_EXECUTOR] Feature engineering task did not read exploration summary")
+                            # This is a warning, not an error - still allow completion but log it
+                            logger.warning(create_error_message(
+                                ErrorType.EXPLORATION_FINDINGS_NOT_READ,
+                                "Feature engineering should read 'data/exploration_findings.json' before creating features. Use execute_data_code to load the JSON.",
+                                "DS_EXECUTOR"
+                            ))
+                        else:
+                            logger.debug("[DS_EXECUTOR] Feature engineering successfully loaded exploration findings JSON")
 
                 # Task is complete
                 state.agent_outcome = AgentFinish(

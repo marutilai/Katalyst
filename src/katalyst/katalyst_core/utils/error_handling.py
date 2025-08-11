@@ -13,6 +13,8 @@ class ErrorType(Enum):
     REPLAN_REQUESTED = "REPLAN_REQUESTED"  # User requested replanning
     SANDBOX_VIOLATION = "SANDBOX_VIOLATION"  # Attempted access outside project directory
     ML_ANALYSIS_REQUIRED = "ML_ANALYSIS_REQUIRED"  # ML performance analysis not performed
+    EXPLORATION_SUMMARY_MISSING = "EXPLORATION_SUMMARY_MISSING"  # Data exploration JSON findings not created
+    EXPLORATION_FINDINGS_NOT_READ = "EXPLORATION_FINDINGS_NOT_READ"  # Feature engineering didn't read exploration JSON
 
 
 def create_error_message(

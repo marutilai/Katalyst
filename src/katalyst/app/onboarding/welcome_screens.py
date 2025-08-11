@@ -68,7 +68,7 @@ Tips for getting started:
 
 1. Run `/init` to create a KATALYST.md file with instructions for Katalyst
 2. Use `/provider` to switch between OpenAI and Anthropic
-3. Use `/model` to select specific models (gpt4.1 for OpenAI, sonnet4/opus4 for Anthropic)
+3. Use `/model` to select specific models (gpt5 for OpenAI, sonnet4/opus4 for Anthropic)
 4. Be as specific as you would with another engineer for the best results
 
 *Tip:* Start with small features or bug fixes, tell Katalyst to propose a plan, and verify its suggested edits

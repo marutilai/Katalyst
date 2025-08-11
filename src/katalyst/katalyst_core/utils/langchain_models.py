@@ -35,13 +35,23 @@ def get_langchain_chat_model(
     if provider == "openai":
         try:
             from langchain_openai import ChatOpenAI
-            return ChatOpenAI(
-                model=model_name,
-                temperature=temperature,
-                request_timeout=timeout,
-                base_url=api_base,
-                **kwargs
-            )
+            # Special handling for GPT-5 - don't pass temperature
+            if model_name.lower().startswith("gpt-5") or model_name.lower().startswith("gpt5"):
+                return ChatOpenAI(
+                    model=model_name,
+                    # temperature parameter not supported by GPT-5
+                    request_timeout=timeout,
+                    base_url=api_base,
+                    **kwargs
+                )
+            else:
+                return ChatOpenAI(
+                    model=model_name,
+                    temperature=temperature,
+                    request_timeout=timeout,
+                    base_url=api_base,
+                    **kwargs
+                )
         except ImportError:
             raise ImportError("Please install langchain-openai: pip install langchain-openai")
             

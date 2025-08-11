@@ -190,7 +190,7 @@ def planner(state: KatalystState) -> KatalystState:
     planner_model = get_langchain_chat_model(
         model_name=model_name,
         provider=provider,
-        temperature=0,
+        # temperature=0,  # Commented out - not supported by GPT-5
         timeout=timeout,
         api_base=api_base,
     )
