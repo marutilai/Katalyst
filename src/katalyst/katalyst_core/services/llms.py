@@ -8,7 +8,7 @@ Uses LangChain chat models instead of litellm.
 from typing import Optional, Dict, Any
 from langchain_core.language_models import BaseChatModel
 from katalyst.katalyst_core.config import get_llm_config
-from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
+from katalyst.katalyst_core.utils.langchain_models import get_litellm_client
 
 
 def get_llm_client(component: str, async_mode: bool = False, use_instructor: bool = True):
@@ -32,7 +32,7 @@ def get_llm_client(component: str, async_mode: bool = False, use_instructor: boo
     timeout = config.get_timeout()
     
     # Get the LangChain chat model
-    chat_model = get_langchain_chat_model(
+    chat_model = get_litellm_client(
         model_name=model_name,
         provider=provider,
         temperature=0.3,

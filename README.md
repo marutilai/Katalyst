@@ -72,6 +72,47 @@ The `search_files` tool requires [ripgrep](https://github.com/BurntSushi/ripgrep
   - Configurable model selection
   - Easy extension for other LLM providers
 
+## Observability & Tracing (Phoenix)
+
+Katalyst can emit OpenTelemetry traces (via OpenInference) to Phoenix for rich observability.
+
+### 1) Start Phoenix (Docker)
+
+```bash
+docker compose up -d phoenix
+```
+
+Phoenix UI will be available at [Phoenix UI](http://localhost:6006).
+
+### 2) Configure environment
+
+Add the following to your `.env` (or export them in your shell):
+
+```bash
+# Enable Phoenix tracing
+OTEL_PLATFORM=phoenix
+
+# If running Phoenix locally on your host
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:6006/v1/traces
+
+# Any non-empty value is required by the exporter in this project
+PHOENIX_API_KEY=dev
+```
+
+Notes:
+- If you are sending traces from a container in the same Docker network as `phoenix`, you may use `http://phoenix:6006/v1/traces` as the endpoint.
+- Invocation parameters are hidden by default for privacy (configured via OpenInference).
+
+### 3) Run Katalyst
+
+Use the CLI as usual. Traces will stream to Phoenix automatically on startup.
+
+```bash
+katalyst "Your task description"
+```
+
+Then open the Phoenix UI to explore spans, latency, tokens, and tool activity.
+
 ## Testing
 
 Katalyst includes both unit and functional tests. For detailed information about running tests, writing new tests, and test coverage, see [TESTS.md](TESTS.md).

@@ -18,7 +18,7 @@ from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.checkpointer_manager import checkpointer_manager
 from katalyst.katalyst_core.config import get_llm_config
 from katalyst.app.config import USE_PLAYBOOKS
-from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
+from katalyst.katalyst_core.utils.langchain_models import get_litellm_client
 from katalyst.katalyst_core.utils.tools import (
     get_tool_functions_map,
     create_tools_with_context,
@@ -144,7 +144,7 @@ def planner(state: KatalystState) -> KatalystState:
     logger.debug(f"[PLANNER] Using model: {model_name} (provider: {provider})")
 
     # Get planner model
-    planner_model = get_langchain_chat_model(
+    planner_model = get_litellm_client(
         model_name=model_name,
         provider=provider,
         # temperature=0,  # Commented out - not supported by GPT-5

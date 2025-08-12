@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from katalyst.katalyst_core.state import KatalystState
 from katalyst.coding_agent.graph import build_coding_graph
 from katalyst.katalyst_core.utils.logger import get_logger
-from katalyst.katalyst_core.utils.langchain_models import get_langchain_chat_model
+from katalyst.katalyst_core.utils.langchain_models import get_litellm_client
 from katalyst.katalyst_core.config import get_llm_config
 from tests.e2e.test_rubric import KatalystCodingRubric, RubricItemResult
 
@@ -199,7 +199,7 @@ class KatalystTestRunner:
         try:
             # Use LangChain model with structured output
             llm_config = get_llm_config()
-            model = get_langchain_chat_model(
+            model = get_litellm_client(
                 model_name=test_case.llm_model,
                 provider=llm_config.get_provider(),
                 temperature=0,
