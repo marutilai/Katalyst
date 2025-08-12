@@ -21,9 +21,9 @@ from .nodes.planner import planner
 from .nodes.executor import executor
 from .nodes.replanner import replanner
 
-# Still use shared nodes for common functionality
+# Use shared nodes for common functionality
 from katalyst.coding_agent.nodes.advance_pointer import advance_pointer
-from katalyst.coding_agent.nodes.human_plan_verification import human_plan_verification
+from katalyst.katalyst_core.nodes.human_plan_verification import human_plan_verification
 
 
 def build_data_science_graph():

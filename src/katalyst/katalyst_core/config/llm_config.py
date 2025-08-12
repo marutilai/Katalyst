@@ -14,10 +14,10 @@ logger = get_logger()
 # Provider profiles with default models for different use cases
 PROVIDER_PROFILES = {
     "openai": {
-        "reasoning": "gpt-4.1",  # High-reasoning tasks (planner, replanner)
-        "execution": "gpt-4.1",  # Fast execution tasks (executor, tools)
+        "reasoning": "gpt-5",  # High-reasoning tasks (planner, replanner)
+        "execution": "gpt-5",  # Fast execution tasks (executor, tools)
         "fallback": "gpt-4o",  # Fallback model
-        "default_timeout": 45,
+        "default_timeout": 300,  # Increased for GPT-5
     },
     "anthropic": {
         "reasoning": "claude-3-opus-20240229",  # High-reasoning tasks

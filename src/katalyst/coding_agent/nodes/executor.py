@@ -128,7 +128,7 @@ def executor(state: KatalystState) -> KatalystState:
     executor_model = get_litellm_client(
         model_name=model_name,
         provider=provider,
-        temperature=0,
+        # temperature=0,  # Commented out - not supported by GPT-5
         timeout=timeout,
         api_base=api_base
     )

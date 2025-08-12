@@ -21,30 +21,60 @@ from katalyst.katalyst_core.utils.tools import (
     get_tool_functions_map,
     create_tools_with_context,
 )
+from katalyst.katalyst_core.utils.ml_utils import check_analysis_performed
+from katalyst.katalyst_core.utils.error_handling import ErrorType, create_error_message
 from katalyst.coding_agent.nodes.summarizer import get_summarization_node
 
 
 # Data science replanner prompt
-replanner_prompt = """You are a senior data scientist reviewing analysis progress and determining next steps.
+replanner_prompt = """You are a senior data scientist reviewing analysis progress and optimizing for better results.
+
+CRITICAL REQUIREMENT: You MUST thoroughly review the analysis results BEFORE deciding if objectives are complete. This is mandatory for proper evaluation.
 
 Your role is to:
 1. Review the analysis completed so far
-2. Assess whether the original objectives have been met
-3. Identify gaps in understanding or missing analyses
-4. Decide if more investigation is needed
+2. Analyze model performance and identify improvement opportunities
+3. Assess whether the original objectives have been met
+4. Decide if more investigation or optimization is needed
+
+Required workflow for ML tasks:
+1. Explore project structure to understand what was created:
+   - Check docs/ for data exploration summaries and insights
+   - Check models/ for trained models and performance metrics
+   - Check visualizations/ for plots and analysis figures
+   - Check data/ for processed datasets and feature files
+
+2. Review key analysis artifacts:
+   - Data profiling results (missing values, distributions, correlations)
+   - Feature engineering documentation (what features were created and why)
+   - Model performance metrics (use analyze_ml_performance for comprehensive review)
+   - Error analysis (misclassified examples, residual patterns)
+
+3. Only after thorough review, decide if objectives are met
 
 Use your tools to:
-- Check analysis outputs and visualizations (ls, read_file)
-- Verify statistical validity of findings (execute_data_code)
-- Review saved results and reports (read_file)
+- Explore project structure (ls) - check docs/, models/, visualizations/, data/
+- Review analysis documentation (read) - profiling results, feature summaries
+- Analyze model performance metrics (analyze_ml_performance) - for ML model evaluation
+- Check visualizations and outputs (ls, read)
 - Get user confirmation on analysis direction (request_user_input)
+
+PERFORMANCE OPTIMIZATION:
+- For ML tasks: You MUST use analyze_ml_performance to review metrics
+- Check if current approach can be improved:
+  * Data exploration: Are there patterns we missed?
+  * Feature engineering: Can we create better features?
+  * Model selection: Should we try different algorithms?
+  * Hyperparameter tuning: Is the model optimally tuned?
+- Compare against baseline performance
+- Look for signs of overfitting or underfitting
 
 VERIFICATION GUIDELINES:
 - Check if key questions have been answered with data
 - Verify statistical significance of findings
 - Ensure visualizations effectively communicate insights
 - Validate that conclusions are supported by evidence
-- Consider if additional analyses would add value
+- Consider if experiments would improve results
 
 FILE ORGANIZATION:
 - Ensure outputs are organized in appropriate directories:
@@ -55,7 +85,8 @@ FILE ORGANIZATION:
 - Check that filenames are descriptive and indicate their content
 
 DECISION CRITERIA:
-- Set is_complete to true if:
+- Set is_complete to true ONLY if:
+  * For ML tasks: You have used analyze_ml_performance AND the metrics are satisfactory
   * Original analysis objectives are fully ACHIEVED
   * Key insights have been discovered and documented
   * Findings are properly validated
@@ -84,12 +115,6 @@ def replanner(state: KatalystState) -> KatalystState:
     logger = get_logger("data_science_agent")
     logger.debug("[DS_REPLANNER] Starting data science replanner node...")
 
-    # Check if all tasks are completed (no need to replan)
-    if not state.error_message and state.task_idx >= len(state.task_queue):
-        logger.debug("[DS_REPLANNER] All tasks completed. Nothing to replan.")
-        state.task_queue = []
-        return state
-
     # Get checkpointer from manager
     checkpointer = checkpointer_manager.get_checkpointer()
 
@@ -98,6 +123,7 @@ def replanner(state: KatalystState) -> KatalystState:
         logger.error("[DS_REPLANNER] No checkpointer available from manager")
         state.error_message = "No checkpointer available for conversation"
         return state
+    
 
     # Get configured model
     llm_config = get_llm_config()
@@ -112,7 +138,7 @@ def replanner(state: KatalystState) -> KatalystState:
     replanner_model = get_litellm_client(
         model_name=model_name,
         provider=provider,
-        temperature=0,
+        # temperature=0,  # Commented out - not supported by GPT-5
         timeout=timeout,
         api_base=api_base,
     )
@@ -165,6 +191,12 @@ TOOL EXECUTION HISTORY:
     verification_message = HumanMessage(
         content=f"""{context}
 
+MANDATORY: You MUST thoroughly review the analysis results by:
+1. Using ls to explore docs/, models/, visualizations/ directories
+2. Reading key analysis files (data profiles, feature documentation, error analysis)
+3. If models exist, use analyze_ml_performance to review model metrics
+4. Only after comprehensive review, decide if objectives are met
+
 Please review the analysis completed so far and decide if the objectives have been met or if additional investigation is needed."""
     )
 
@@ -183,6 +215,18 @@ Please review the analysis completed so far and decide if the objectives have be
         structured_response = result.get("structured_response")
 
         if structured_response and isinstance(structured_response, ReplannerOutput):
+            # Always check if analysis was performed before marking complete
+            if structured_response.is_complete:
+                if not check_analysis_performed(state.messages):
+                    logger.error("[DS_REPLANNER] Task cannot be completed without reviewing analysis results")
+                    state.error_message = create_error_message(
+                        ErrorType.ML_ANALYSIS_REQUIRED,
+                        "You must review the analysis results using available tools (ls, read, analyze_ml_performance) before marking objectives as complete. Check docs/, models/, and visualizations/ directories.",
+                        "DS_REPLANNER"
+                    )
+                    # Return early to trigger replanning
+                    return state
+            
             if structured_response.is_complete:
                 # Analysis is complete
                 logger.info("[DS_REPLANNER] Analysis objectives complete")
@@ -228,10 +272,11 @@ Please review the analysis completed so far and decide if the objectives have be
                     )
         else:
             # Fallback: check if there's an error message in the result
-            logger.error(
-                f"[DS_REPLANNER] No structured response received. Result keys: {list(result.keys())}"
-            )
-            state.error_message = "Failed to get structured response from replanner"
+            if not state.error_message:  # Only set if we didn't already set an ML validation error
+                logger.error(
+                    f"[DS_REPLANNER] No structured response received. Result keys: {list(result.keys())}"
+                )
+                state.error_message = "Failed to get structured response from replanner"
 
             # Log any AI messages for debugging
             ai_messages = [msg for msg in state.messages if isinstance(msg, AIMessage)]

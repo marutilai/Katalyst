@@ -89,7 +89,7 @@ def conversation(state: KatalystState) -> KatalystState:
     conversation_model = get_litellm_client(
         model_name=model_name,
         provider=provider,
-        temperature=0.7,  # Slightly higher temp for more natural conversation
+        # temperature=0.7,  # Commented out - not supported by GPT-5
         timeout=timeout,
         api_base=api_base
     )

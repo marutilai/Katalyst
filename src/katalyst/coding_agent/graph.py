@@ -20,7 +20,7 @@ from .nodes.planner import planner
 from .nodes.executor import executor
 from .nodes.advance_pointer import advance_pointer
 from .nodes.replanner import replanner
-from .nodes.human_plan_verification import human_plan_verification
+from katalyst.katalyst_core.nodes.human_plan_verification import human_plan_verification
 
 
 def build_coding_graph():

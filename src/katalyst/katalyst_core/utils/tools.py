@@ -13,12 +13,10 @@ from katalyst.katalyst_core.utils.logger import get_logger
 if TYPE_CHECKING:
     from katalyst.katalyst_core.state import KatalystState
 
-# Directory containing all tool modules
-TOOLS_IMPLEMENTATION_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "coding_agent",
-    "tools",
-)
+# Directories containing tool modules
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+CODING_TOOLS_DIR = os.path.join(BASE_DIR, "coding_agent", "tools")
+DATA_SCIENCE_TOOLS_DIR = os.path.join(BASE_DIR, "data_science_agent", "tools")
 
 
 def katalyst_tool(func=None, *, prompt_module=None, prompt_var=None, categories=None):
@@ -59,39 +57,44 @@ def get_tool_functions_map(category=None) -> Dict[str, callable]:
                  If None, returns all tools.
     """
     tool_functions = {}
-    if not os.path.exists(TOOLS_IMPLEMENTATION_DIR):
-        print(
-            f"Warning (get_tool_functions_map): Tools directory not found at {TOOLS_IMPLEMENTATION_DIR}"
-        )
-        return tool_functions
-
-    for filename in os.listdir(TOOLS_IMPLEMENTATION_DIR):
-        if filename.endswith(".py") and not filename.startswith("__"):
-            module_name = f"katalyst.coding_agent.tools.{filename[:-3]}"
-            try:
-                module = importlib.import_module(module_name)
-                for attr_name in dir(module):
-                    func_candidate = getattr(module, attr_name)
-                    if callable(func_candidate) and getattr(
-                        func_candidate, "_is_katalyst_tool", False
-                    ):
-                        # Check category filter if provided
-                        if category:
-                            tool_categories = getattr(func_candidate, "_categories", ["executor"])
-                            if category not in tool_categories:
-                                continue
-                        
-                        # Use the stored LLM-facing tool name if available, else func name
-                        tool_key = getattr(
-                            func_candidate,
-                            "_tool_name_for_llm_",
-                            func_candidate.__name__,
-                        )
-                        tool_functions[tool_key] = func_candidate
-            except ImportError as e:
-                print(
-                    f"Warning (get_tool_functions_map): Could not import module {module_name}. Error: {e}"
-                )
+    
+    # Check both coding and data science tool directories
+    tool_dirs = [
+        (CODING_TOOLS_DIR, "katalyst.coding_agent.tools"),
+        (DATA_SCIENCE_TOOLS_DIR, "katalyst.data_science_agent.tools")
+    ]
+    
+    for tools_dir, module_prefix in tool_dirs:
+        if not os.path.exists(tools_dir):
+            continue
+            
+        for filename in os.listdir(tools_dir):
+            if filename.endswith(".py") and not filename.startswith("__"):
+                module_name = f"{module_prefix}.{filename[:-3]}"
+                try:
+                    module = importlib.import_module(module_name)
+                    for attr_name in dir(module):
+                        func_candidate = getattr(module, attr_name)
+                        if callable(func_candidate) and getattr(
+                            func_candidate, "_is_katalyst_tool", False
+                        ):
+                            # Check category filter if provided
+                            if category:
+                                tool_categories = getattr(func_candidate, "_categories", ["executor"])
+                                if category not in tool_categories:
+                                    continue
+                            
+                            # Use the stored LLM-facing tool name if available, else func name
+                            tool_key = getattr(
+                                func_candidate,
+                                "_tool_name_for_llm_",
+                                func_candidate.__name__,
+                            )
+                            tool_functions[tool_key] = func_candidate
+                except ImportError as e:
+                    print(
+                        f"Warning (get_tool_functions_map): Could not import module {module_name}. Error: {e}"
+                    )
     return tool_functions
 
 
@@ -107,21 +110,25 @@ def extract_tool_descriptions():
     for tool_name, func in tool_map.items():
         prompt_module = getattr(func, "_prompt_module", tool_name)
         prompt_var = getattr(func, "_prompt_var", f"{tool_name.upper()}_PROMPT")
-        try:
-            module_path = f"katalyst.coding_agent.prompts.tools.{prompt_module}"
-            module = importlib.import_module(module_path)
-            prompt_str = getattr(module, prompt_var, None)
-            if not prompt_str or not isinstance(prompt_str, str):
+        
+        # Try both coding and data science prompt paths
+        for prompt_prefix in ["katalyst.coding_agent.prompts.tools", "katalyst.data_science_agent.prompts.tools"]:
+            try:
+                module_path = f"{prompt_prefix}.{prompt_module}"
+                module = importlib.import_module(module_path)
+                prompt_str = getattr(module, prompt_var, None)
+                if not prompt_str or not isinstance(prompt_str, str):
+                    continue
+                # Find the first line after 'Description:'
+                match = re.search(r"Description:(.*)", prompt_str)
+                if match:
+                    desc = match.group(1).strip().split(". ")[0].strip()
+                    if not desc.endswith("."):
+                        desc += "."
+                    tool_descriptions.append((tool_name, desc))
+                    break  # Found it, don't try other prefix
+            except Exception:
                 continue
-            # Find the first line after 'Description:'
-            match = re.search(r"Description:(.*)", prompt_str)
-            if match:
-                desc = match.group(1).strip().split(". ")[0].strip()
-                if not desc.endswith("."):
-                    desc += "."
-                tool_descriptions.append((tool_name, desc))
-        except Exception:
-            continue
     return tool_descriptions
 
 

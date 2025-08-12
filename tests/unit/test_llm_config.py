@@ -28,9 +28,9 @@ class TestLLMConfig:
         with patch.dict(os.environ, {}, clear=True):
             config = get_llm_config()
             assert config.get_provider() == "openai"
-            assert config.get_timeout() == 45
-            assert config.get_model_for_component("planner") == "gpt-4.1"
-            assert config.get_model_for_component("executor") == "gpt-4.1"
+            assert config.get_timeout() == 300
+            assert config.get_model_for_component("planner") == "gpt-5"
+            assert config.get_model_for_component("executor") == "gpt-5"
 
     def test_provider_profiles(self):
         """Test different provider profiles."""
@@ -81,12 +81,12 @@ class TestLLMConfig:
         with patch.dict(os.environ, {}, clear=True):
             config = get_llm_config()
             # Reasoning components
-            assert config.get_model_for_component("planner") == "gpt-4.1"
-            assert config.get_model_for_component("replanner") == "gpt-4.1"
+            assert config.get_model_for_component("planner") == "gpt-5"
+            assert config.get_model_for_component("replanner") == "gpt-5"
             # Execution components
-            assert config.get_model_for_component("executor") == "gpt-4.1"
+            assert config.get_model_for_component("executor") == "gpt-5"
             # Unknown component defaults to execution
-            assert config.get_model_for_component("unknown_component") == "gpt-4.1"
+            assert config.get_model_for_component("unknown_component") == "gpt-5"
 
     def test_timeout_configuration(self):
         """Test timeout configuration."""
@@ -104,7 +104,7 @@ class TestLLMConfig:
         ):
             reset_config()
             config = get_llm_config()
-            assert config.get_timeout() == 45  # OpenAI default
+            assert config.get_timeout() == 300  # OpenAI default
 
     def test_invalid_provider_profile(self):
         """Test handling of invalid provider profile."""

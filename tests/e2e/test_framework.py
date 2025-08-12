@@ -56,7 +56,7 @@ class KatalystTestCase(BaseModel):
         default_factory=KatalystCodingRubric,
         description="Scoring rubric (list of criteria)",
     )
-    llm_model: str = Field("gpt-4.1", description="LLM model to use for evaluation")
+    llm_model: str = Field("gpt-5", description="LLM model to use for evaluation")
     timeout: int = Field(60, description="Timeout in seconds")
     auto_approve: bool = Field(
         False, description="Whether to auto-approve user prompts"

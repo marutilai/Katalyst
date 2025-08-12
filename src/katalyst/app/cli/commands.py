@@ -13,7 +13,7 @@ Available commands:
 /help      Show this help message
 /init      Generate a developer guide for the repository (saved as KATALYST.md)
 /provider  Set LLM provider (openai/anthropic/ollama)
-/model     Set LLM model (gpt4.1 for OpenAI, sonnet4/opus4 for Anthropic)
+/model     Set LLM model (gpt5 for OpenAI, sonnet4/opus4 for Anthropic)
 /new       Start a new conversation (clear history)
 /exit      Exit the agent
 
@@ -191,7 +191,7 @@ def handle_model_command():
     
     if provider == "openai":
         models = [
-            {"label": "GPT-4.1", "value": "gpt4.1", "description": "Latest GPT-4 model"}
+            {"label": "GPT-5", "value": "gpt5", "description": "Latest GPT-5 model"}
         ]
     elif provider == "anthropic":
         models = [
