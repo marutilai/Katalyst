@@ -28,7 +28,7 @@ class TestLLMConfig:
         with patch.dict(os.environ, {}, clear=True):
             config = get_llm_config()
             assert config.get_provider() == "openai"
-            assert config.get_timeout() == 45
+            assert config.get_timeout() == 300
             assert config.get_model_for_component("planner") == "gpt-5"
             assert config.get_model_for_component("executor") == "gpt-5"
 
@@ -104,7 +104,7 @@ class TestLLMConfig:
         ):
             reset_config()
             config = get_llm_config()
-            assert config.get_timeout() == 45  # OpenAI default
+            assert config.get_timeout() == 300  # OpenAI default
 
     def test_invalid_provider_profile(self):
         """Test handling of invalid provider profile."""
