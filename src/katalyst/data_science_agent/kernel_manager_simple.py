@@ -31,7 +31,7 @@ class SimpleKernelManager:
                     self.kernel_client.stop_channels()
                 self.kernel_manager.shutdown_kernel(now=True)
                 time.sleep(0.5)
-            except:
+            except Exception:
                 pass
             self.kernel_manager = None
             self.kernel_client = None
@@ -137,7 +137,7 @@ class SimpleKernelManager:
                 self.kernel_client.stop_channels()
                 self.kernel_manager.shutdown_kernel(now=True)
                 time.sleep(0.5)
-            except:
+            except Exception:
                 pass
             self.kernel_manager = None
             self.kernel_client = None
@@ -154,7 +154,7 @@ class SimpleKernelManager:
                     self.kernel_client.stop_channels()
                 if self.kernel_manager.is_alive():
                     self.kernel_manager.shutdown_kernel(now=True)
-            except:
+            except Exception:
                 pass
             finally:
                 self.kernel_manager = None
