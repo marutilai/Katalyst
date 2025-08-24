@@ -1,6 +1,6 @@
 import tempfile
 import os
-from tree_sitter_languages import get_parser
+from tree_sitter_language_pack import get_parser
 from katalyst.app.config import EXT_TO_LANG
 
 # --- Syntax Checking Utilities ---

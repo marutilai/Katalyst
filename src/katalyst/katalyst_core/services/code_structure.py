@@ -1,6 +1,6 @@
 import os
 from typing import List, Dict, Union
-from tree_sitter_languages import get_parser
+from tree_sitter_language_pack import get_parser
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.file_utils import load_gitignore_patterns
 from katalyst.app.config import EXT_TO_LANG
