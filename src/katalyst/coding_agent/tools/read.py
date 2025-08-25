@@ -7,7 +7,7 @@ from katalyst.katalyst_core.utils.file_utils import load_gitignore_patterns
 from katalyst.katalyst_core.utils.decorators import sandbox_paths
 
 
-@katalyst_tool(prompt_module="read", prompt_var="READ_TOOL_PROMPT", categories=["planner", "executor", "replanner"])
+@katalyst_tool(prompt_module="read", prompt_var="READ_TOOL_PROMPT", categories=["planner", "executor", "replanner", "conversation"])
 @sandbox_paths()
 def read(
     path: str,

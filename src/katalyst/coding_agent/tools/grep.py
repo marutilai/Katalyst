@@ -56,7 +56,7 @@ def _build_rg_command(pattern, path, file_pattern=None, case_insensitive=False,
     return cmd
 
 
-@katalyst_tool(prompt_module="grep", prompt_var="GREP_TOOL_PROMPT", categories=["planner", "executor"])
+@katalyst_tool(prompt_module="grep", prompt_var="GREP_TOOL_PROMPT", categories=["planner", "executor", "conversation"])
 @sandbox_paths()
 def grep(
     pattern: str, 
