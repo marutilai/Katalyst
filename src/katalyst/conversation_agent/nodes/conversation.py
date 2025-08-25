@@ -181,6 +181,9 @@ def conversation(state: KatalystState) -> KatalystState:
         ai_message = AIMessage(content=response_content)
         state.messages.append(ai_message)
         
+        # Store response in state for display
+        state.response = response_content
+        
         logger.info(f"[CONVERSATION] Response generated ({len(response_content)} chars)")
         
     except Exception as e:
@@ -190,6 +193,9 @@ def conversation(state: KatalystState) -> KatalystState:
         # Add error response
         ai_message = AIMessage(content=error_msg)
         state.messages.append(ai_message)
+        
+        # Store error response in state for display
+        state.response = error_msg
     
     logger.debug("[CONVERSATION] Conversation agent complete")
     return state
