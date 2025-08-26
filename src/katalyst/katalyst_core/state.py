@@ -21,6 +21,10 @@ class KatalystState(BaseModel):
         exclude=True,
         description="Function to use for user input (not persisted).",
     )
+    execution_mode: str = Field(
+        default="action",
+        description="Current mode: 'plan' (analysis only via conversation agent) or 'action' (full execution with all agents)."
+    )
 
     # ── long-horizon planning ─────────────────────────────────────────────
     task_queue: List[str] = Field(

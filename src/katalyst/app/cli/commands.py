@@ -15,6 +15,8 @@ Available commands:
 /provider  Set LLM provider (openai/anthropic/ollama)
 /model     Set LLM model (gpt5 for OpenAI, sonnet4/opus4 for Anthropic)
 /new       Start a new conversation (clear history)
+/mode      Show or set execution mode (plan/action)
+/toggle    Toggle between plan and action modes
 /exit      Exit the agent
 
 Type / to see available commands or enter your coding task below.
