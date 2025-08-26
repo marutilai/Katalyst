@@ -454,6 +454,89 @@ def repl(user_input_fn=input):
                     title="Execution Error",
                 )
                 continue
+            
+            # Check if the agent needs user input
+            if final_state and final_state.get("needs_user_input"):
+                logger.info("[MAIN_REPL] Agent requesting user input")
+                user_input_data = final_state.get("user_input_required", {})
+                
+                if user_input_data:
+                    question = user_input_data.get("question", "Please provide input:")
+                    suggested_responses = user_input_data.get("suggested_responses", [])
+                    
+                    # Display the question
+                    console.print(f"\n[bold yellow]📝 Agent Question:[/bold yellow]")
+                    console.print(f"{question}\n")
+                    
+                    # Add "Enter custom response" option
+                    display_options = suggested_responses + ["Enter custom response"]
+                    
+                    # Use InputHandler's menu system for selection
+                    selected_option = input_handler.prompt_arrow_menu(
+                        title="Select your response:",
+                        options=[{"label": opt, "value": opt} for opt in display_options],
+                        quit_keys=["escape"]
+                    )
+                    
+                    if selected_option is None:
+                        # User cancelled
+                        input_handler.show_status(
+                            "User input cancelled. Agent execution stopped.",
+                            status="warning"
+                        )
+                        continue
+                    
+                    # Handle custom input
+                    if selected_option == "Enter custom response":
+                        user_response = input_handler.prompt_text(
+                            "[bold yellow]Your response:[/bold yellow] ",
+                            default="",
+                            show_default=False
+                        ).strip()
+                        if not user_response:
+                            input_handler.show_status(
+                                "Empty response provided. Agent execution stopped.",
+                                status="warning"
+                            )
+                            continue
+                    else:
+                        user_response = selected_option
+                    
+                    logger.info(f"[MAIN_REPL] User provided response: {user_response}")
+                    
+                    # Update the state with the user's response
+                    resume_input = {
+                        "task": state.task,  # Keep original task
+                        "auto_approve": config.AUTO_APPROVE,
+                        "project_root_cwd": os.getcwd(),
+                        "user_input_fn": user_input_fn,
+                        "execution_mode": state.execution_mode,
+                        "user_input_response": user_response,  # Add user's response
+                        "needs_user_input": False,  # Clear the flag
+                        "messages": final_state.get("messages", [])  # Preserve messages
+                    }
+                    
+                    # Resume execution with user's response
+                    logger.info("[MAIN_REPL] Resuming agent execution with user response")
+                    try:
+                        final_state = execution_controller.wrap_execution(
+                            graph.invoke, resume_input, graph_config
+                        )
+                    except KeyboardInterrupt:
+                        msg = "Execution cancelled by user during resume. Ready for new command."
+                        logger.info(f"[USER_CANCEL] {msg}")
+                        input_handler.show_status(msg, status="warning", title="Cancelled")
+                        execution_controller.reset()
+                        continue
+                    except Exception as e:
+                        logger.exception("Error during resumed execution")
+                        input_handler.show_status(
+                            f"Error resuming execution: {e}",
+                            status="error",
+                            title="Resume Error"
+                        )
+                        continue
+            
             logger.info(
                 "\n==================== 🎉🎉🎉  KATALYST RUN COMPLETE  🎉🎉🎉 ===================="
             )
