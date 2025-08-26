@@ -14,6 +14,7 @@ from katalyst.app import config
 from katalyst.supervisor.main_graph import build_main_graph
 from katalyst.katalyst_core.utils.logger import get_logger
 from katalyst.katalyst_core.utils.checkpointer_manager import checkpointer_manager
+from katalyst.katalyst_core.state import KatalystState
 from katalyst.app.onboarding import welcome_screens
 from katalyst.app.config import ONBOARDING_FLAG
 from katalyst.katalyst_core.utils.environment import ensure_openai_api_key
@@ -192,6 +193,20 @@ def repl(user_input_fn=input):
         else:
             console.print("\n[green]Starting new session...[/green]\n")
 
+        # Initialize state for mode tracking - retrieve from checkpoint if exists
+        # Get the last state from checkpointer to preserve execution_mode
+        last_mode = "action"  # default
+        try:
+            # Try to get the last checkpoint state
+            checkpoint_state = checkpointer.get(graph_config)
+            if checkpoint_state and checkpoint_state.values:
+                # Extract execution_mode from the saved state
+                last_mode = checkpoint_state.values.get("execution_mode", "action")
+        except Exception as e:
+            logger.debug(f"Could not retrieve previous mode from checkpoint: {e}")
+        
+        state = KatalystState(task="", project_root_cwd=os.getcwd(), execution_mode=last_mode)
+        
         # Get TaskManager singleton and load tasks from previous session
         task_manager = TaskManager.get_instance()
         if task_manager.load() and (task_manager.pending or task_manager.in_progress):
@@ -215,19 +230,26 @@ def repl(user_input_fn=input):
                 "value": "/new",
                 "description": "Start a new conversation (clear history)",
             },
+            {"label": "/mode", "value": "/mode", "description": "Show or set execution mode (plan/action)"},
+            {"label": "/toggle", "value": "/toggle", "description": "Toggle between plan and action modes"},
             {"label": "/exit", "value": "/exit", "description": "Exit the agent"},
         ]
 
         while True:
             try:
-                # Use styled prompt for better visibility
+                # Get current mode for prompt
+                current_mode = state.execution_mode
+                mode_prefix = "[PLAN]" if current_mode == "plan" else "[ACTION]"
+                mode_color = "cyan" if current_mode == "plan" else "green"
+                
+                # Use styled prompt for better visibility with mode indicator
                 if user_input_fn == input:
                     user_input = input_handler.prompt_text(
-                        "[bold green]>[/bold green] ", default="", show_default=False
+                        f"[bold {mode_color}]{mode_prefix} >[/bold {mode_color}] ", default="", show_default=False
                     ).strip()
                 else:
                     # For testing, use the provided function
-                    user_input = user_input_fn("> ").strip()
+                    user_input = user_input_fn(f"{mode_prefix} > ").strip()
             except KeyboardInterrupt:
                 # Interrupt during input - already handled by signal handler
                 continue
@@ -319,6 +341,68 @@ def repl(user_input_fn=input):
                         "[yellow]Note: Could not clear previous session data.[/yellow]"
                     )
                 continue
+            elif user_input.startswith("/mode"):
+                # Handle mode command
+                parts = user_input.split(maxsplit=1)
+                if len(parts) == 1:
+                    # Just /mode - show current mode
+                    current_mode = state.execution_mode
+                    mode_icon = "📋" if current_mode == "plan" else "⚡"
+                    console.print(f"\n{mode_icon} Current mode: [bold cyan]{current_mode.upper()}[/bold cyan]")
+                    if current_mode == "plan":
+                        console.print("[dim]Plan mode: All requests go to conversation agent for analysis only[/dim]")
+                    else:
+                        console.print("[dim]Action mode: Full execution with all agents available[/dim]")
+                else:
+                    # /mode <plan|action>
+                    new_mode = parts[1].lower()
+                    if new_mode in ["plan", "action"]:
+                        # Update mode in state
+                        state.execution_mode = new_mode
+                        # Save the mode change to checkpoint by updating the state
+                        try:
+                            # Create a minimal update to persist the mode
+                            mode_update = {
+                                "execution_mode": new_mode,
+                                "task": "",
+                                "project_root_cwd": os.getcwd(),
+                            }
+                            graph.update_state(graph_config, mode_update)
+                        except Exception as e:
+                            logger.debug(f"Could not persist mode change: {e}")
+                        
+                        mode_icon = "📋" if new_mode == "plan" else "⚡"
+                        console.print(f"\n{mode_icon} Switched to [bold cyan]{new_mode.upper()}[/bold cyan] mode")
+                        if new_mode == "plan":
+                            console.print("[dim]You are now in plan mode - all requests will be analyzed only[/dim]")
+                        else:
+                            console.print("[dim]You are now in action mode - full execution capabilities enabled[/dim]")
+                    else:
+                        console.print("[red]Invalid mode. Use 'plan' or 'action'[/red]")
+                continue
+            elif user_input == "/toggle":
+                # Toggle between plan and action modes
+                current_mode = state.execution_mode
+                new_mode = "plan" if current_mode == "action" else "action"
+                state.execution_mode = new_mode
+                # Save the mode change to checkpoint
+                try:
+                    mode_update = {
+                        "execution_mode": new_mode,
+                        "task": "",
+                        "project_root_cwd": os.getcwd(),
+                    }
+                    graph.update_state(graph_config, mode_update)
+                except Exception as e:
+                    logger.debug(f"Could not persist mode change: {e}")
+                
+                mode_icon = "📋" if new_mode == "plan" else "⚡"
+                console.print(f"\n{mode_icon} Toggled to [bold cyan]{new_mode.upper()}[/bold cyan] mode")
+                if new_mode == "plan":
+                    console.print("[dim]You are now in plan mode - all requests will be analyzed only[/dim]")
+                else:
+                    console.print("[dim]You are now in action mode - full execution capabilities enabled[/dim]")
+                continue
             elif user_input == "/exit":
                 print("Goodbye!")
                 break
@@ -333,6 +417,7 @@ def repl(user_input_fn=input):
                 "auto_approve": config.AUTO_APPROVE,
                 "project_root_cwd": os.getcwd(),
                 "user_input_fn": user_input_fn,
+                "execution_mode": state.execution_mode,
                 "messages": [
                     HumanMessage(content=user_input)
                 ],  # Add message for supervisor

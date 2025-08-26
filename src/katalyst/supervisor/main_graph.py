@@ -22,9 +22,16 @@ def router_node(state: KatalystState) -> KatalystState:
     Router node that decides which agent to use based on the task.
     
     This is a simple LLM call that classifies the task and routes accordingly.
+    In plan mode, always routes to conversation agent for analysis only.
     """
     logger = get_logger("supervisor")
     logger.debug(f"[ROUTER] Analyzing task: {state.task}")
+    
+    # Check if we're in plan mode
+    if state.execution_mode == "plan":
+        state.next_agent = "conversation_agent"
+        logger.info("[ROUTER] Plan mode active - routing to conversation agent for analysis only")
+        return state
     
     # Extract any external file paths from the user's task and add to allowed list
     external_paths = extract_and_classify_paths(state.task, state.project_root_cwd)
