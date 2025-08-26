@@ -64,6 +64,15 @@ def print_run_summary(final_state: dict, input_handler: InputHandler = None):
     if not input_handler:
         input_handler = InputHandler(console)
 
+    # Check for conversation agent response first
+    response = final_state.get("response")
+    if response:
+        # Display the conversation response as the main output
+        console.print("\n[bold green]Response:[/bold green]")
+        console.print(response)
+        console.print()  # Add blank line after response
+        return  # Don't show task summary for conversation responses
+    
     completed_tasks = final_state.get("completed_tasks", [])
     
     # Check if we hit any limits

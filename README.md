@@ -112,13 +112,3 @@ katalyst "Your task description"
 ```
 
 Then open the Phoenix UI to explore spans, latency, tokens, and tool activity.
-
-## Testing
-
-Katalyst includes both unit and functional tests. For detailed information about running tests, writing new tests, and test coverage, see [TESTS.md](TESTS.md).
-
-
-## TODO
-
-See [TODO.md](./TODO.md) for the latest development tasks and roadmap.
-

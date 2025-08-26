@@ -9,7 +9,7 @@ from katalyst.katalyst_core.utils.file_utils import should_ignore_path
 from katalyst.katalyst_core.utils.decorators import sandbox_paths
 
 
-@katalyst_tool(prompt_module="ls", prompt_var="LS_TOOL_PROMPT", categories=["planner", "executor", "replanner"])
+@katalyst_tool(prompt_module="ls", prompt_var="LS_TOOL_PROMPT", categories=["planner", "executor", "replanner", "conversation"])
 @sandbox_paths()  # Automatically validates 'path' parameter
 def ls(
     path: str = ".",

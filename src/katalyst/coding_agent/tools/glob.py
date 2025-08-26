@@ -37,7 +37,7 @@ def _process_matches(matches, base_path, pattern, respect_gitignore):
     return files
 
 
-@katalyst_tool(prompt_module="glob", prompt_var="GLOB_TOOL_PROMPT", categories=["planner", "executor"])
+@katalyst_tool(prompt_module="glob", prompt_var="GLOB_TOOL_PROMPT", categories=["planner", "executor", "conversation"])
 @sandbox_paths()
 def glob(
     pattern: str,

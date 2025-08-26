@@ -73,6 +73,10 @@ class KatalystState(BaseModel):
         None,
         description="User feedback about the generated plan to be incorporated in replanning.",
     )
+    response: Optional[str] = Field(
+        None,
+        description="Direct response from conversation agent or other response-oriented agents.",
+    )
     
     # ── security / sandbox ─────────────────────────────────────────────────
     allowed_external_paths: Set[str] = Field(
